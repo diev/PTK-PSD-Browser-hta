@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.6.12
+	version=3.6.13
 	author=mozersЩ, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -262,7 +262,7 @@ function ShowRCMenu(){
 	RCMenu.document.oncontextmenu = function(){return false;};
 	RCMenu.document.body.style.border = "2px outset";
 	with (RCMenu.document.createStyleSheet()){
-		addRule('body','background-color:buttonface;');
+		addRule('body','background-color:buttonface;cursor:default;');
 		addRule('table','background-color:buttonface; font:menu; margin:0px; width:100%;');
 		addRule('td','white-space:nowrap; width:100%;');
 	}
@@ -388,8 +388,8 @@ function load_Toolbar(){
 	html_toolbar += '		<label for=r3>за 7 дней</label>';
 	html_toolbar += '		<input type=\"radio\" id=r4 name=Interval hidefocus onClick=\"parent.SetInterval(4);\">';
 	html_toolbar += '		<label for=r4>с:</label>';
-	html_toolbar += '		<input hidefocus id=\"startDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onChange=\"parent.StartRefresh();\">';
-	html_toolbar += '		по: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onChange=\"parent.StartRefresh();\">&nbsp;';
+	html_toolbar += '		<input hidefocus id=\"startDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();\">';
+	html_toolbar += '		по: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();;\">&nbsp;';
 	html_toolbar += '	</fieldset>';
 	html_toolbar += '	<td style=\"font:14pt Wingdings; width:100%; text-align:center; text-valign:middle;\"><a href="#" hidefocus title=\"—оздать на –абочем столе\n€рлык дл€ запуска программы\" onClick=\"parent.CreateShortcut(); return false;\">O</a>&nbsp;';
 	html_toolbar += '</table>';
