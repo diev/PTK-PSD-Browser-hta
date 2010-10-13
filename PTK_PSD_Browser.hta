@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.6.13
+	version=3.6.14
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -321,7 +321,7 @@ function SaveRace(){
 }
 
 // Формирование квитанций и подтверждений на сообщение 322-П
-function Ansfer322P(){
+function Answer322P(){
 	function WriteFile(filename, text) {
 		with (FSO.OpenTextFile(filename, 2, true)) {
 			Write(text);
@@ -406,7 +406,7 @@ function load_Toolbar(){
 	html_toolbar += '		<tr id=\"menuitem\" onClick=\"parent.RCMenu.hide(); parent.SaveRace();\">';
 	html_toolbar += '		<td style=\"font:12pt Wingdings;\">&lt;';
 	html_toolbar += '		<td>&nbsp;Сохранить в...&nbsp;';
-	html_toolbar += '		<tr style=\"display:none\" id=\"menuitem\" onClick=\"parent.RCMenu.hide(); parent.Ansfer322P();\">';
+	html_toolbar += '		<tr style=\"display:none\" id=\"menuitem\" onClick=\"parent.RCMenu.hide(); parent.Answer322P();\">';
 	html_toolbar += '		<td style=\"font:12pt Wingdings;\">+';
 	html_toolbar += '		<td>&nbsp;Сформировать подтверждения и квитанции&nbsp;';
 	html_toolbar += '	</table>';
@@ -529,26 +529,31 @@ function StartRefresh(){
 	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
 	// Получение содержимого SA посылки
 	function GetSAcontent(ind){
+		// Извлечение имен форм отчетности из текста
+		function FindFormName(text, re, name){
+			while (re.exec(text)){
+				form_names[form_names.length] = name||RegExp.$1;
+			}
+		}
 		var filename = GetCurrentFile(ind);
 		if ((ATable[ind][0] == 'ОЭС')||(ATable[ind][0] == 'ИЭС2')){
 			WshShell.Run('cmd /c EXPAND -D "'+filename+'" > "'+out+'"', 0, true);
 			filename = out;
 		}
 		var content = ReadTextFile(filename);
-		var re = new RegExp(bank_code+'(.{2,4})\.(zip|doc)', 'gi');
-		var files = [];
-		do {
-			var arr = re.exec(content);
-			if (arr) {
-				files[files.length] = arr[1];
-			}else{
-				break;
-			}
-		} while (true);
-		if ((ATable[ind][0] == 'ИЭС2')&&(files.length==0)){
-			if (/: \d{8}\.i\d{2}/i.test(content)) files[0] = '308P';
-		}
-		return files;
+		var form_names = [];
+		// В одной посылке м.б. только одна форма:
+		if (/ ZDL\d+\.xls/i.test(content)) return 'Инф.о просроченной задолженности'; // Н.Новгород
+		if (/ \d{8}\.[IN]\d{2}/i.test(content)) return '308-П';
+		if ((new RegExp(' IA.{3}'+bank_code+'\\.', 'i')).test(content)) return '601'; // С.Петербург
+		if ((new RegExp(' IN.{3}'+bank_code+'\\.', 'i')).test(content)) return '652'; // С.Петербург
+		if ((new RegExp(' SK.{3}'+bank_code+'\\.', 'i')).test(content)) return 'KAS'; // С.Петербург
+
+		// В одной посылке м.б. несколько различных форм:
+		FindFormName(content, new RegExp(' F(.{3})'+bank_code+'[1-C]\\.', 'gi')); // С.Петербург (664, 665, KRK, PSV, VBK)
+		FindFormName(content, new RegExp(' F'+bank_code+'(.{2,4})\\.(ZIP|DOC)', 'gi')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
+
+		return form_names.join(',');
 	}
 	// Возвращает содержимое сообщения по форме 311-П
 	function Get311PContent(ind){
@@ -557,7 +562,7 @@ function StartRefresh(){
 		var cmd = '( "'+unpacker+'" e -y "'+filename+'" && "'+unpacker+'" l *.arj && DEL /Q /F *.arj )';
 		var output = RunConsole(cmd, tmp_dir);
 		FSO.DeleteFile(tmp_dir + '\\*.*', true);
-		var arr = output.text.match(/SB[CF]\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
+		var arr = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
 		return arr ? ' <s>(' + arr.length + ')</s>' : '';
 	}
 	// Возвращает содержимое сообщения по форме 322-П
@@ -771,7 +776,7 @@ function ShowPreview(){
 		text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
 	} else {
 		text = '<font color="red">Файл отчета "'+filepath+'" не найден!</font>';
-		text += '<p>Для быстрого просмотра необходим отказ от использования архивирования очетов средствами ПТК ПСД.<br>Настройки ПТК ПСД - Модуль архивирования - Интервал установить в 0.';
+		text += '<p>Для быстрого просмотра необходим отказ от использования архивирования отчетов средствами ПТК ПСД.<br>Настройки ПТК ПСД - Модуль архивирования - Интервал установить в 0.';
 	}
 	Preview.document.body.innerHTML = text;
 }
