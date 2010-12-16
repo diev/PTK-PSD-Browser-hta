@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.7.0
+	version=3.7.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -356,7 +356,6 @@ function DeleteSignature (filepath){
 // Сохранение файла отчетности (целиком или одного из вложенных)
 function SaveRace(one_file_from_race){
 	var save_root_dir = INI.Settings.save_root_dir;
-	if (/^2Z/i.test(select_fileName)) save_root_dir = INI.Settings.outbox_dir_311P;
 	var Shell = new ActiveXObject("Shell.Application");
 	var save_filename = ((one_file_from_race) && (one_filename!='')) ? one_filename : select_fileName;
 	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения файла\n" + save_filename, 0, save_root_dir);
@@ -364,7 +363,7 @@ function SaveRace(one_file_from_race){
 	var out_filename = objFolder.Self.Path + '\\' + save_filename;
 	var source = ((one_file_from_race) && (one_filename!='')) ? tmp_dir + '\\' + one_filename : select_filePathNameTime;
 	FSO.CopyFile(source, out_filename, true);
-	if (INI.Settings.sign_delete_onsave) DeleteSignature(out_filename);
+	if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(out_filename);
 }
 
 // Формирование квитанций и подтверждений на сообщение 322-П
@@ -376,6 +375,10 @@ function Answer322P(){
 		}
 	}
 	var outbox_dir_322P = INI.Settings.outbox_dir_322P;
+	if (!outbox_dir_322P) {
+		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
+		return;
+	}
 	if (!FSO.FolderExists(outbox_dir_322P)) FSO.CreateFolder(outbox_dir_322P);
 	WshShell.Run('cmd /c EXPAND -D "'+select_filePathNameTime+'" > "'+out+'"', 0, true);
 	var content = ReadTextFile(out);
@@ -565,11 +568,11 @@ function CheckDates(){
 	function isDate(ds){
 		function format(x){return (x < 10) ? ('0' + x) : String(x);}
 		var d = ds.split('.');
-		var dt = new Date (d[2], d[1], d[0]);
+		var dt = new Date (d[2], d[1]-1, d[0]);
 		if ((Number(d[0])==dt.getDate()) &&
-			(Number(d[1])==dt.getMonth()) &&
+			(Number(d[1])==(dt.getMonth()+1)) &&
 			(Number(d[2])==dt.getFullYear())) {
-			return format(dt.getDate()) + '.' + format(dt.getMonth()) + '.' + dt.getFullYear();
+			return format(dt.getDate()) + '.' + format(dt.getMonth()+1) + '.' + dt.getFullYear();
 		}
 		return '';
 	}
