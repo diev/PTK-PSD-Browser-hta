@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.1
+	version=3.8.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -662,8 +662,34 @@ function StartRefresh(){
 		var cmd = '( "'+unpacker+'" e -y "'+select_filePathNameTime+'" && "'+unpacker+'" l *.arj && DEL /Q /F *.arj )';
 		if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
 		var output = RunConsole(cmd, tmp_dir);
-		var arr = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
-		return arr ? ' <s>(' + arr.length + ')</s>' : '';
+		var count = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig).length;
+		var adr = output.text.match(/([ABCDOPS])\d{13}\.ARJ/i);
+		if (adr) {
+			adr = adr[1].toUpperCase();
+			switch(adr){
+				case 'A':
+					adr = 'Всем';
+					break;
+				case 'B':
+				case 'O':
+					adr = 'ФНС';
+					break;
+				case 'C':
+				case 'P':
+					adr = 'ПФ';
+					break;
+				case 'D':
+				case 'S':
+					adr = 'ФСС';
+					break;
+			}
+		}
+		var content = '';
+		if (count) {
+			content = ' <s>(' + count + ')</s>';
+			if (adr) content = ' <s>(' + adr + '-' + count + ')</s>';
+		}
+		return content;
 	}
 	// Возвращает содержимое сообщения по форме 322-П
 	function Get322PContent(ind){
