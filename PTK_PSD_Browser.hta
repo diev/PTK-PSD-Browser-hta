@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.0
+	version=3.8.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -355,7 +355,6 @@ function PreviewShowContextMenu(obj){
 function PrintForm(){
 	Preview.window.focus();
 	Preview.window.print();
-	load_Preview();
 }
 
 // Открывает окно Проводника и выделяет файл отчетности
@@ -830,6 +829,7 @@ function ShowPreview(){
 						HTML_text += '</table><br>';
 					}
 				}
+				HTML_text = HTML_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
 			}
 		}
 
