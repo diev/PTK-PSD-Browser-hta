@@ -1,21 +1,21 @@
 <HTML>
 <head>
-<meta http-equiv=content-type content="text-html; charset=windows-1251">
+<meta http-equiv=content-type content="text-html; charset=utf-8">
 <meta http-equiv=MSThemeCompatible content=yes>
 <hta:application
 	id=hta_App
-	applicationName=ПТК_ПСД_-_Обозреватель_отчетности
+	applicationName=РџРўРљ_РџРЎР”_-_РћР±РѕР·СЂРµРІР°С‚РµР»СЊ_РѕС‚С‡РµС‚РЅРѕСЃС‚Рё
 	icon=mqutil.dll
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.7.1
-	author=mozers™, mozers@mail.ru, icq#256106175
+	version=3.8.0
+	author=mozersв„ў, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
 <script language="JavaScript">
 // ---------------------------------------------------------
-window.resizeTo(775,550); // первоначальные размеры окна приложения
+window.resizeTo(780,550); // РїРµСЂРІРѕРЅР°С‡Р°Р»СЊРЅС‹Рµ СЂР°Р·РјРµСЂС‹ РѕРєРЅР° РїСЂРёР»РѕР¶РµРЅРёСЏ
 document.title = hta_App.applicationName.replace(/_/g,' ') + ' - ' + hta_App.version;
 
 var current_row = 0;
@@ -32,31 +32,51 @@ var one_filename = '';
 
 var connect;
 
-// Инициализация объектов ActiveX
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РѕР±СЉРµРєС‚РѕРІ ActiveX
 try {
 	var WshShell = new ActiveXObject("WScript.Shell");
 	var FSO = new ActiveXObject("Scripting.FileSystemObject");
 	var Stream = new ActiveXObject("ADODB.Stream");
 } catch(e) {
-	alert("Продолжение работы невозможно!\nУстановите Windows Script Host.");
+	alert("РџСЂРѕРґРѕР»Р¶РµРЅРёРµ СЂР°Р±РѕС‚С‹ РЅРµРІРѕР·РјРѕР¶РЅРѕ!\nРЈСЃС‚Р°РЅРѕРІРёС‚Рµ Windows Script Host.");
 	self.close();
 }
 
 var script_path = unescape(document.URL).replace(/.*([A-Z]:\\.*)\\.*$/i, '$1');
+
+var unc_path = GetUNCpath(script_path);
+if (/^\\\\/.test(unc_path)) { // Р•СЃР»Рё СЃРєСЂРёРїС‚ СЂР°СЃРїРѕР»РѕР¶РµРЅ РЅР° СЃРµС‚РµРІРѕРј РґРёСЃРєРµ
+	var host = unc_path.match(/^\\\\\w*/); // РґРѕР±Р°РІР»СЏРµРј С…РѕСЃС‚ РІ СЃРїРёСЃРѕРє РґРѕРІРµСЂРµРЅРЅС‹С… СЃР°Р№С‚РѕРІ
+	WshShell.RegWrite('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\ZoneMap\\Domains' + host + '\\file', 2, 'REG_DWORD');
+}
+
 var INI = ReadINIFile(script_path + "\\PTK_PSD_Browser.ini");
 var bank_code = INI.Settings.bank_code;
 var ptk_psd_dir = INI.Settings.ptk_psd_dir + '\\';
 var store_dir = ptk_psd_dir + 'POST\\Store\\';
 var out = WshShell.ExpandEnvironmentStrings('%temp%\\expand.out');
 var tmp_dir = WshShell.ExpandEnvironmentStrings("%temp%\\$ptk$");
-var unpacker = script_path + '\\bin\\7z.exe';  // Путь к распаковщику (используется 7-Zip <www.7-zip.org>)
-var available_forms = ""; // строка для SQL запроса со списком кодов всех доступных пользователю форм
+var unpacker = script_path + '\\bin\\7z.exe';  // РџСѓС‚СЊ Рє СЂР°СЃРїР°РєРѕРІС‰РёРєСѓ (РёСЃРїРѕР»СЊР·СѓРµС‚СЃСЏ 7-Zip <www.7-zip.org>)
+var available_forms = ""; // СЃС‚СЂРѕРєР° РґР»СЏ SQL Р·Р°РїСЂРѕСЃР° СЃРѕ СЃРїРёСЃРєРѕРј РєРѕРґРѕРІ РІСЃРµС… РґРѕСЃС‚СѓРїРЅС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ С„РѕСЂРј
 
 //=====================================================
-//  ОБЩИЕ ФУНКЦИИ
+//  РћР‘Р©РР• Р¤РЈРќРљР¦РР
 //=====================================================
 
-// Выполняет SQL запрос к БД
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїСѓС‚СЊ РІ UNC РІРёРґРµ
+function GetUNCpath(path){
+	var disk = FSO.GetDriveName(path).toUpperCase();
+	var Network = new ActiveXObject("WScript.Network");
+	var drives = Network.EnumNetworkDrives();
+	var i = 0;
+	do {
+		if (disk == drives.Item(i)) return path.replace(/^\w:/, drives.Item(i+1))
+		i = i + 2;
+	} while (i<drives.Count());
+	return path;
+}
+
+// Р’С‹РїРѕР»РЅСЏРµС‚ SQL Р·Р°РїСЂРѕСЃ Рє Р‘Р”
 function QueryDatabase(sql_query){
 	var table = [];
 	try {
@@ -121,7 +141,7 @@ function SaveBinaryData(filename, text) {
 	}
 }
 
-// Перекодировщик текста dos866 -> win1251
+// РџРµСЂРµРєРѕРґРёСЂРѕРІС‰РёРє С‚РµРєСЃС‚Р° dos866 -> win1251
 function dos2win(text_in){
 	with (Stream) {
 		Open();
@@ -137,7 +157,7 @@ function dos2win(text_in){
 	return text_out;
 }
 
-// Возвращает результат запуска консольной команды в заданном каталоге
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ Р·Р°РїСѓСЃРєР° РєРѕРЅСЃРѕР»СЊРЅРѕР№ РєРѕРјР°РЅРґС‹ РІ Р·Р°РґР°РЅРЅРѕРј РєР°С‚Р°Р»РѕРіРµ
 function RunConsole(command, dir){
 	var output = {};
 	if (!FSO.FolderExists(dir)) FSO.CreateFolder(dir);
@@ -162,18 +182,18 @@ function FormatDate(objDate){
 	return datetime;
 }
 
-// Создание ярлыка на Рабочем столе
+// РЎРѕР·РґР°РЅРёРµ СЏСЂР»С‹РєР° РЅР° Р Р°Р±РѕС‡РµРј СЃС‚РѕР»Рµ
 function CreateShortcut(){
-	with (WshShell.CreateShortcut(WshShell.SpecialFolders("Desktop") + "\\ПТК ПСД - Обозреватель отчетности.lnk")){
+	with (WshShell.CreateShortcut(WshShell.SpecialFolders("Desktop") + "\\РџРўРљ РџРЎР” - РћР±РѕР·СЂРµРІР°С‚РµР»СЊ РѕС‚С‡РµС‚РЅРѕСЃС‚Рё.lnk")){
 		TargetPath = unescape(document.URL).replace(/.*([A-Z]:\\.+)$/i, '$1');
 		IconLocation = "%windir%\\system32\\mqutil.dll";
-		Description = "Обозреватель отчетности ПТК ПСД";
+		Description = "РћР±РѕР·СЂРµРІР°С‚РµР»СЊ РѕС‚С‡РµС‚РЅРѕСЃС‚Рё РџРўРљ РџРЎР”";
 		Save();
 	}
-	WshShell.Popup("Ярлык для запуска приложения\nустановлен на Вашем Рабочем столе!", 3, hta_App.applicationName, 64);
+	WshShell.Popup("РЇСЂР»С‹Рє РґР»СЏ Р·Р°РїСѓСЃРєР° РїСЂРёР»РѕР¶РµРЅРёСЏ\nСѓСЃС‚Р°РЅРѕРІР»РµРЅ РЅР° Р’Р°С€РµРј Р Р°Р±РѕС‡РµРј СЃС‚РѕР»Рµ!", 3, hta_App.applicationName, 64);
 }
 
-// Чтение ini файла в объект INI
+// Р§С‚РµРЅРёРµ ini С„Р°Р№Р»Р° РІ РѕР±СЉРµРєС‚ INI
 function ReadINIFile(ini_file) {
 	var INI = {};
 	if ((FSO.FileExists(ini_file)) && (FSO.GetFile(ini_file).Size > 0)) {
@@ -198,17 +218,17 @@ function ReadINIFile(ini_file) {
 	return INI;
 }
 
-// Возвращает полный путь к выбранному файлу отчетности
+// Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕР»РЅС‹Р№ РїСѓС‚СЊ Рє РІС‹Р±СЂР°РЅРЅРѕРјСѓ С„Р°Р№Р»Сѓ РѕС‚С‡РµС‚РЅРѕСЃС‚Рё
 function GetCurrentFile(ind){
 	var dt = FormatDate(new Date(ATable[ind][2]));
 	return store_dir + dt.year + '\\' + dt.month + '\\' + dt.day + '\\' + ATable[ind][3];
 }
 
 //=====================================================
-//  ОБРАБОТКА НАЖАТИЙ НА КЛАВИАТУРУ И ПЕРЕМЕЩЕНИЯ МЫШИ
+//  РћР‘Р РђР‘РћРўРљРђ РќРђР–РђРўРР™ РќРђ РљР›РђР’РРђРўРЈР РЈ Р РџР•Р Р•РњР•Р©Р•РќРРЇ РњР«РЁР
 //=====================================================
 
-// Подсветка выделенной строки
+// РџРѕРґСЃРІРµС‚РєР° РІС‹РґРµР»РµРЅРЅРѕР№ СЃС‚СЂРѕРєРё
 function SelectLine(){
 	if (select_row == current_row) return;
 	var select_color = "buttonface";
@@ -223,7 +243,7 @@ function SelectLine(){
 	ShowPreview();
 }
 
-// Подсветка текущей строки
+// РџРѕРґСЃРІРµС‚РєР° С‚РµРєСѓС‰РµР№ СЃС‚СЂРѕРєРё
 function HighlightCurrentRow(){
 	if (current_row === undefined) return;
 	if (current_row != old_row){
@@ -234,7 +254,7 @@ function HighlightCurrentRow(){
 	}
 }
 
-// Обработка перемещения мыши
+// РћР±СЂР°Р±РѕС‚РєР° РїРµСЂРµРјРµС‰РµРЅРёСЏ РјС‹С€Рё
 function OnMouseOver(){
 	var element = PostList.event.srcElement;
 	do {
@@ -244,7 +264,7 @@ function OnMouseOver(){
 	HighlightCurrentRow();
 }
 
-// Обработка нажатий на клавиши
+// РћР±СЂР°Р±РѕС‚РєР° РЅР°Р¶Р°С‚РёР№ РЅР° РєР»Р°РІРёС€Рё
 function OnKeydown(){
 	var key_code = PostList.event.keyCode;
 	if ((key_code == 40)&&(current_row<PostList.Row.length-1)){
@@ -260,37 +280,37 @@ function OnKeydown(){
 }
 
 //=====================================================
-//  ОБРАБОТКА ПУНКТОВ КОНТЕКСТНОГО МЕНЮ
+//  РћР‘Р РђР‘РћРўРљРђ РџРЈРќРљРўРћР’ РљРћРќРўР•РљРЎРўРќРћР“Рћ РњР•РќР®
 //=====================================================
 
-// Показывает контекстное меню по правой кнопке мыши
+// РџРѕРєР°Р·С‹РІР°РµС‚ РєРѕРЅС‚РµРєСЃС‚РЅРѕРµ РјРµРЅСЋ РїРѕ РїСЂР°РІРѕР№ РєРЅРѕРїРєРµ РјС‹С€Рё
 function ShowRCMenu(pane){
-	// вставляем html содержимое меню
+	// РІСЃС‚Р°РІР»СЏРµРј html СЃРѕРґРµСЂР¶РёРјРѕРµ РјРµРЅСЋ
 	var html_menu = '<table width=100% cellpadding=2 cellspacing=0>';
 	switch(pane.name){
 		case 'PostList':
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.PrintForm();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">3';
-			html_menu += '<td>&nbsp;Печать&nbsp;';
+			html_menu += '<td>&nbsp;РџРµС‡Р°С‚СЊ&nbsp;';
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.OpenExplorer();\">';
 			html_menu += '<td style=\"font:10pt Wingdings;\">1';
-			html_menu += '<td>&nbsp;Открыть каталог&nbsp;';
+			html_menu += '<td>&nbsp;РћС‚РєСЂС‹С‚СЊ РєР°С‚Р°Р»РѕРі&nbsp;';
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">&lt;';
-			html_menu += '<td>&nbsp;Сохранить посылку в...&nbsp;';
-			if (/решен/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения и квитанции" отображается только на решениях 322П
+			html_menu += '<td>&nbsp;РЎРѕС…СЂР°РЅРёС‚СЊ РїРѕСЃС‹Р»РєСѓ РІ...&nbsp;';
+			if (/СЂРµС€РµРЅ/i.test(PostList.Row[select_row].innerText)) { // РїСѓРЅРєС‚ "РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Рё РєРІРёС‚Р°РЅС†РёРё" РѕС‚РѕР±СЂР°Р¶Р°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РЅР° СЂРµС€РµРЅРёСЏС… 322Рџ
 				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer322P();\">';
 				html_menu += '<td style=\"font:12pt Wingdings;\">+';
-				html_menu += '<td>&nbsp;Сформировать подтверждения и квитанции&nbsp;';
+				html_menu += '<td>&nbsp;РЎС„РѕСЂРјРёСЂРѕРІР°С‚СЊ РїРѕРґС‚РІРµСЂР¶РґРµРЅРёСЏ Рё РєРІРёС‚Р°РЅС†РёРё&nbsp;';
 			}
 			break;
 		case 'Preview':
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">&lt;';
-			html_menu += '<td>&nbsp;Сохранить всю посылку в...&nbsp;';
+			html_menu += '<td>&nbsp;РЎРѕС…СЂР°РЅРёС‚СЊ РІСЃСЋ РїРѕСЃС‹Р»РєСѓ РІ...&nbsp;';
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace(true);\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">=';
-			html_menu += '<td>&nbsp;Сохранить текущий файл в...&nbsp;';
+			html_menu += '<td>&nbsp;РЎРѕС…СЂР°РЅРёС‚СЊ С‚РµРєСѓС‰РёР№ С„Р°Р№Р» РІ...&nbsp;';
 			break;
 		default:
 			return;
@@ -298,7 +318,7 @@ function ShowRCMenu(pane){
 	html_menu += '</table>';
 	RCMenu.document.body.innerHTML = html_menu;
 
-	// добавляем эвенты для подсветки текущего пункта меню
+	// РґРѕР±Р°РІР»СЏРµРј СЌРІРµРЅС‚С‹ РґР»СЏ РїРѕРґСЃРІРµС‚РєРё С‚РµРєСѓС‰РµРіРѕ РїСѓРЅРєС‚Р° РјРµРЅСЋ
 	for (i=0;i<RCMenu.document.all.menuitem.length;i++){
 		RCMenu.document.all.menuitem[i].onmouseover = function () {
 			this.style.background="activecaption";
@@ -310,40 +330,40 @@ function ShowRCMenu(pane){
 		};
 	}
 
-	// вычисляем размер меню
+	// РІС‹С‡РёСЃР»СЏРµРј СЂР°Р·РјРµСЂ РјРµРЅСЋ
 	RCMenu.show(0, 0, 0, 0, document.body);
 	var width = RCMenu.document.body.scrollWidth+4;
 	var height = RCMenu.document.body.scrollHeight+5;
 	RCMenu.hide();
-	// показываем меню
+	// РїРѕРєР°Р·С‹РІР°РµРј РјРµРЅСЋ
 	RCMenu.show(pane.event.x, pane.event.y, width, height, pane.window.document.body);
 }
 
-// Извлекаем имя сохраняемого вложенного файла до показа контекстного меню в панели предпросмотра
+// РР·РІР»РµРєР°РµРј РёРјСЏ СЃРѕС…СЂР°РЅСЏРµРјРѕРіРѕ РІР»РѕР¶РµРЅРЅРѕРіРѕ С„Р°Р№Р»Р° РґРѕ РїРѕРєР°Р·Р° РєРѕРЅС‚РµРєСЃС‚РЅРѕРіРѕ РјРµРЅСЋ РІ РїР°РЅРµР»Рё РїСЂРµРґРїСЂРѕСЃРјРѕС‚СЂР°
 function PreviewShowContextMenu(obj){
 	function GetTextFromHeader(obj){
 		return ((obj.tagName == 'TH')||(obj.tagName == 'TR')) ? obj.innerText : '';
 	}
-	parent.one_filename = GetTextFromHeader(obj); // если кликнули по заголовку
-	if (parent.one_filename == '') { // если кликнули по телу сообщения
+	parent.one_filename = GetTextFromHeader(obj); // РµСЃР»Рё РєР»РёРєРЅСѓР»Рё РїРѕ Р·Р°РіРѕР»РѕРІРєСѓ
+	if (parent.one_filename == '') { // РµСЃР»Рё РєР»РёРєРЅСѓР»Рё РїРѕ С‚РµР»Сѓ СЃРѕРѕР±С‰РµРЅРёСЏ
 		parent.one_filename = GetTextFromHeader(Preview.document.all[obj.sourceIndex-3]);
 	}
 	ShowRCMenu(Preview);
 }
 
-// Печать выбранного отчета
+// РџРµС‡Р°С‚СЊ РІС‹Р±СЂР°РЅРЅРѕРіРѕ РѕС‚С‡РµС‚Р°
 function PrintForm(){
 	Preview.window.focus();
 	Preview.window.print();
 	load_Preview();
 }
 
-// Открывает окно Проводника и выделяет файл отчетности
+// РћС‚РєСЂС‹РІР°РµС‚ РѕРєРЅРѕ РџСЂРѕРІРѕРґРЅРёРєР° Рё РІС‹РґРµР»СЏРµС‚ С„Р°Р№Р» РѕС‚С‡РµС‚РЅРѕСЃС‚Рё
 function OpenExplorer(){
 	WshShell.Run('explorer /e, /select, ' + select_filePathNameTime);
 }
 
-// Удаление ЭЦП у сохраненного файла
+// РЈРґР°Р»РµРЅРёРµ Р­Р¦Рџ Сѓ СЃРѕС…СЂР°РЅРµРЅРЅРѕРіРѕ С„Р°Р№Р»Р°
 function DeleteSignature (filepath){
 	var content=escape(ReadBinaryFile(filepath));
 	if (/o000000/.test(content)) {
@@ -353,12 +373,12 @@ function DeleteSignature (filepath){
 	}
 }
 
-// Сохранение файла отчетности (целиком или одного из вложенных)
+// РЎРѕС…СЂР°РЅРµРЅРёРµ С„Р°Р№Р»Р° РѕС‚С‡РµС‚РЅРѕСЃС‚Рё (С†РµР»РёРєРѕРј РёР»Рё РѕРґРЅРѕРіРѕ РёР· РІР»РѕР¶РµРЅРЅС‹С…)
 function SaveRace(one_file_from_race){
 	var save_root_dir = INI.Settings.save_root_dir;
 	var Shell = new ActiveXObject("Shell.Application");
 	var save_filename = ((one_file_from_race) && (one_filename!='')) ? one_filename : select_fileName;
-	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения файла\n" + save_filename, 0, save_root_dir);
+	var objFolder = Shell.BrowseForFolder(0, "Р’С‹Р±РµСЂРёС‚Рµ РїР°РїРєСѓ РґР»СЏ СЃРѕС…СЂР°РЅРµРЅРёСЏ С„Р°Р№Р»Р°\n" + save_filename, 0, save_root_dir);
 	if (!objFolder) return;
 	var out_filename = objFolder.Self.Path + '\\' + save_filename;
 	var source = ((one_file_from_race) && (one_filename!='')) ? tmp_dir + '\\' + one_filename : select_filePathNameTime;
@@ -366,7 +386,7 @@ function SaveRace(one_file_from_race){
 	if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(out_filename);
 }
 
-// Формирование квитанций и подтверждений на сообщение 322-П
+// Р¤РѕСЂРјРёСЂРѕРІР°РЅРёРµ РєРІРёС‚Р°РЅС†РёР№ Рё РїРѕРґС‚РІРµСЂР¶РґРµРЅРёР№ РЅР° СЃРѕРѕР±С‰РµРЅРёРµ 322-Рџ
 function Answer322P(){
 	function WriteFile(filename, text) {
 		with (FSO.OpenTextFile(filename, 2, true)) {
@@ -376,7 +396,7 @@ function Answer322P(){
 	}
 	var outbox_dir_322P = INI.Settings.outbox_dir_322P;
 	if (!outbox_dir_322P) {
-		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
+		WshShell.Popup('РќРµ Р·Р°РґР°РЅ РєР°С‚Р°Р»РѕРі РґР»СЏ РІС‹РіСЂСѓР·РєРё РєРІРёС‚Р°РЅС†РёР№ !\nРћС‚СЂРµРґР°РєС‚РёСЂСѓР№С‚Рµ PTK_PSD_Browser.ini', 2, "РћС€РёР±РєР°", 48);
 		return;
 	}
 	if (!FSO.FolderExists(outbox_dir_322P)) FSO.CreateFolder(outbox_dir_322P);
@@ -399,14 +419,14 @@ function Answer322P(){
 	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = '" + select_fileNameTime + "'";
 	QueryDatabase(sql_str);
 	StartRefresh();
-	WshShell.Popup('Сформировано:\n- квитанций:\t'+count+'\n- подтверждений:\t'+count, 2, "Формирование ответных квитанций", 64);
+	WshShell.Popup('РЎС„РѕСЂРјРёСЂРѕРІР°РЅРѕ:\n- РєРІРёС‚Р°РЅС†РёР№:\t'+count+'\n- РїРѕРґС‚РІРµСЂР¶РґРµРЅРёР№:\t'+count, 2, "Р¤РѕСЂРјРёСЂРѕРІР°РЅРёРµ РѕС‚РІРµС‚РЅС‹С… РєРІРёС‚Р°РЅС†РёР№", 64);
 }
 
 //=====================================================
-//  ЗАПОЛНЯЕМ ЭЛЕМЕНТАМИ ОКНО ПРИЛОЖЕНИЯ
+//  Р—РђРџРћР›РќРЇР•Рњ Р­Р›Р•РњР•РќРўРђРњР РћРљРќРћ РџР РР›РћР–Р•РќРРЇ
 //=====================================================
 
-// Подготовка фрейма Toolbar (панель инструментов)
+// РџРѕРґРіРѕС‚РѕРІРєР° С„СЂРµР№РјР° Toolbar (РїР°РЅРµР»СЊ РёРЅСЃС‚СЂСѓРјРµРЅС‚РѕРІ)
 function load_Toolbar(){
 	with (Toolbar.document.createStyleSheet()){
 		addRule('body','margin: 0px;');
@@ -421,30 +441,30 @@ function load_Toolbar(){
 	}
 	var html_toolbar = '';
 	html_toolbar += '<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\"><tr>';
-	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
-	html_toolbar += '		&nbsp;<select name=PostType onChange=\"parent.StartRefresh();\"><option value=\"*\">Все формы</option></select>&nbsp;';
+	html_toolbar += '	<td><fieldset><legend><b>&nbsp;РћС‚С‡РµС‚РЅРѕСЃС‚СЊ:&nbsp;</b></legend>';
+	html_toolbar += '		&nbsp;<select name=PostType onChange=\"parent.StartRefresh();\"><option value=\"*\">Р’СЃРµ С„РѕСЂРјС‹</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartRefresh(); return false;\">[</a>';
-	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Период:&nbsp;</b></legend>';
+	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"РћР±РЅРѕРІРёС‚СЊ СЃРїРёСЃРѕРє\" onClick=\"parent.StartRefresh(); return false;\">[</a>';
+	html_toolbar += '	<td><fieldset><legend><b>&nbsp;РџРµСЂРёРѕРґ:&nbsp;</b></legend>';
 	html_toolbar += '		<input type=\"radio\" id=r0 name=Interval hidefocus onClick=\"parent.SetInterval(0);\" checked>';
-	html_toolbar += '		<label for=r0>Сегодня</label>';
+	html_toolbar += '		<label for=r0>РЎРµРіРѕРґРЅСЏ</label>';
 	html_toolbar += '		<input type=\"radio\" id=r1 name=Interval hidefocus onClick=\"parent.SetInterval(1);\">';
-	html_toolbar += '		<label for=r1>Вчера</label>';
+	html_toolbar += '		<label for=r1>Р’С‡РµСЂР°</label>';
 	html_toolbar += '		<input type=\"radio\" id=r2 name=Interval hidefocus onClick=\"parent.SetInterval(2);\">';
-	html_toolbar += '		<label for=r2>за 3 дня</label>';
+	html_toolbar += '		<label for=r2>Р·Р° 3 РґРЅСЏ</label>';
 	html_toolbar += '		<input type=\"radio\" id=r3 name=Interval hidefocus onClick=\"parent.SetInterval(3);\">';
-	html_toolbar += '		<label for=r3>за 7 дней</label>';
+	html_toolbar += '		<label for=r3>Р·Р° 7 РґРЅРµР№</label>';
 	html_toolbar += '		<input type=\"radio\" id=r4 name=Interval hidefocus onClick=\"parent.SetInterval(4);\">';
-	html_toolbar += '		<label for=r4>с:</label>';
+	html_toolbar += '		<label for=r4>СЃ:</label>';
 	html_toolbar += '		<input hidefocus id=\"startDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();\">';
-	html_toolbar += '		по: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();;\">&nbsp;';
+	html_toolbar += '		РїРѕ: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();;\">&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td style=\"font:14pt Wingdings; width:100%; text-align:center; text-valign:middle;\"><a href="#" hidefocus title=\"Создать на Рабочем столе\nярлык для запуска программы\" onClick=\"parent.CreateShortcut(); return false;\">O</a>&nbsp;';
+	html_toolbar += '	<td style=\"font:14pt Wingdings; width:100%; text-align:center; text-valign:middle;\"><a href="#" hidefocus title=\"РЎРѕР·РґР°С‚СЊ РЅР° Р Р°Р±РѕС‡РµРј СЃС‚РѕР»Рµ\nСЏСЂР»С‹Рє РґР»СЏ Р·Р°РїСѓСЃРєР° РїСЂРѕРіСЂР°РјРјС‹\" onClick=\"parent.CreateShortcut(); return false;\">O</a>&nbsp;';
 	html_toolbar += '</table>';
 	Toolbar.document.body.innerHTML = html_toolbar;
 }
 
-// Подготовка контекстного меню
+// РџРѕРґРіРѕС‚РѕРІРєР° РєРѕРЅС‚РµРєСЃС‚РЅРѕРіРѕ РјРµРЅСЋ
 function load_RCMenu(){
 	RCMenu = window.createPopup();
 	RCMenu.document.oncontextmenu = function(){return false;};
@@ -456,7 +476,7 @@ function load_RCMenu(){
 	}
 }
 
-// Подготовка фрейма PostList (список сообщений)
+// РџРѕРґРіРѕС‚РѕРІРєР° С„СЂРµР№РјР° PostList (СЃРїРёСЃРѕРє СЃРѕРѕР±С‰РµРЅРёР№)
 function load_PostList(){
 	with (PostList.document.createStyleSheet()){
 		addRule('table','font: normal 10pt Verdana; width:100%; background-color:white; cursor:hand;');
@@ -464,10 +484,10 @@ function load_PostList(){
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:buttonshadow;');
 	}
 	PostList.document.onkeydown = function(){parent.OnKeydown();};
-	PostList.document.body.innerHTML = '<font color="red"><b>Начальная загрузка данных. Ждите...</b></font>';
+	PostList.document.body.innerHTML = '<font color="red"><b>РќР°С‡Р°Р»СЊРЅР°СЏ Р·Р°РіСЂСѓР·РєР° РґР°РЅРЅС‹С…. Р–РґРёС‚Рµ...</b></font>';
 }
 
-// Подготовка фрейма Preview (просмотр содержимого сообщения)
+// РџРѕРґРіРѕС‚РѕРІРєР° С„СЂРµР№РјР° Preview (РїСЂРѕСЃРјРѕС‚СЂ СЃРѕРґРµСЂР¶РёРјРѕРіРѕ СЃРѕРѕР±С‰РµРЅРёСЏ)
 function load_Preview(){
 	with (Preview.document.createStyleSheet()){
 		addRule('body','font: normal 10pt Courier New;');
@@ -487,18 +507,18 @@ function load_Preview(){
 	Preview.document.title=parent.document.title;
 }
 
-// Загружает в раскрывающийся список <SELECT> имена обрабатываемых форм
+// Р—Р°РіСЂСѓР¶Р°РµС‚ РІ СЂР°СЃРєСЂС‹РІР°СЋС‰РёР№СЃСЏ СЃРїРёСЃРѕРє <SELECT> РёРјРµРЅР° РѕР±СЂР°Р±Р°С‚С‹РІР°РµРјС‹С… С„РѕСЂРј
 function CreateFormList(){
-	// Проверка зарегистрирован ли пользователь?
+	// РџСЂРѕРІРµСЂРєР° Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ?
 	function CheckUsers(usrname){
 		var all_users = QueryDatabase("SELECT usrname FROM elo_users");
 		for (var i=0; i<all_users.length; i++) {
 			if (usrname.toLowerCase() == all_users[i].toString().toLowerCase()) return;
 		}
-		alert("Пользователь "+usrname+"\nне зарегистрирован в ПТК ПСД!");
+		alert("РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ "+usrname+"\nРЅРµ Р·Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°РЅ РІ РџРўРљ РџРЎР”!");
 		self.close();
 	}
-	// Извлекает список форм, разрешенных текущему пользователю
+	// РР·РІР»РµРєР°РµС‚ СЃРїРёСЃРѕРє С„РѕСЂРј, СЂР°Р·СЂРµС€РµРЅРЅС‹С… С‚РµРєСѓС‰РµРјСѓ РїРѕР»СЊР·РѕРІР°С‚РµР»СЋ
 	function GetForms(){
 		var usrname = INI.Settings.usrname;
 		if (!usrname) usrname = WshShell.ExpandEnvironmentStrings('%username%');
@@ -508,25 +528,25 @@ function CreateFormList(){
 		var available_forms_arr = QueryDatabase('SELECT DISTINCT SP.POSTTYPE ' +
 			'FROM ELO_USERS_ACCESS UA LEFT JOIN ELO_SPR_POST_SUB SP ON UA.FORMNAME = SP.CODE ' +
 			'WHERE UA.USERID =' + userid);
-		available_forms = "'" + available_forms_arr.join("','") + "'"; // сохраним в глобальной переменной (еще понадобится);
+		available_forms = "'" + available_forms_arr.join("','") + "'"; // СЃРѕС…СЂР°РЅРёРј РІ РіР»РѕР±Р°Р»СЊРЅРѕР№ РїРµСЂРµРјРµРЅРЅРѕР№ (РµС‰Рµ РїРѕРЅР°РґРѕР±РёС‚СЃСЏ);
 		var posttype_name_list = QueryDatabase('SELECT posttype, postname FROM elo_spr_post WHERE posttype IN ' +
 			'(' + available_forms + ') ORDER BY postname');
 		return posttype_name_list;
 	}
 
-	// Заполняем комбобокс
+	// Р—Р°РїРѕР»РЅСЏРµРј РєРѕРјР±РѕР±РѕРєСЃ
 	var forms = GetForms();
 	for (var i=0; i<forms.length; i++) {
 		var option = Toolbar.document.createElement("option");
 		option.value = forms[i][0];
-		option.text = forms[i][1].replace(/ПТК ПСД\.\s+/,'');
+		option.text = forms[i][1].replace(/РџРўРљ РџРЎР”\.\s+/,'');
 		Toolbar.PostType.add(option);
 	}
 }
 
-// Задает интервал дат для выборки
+// Р—Р°РґР°РµС‚ РёРЅС‚РµСЂРІР°Р» РґР°С‚ РґР»СЏ РІС‹Р±РѕСЂРєРё
 function SetInterval(i){
-	function SetDate(days){ // Возвращает строку даты, отстоящую от текущей на заданное кол-во дней
+	function SetDate(days){ // Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃС‚СЂРѕРєСѓ РґР°С‚С‹, РѕС‚СЃС‚РѕСЏС‰СѓСЋ РѕС‚ С‚РµРєСѓС‰РµР№ РЅР° Р·Р°РґР°РЅРЅРѕРµ РєРѕР»-РІРѕ РґРЅРµР№
 		var objDate = new Date();
 		objDate.setTime(days * 24*60*60*1000 + objDate.getTime());
 		var dt = FormatDate(objDate);
@@ -536,34 +556,34 @@ function SetInterval(i){
 	Toolbar.startDate.disabled = true;
 	Toolbar.endDate.disabled = true;
 
-	switch(i){ // Переключатель интервалов
-		case 0: // сегодня
+	switch(i){ // РџРµСЂРµРєР»СЋС‡Р°С‚РµР»СЊ РёРЅС‚РµСЂРІР°Р»РѕРІ
+		case 0: // СЃРµРіРѕРґРЅСЏ
 			Toolbar.startDate.value = SetDate(0);
 			Toolbar.endDate.value = SetDate(1);
 			StartRefresh();
 			break;
-		case 1: // вчера
+		case 1: // РІС‡РµСЂР°
 			Toolbar.startDate.value = SetDate(-1);
 			Toolbar.endDate.value = SetDate(0);
 			StartRefresh();
 			break;
-		case 2: // за 3 дня
+		case 2: // Р·Р° 3 РґРЅСЏ
 			Toolbar.startDate.value = SetDate(-2);
 			Toolbar.endDate.value = SetDate(1);
 			StartRefresh();
 			break;
-		case 3: // за 7 дней
+		case 3: // Р·Р° 7 РґРЅРµР№
 			Toolbar.startDate.value = SetDate(-6);
 			Toolbar.endDate.value = SetDate(1);
 			StartRefresh();
 			break;
-		case 4: // за произвольный период
+		case 4: // Р·Р° РїСЂРѕРёР·РІРѕР»СЊРЅС‹Р№ РїРµСЂРёРѕРґ
 			Toolbar.startDate.disabled = false;
 			Toolbar.endDate.disabled = false;
 	}
 }
 
-// Проверка правильности задания дат
+// РџСЂРѕРІРµСЂРєР° РїСЂР°РІРёР»СЊРЅРѕСЃС‚Рё Р·Р°РґР°РЅРёСЏ РґР°С‚
 function CheckDates(){
 	function isDate(ds){
 		function format(x){return (x < 10) ? ('0' + x) : String(x);}
@@ -596,7 +616,7 @@ function CheckDates(){
 	return true;
 }
 
-// Составление списка рейсов
+// РЎРѕСЃС‚Р°РІР»РµРЅРёРµ СЃРїРёСЃРєР° СЂРµР№СЃРѕРІ
 function StartRefresh(){
 	if (!CheckDates()) return;
 	ATable = [];
@@ -605,10 +625,10 @@ function StartRefresh(){
 	select_row = 0;
 	select_row_bg = "";
 
-	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
-	// Получение содержимого SA посылки
+	PostList.document.body.innerHTML = '<font color="red"><b>Р’С‹РїРѕР»РЅСЏСЋ Р·Р°РїСЂРѕСЃ. Р–РґРёС‚Рµ...</b></font>';
+	// РџРѕР»СѓС‡РµРЅРёРµ СЃРѕРґРµСЂР¶РёРјРѕРіРѕ SA РїРѕСЃС‹Р»РєРё
 	function GetSAcontent(ind){
-		// Извлечение имен форм отчетности из текста
+		// РР·РІР»РµС‡РµРЅРёРµ РёРјРµРЅ С„РѕСЂРј РѕС‚С‡РµС‚РЅРѕСЃС‚Рё РёР· С‚РµРєСЃС‚Р°
 		function FindFormName(text, re, name){
 			while (re.exec(text)){
 				form_names[form_names.length] = name||RegExp.$1;
@@ -616,27 +636,27 @@ function StartRefresh(){
 		}
 		select_filePathNameTime = GetCurrentFile(ind);
 		var content = '';
-		if ((ATable[ind][0] == 'ОЭС')||(ATable[ind][0] == 'ИЭС2')){
+		if ((ATable[ind][0] == 'РћР­РЎ')||(ATable[ind][0] == 'РР­РЎ2')){
 			WshShell.Run('cmd /c EXPAND -D "'+select_filePathNameTime+'" > "'+out+'"', 0, true);
 			content = ReadTextFile(out);
 		}else{
 			content = ReadTextFile(select_filePathNameTime);
 		}
 		var form_names = [];
-		// В одной посылке м.б. только одна форма:
-		if (/ ZDL\d+\.xls/i.test(content)) return 'Инф.о просроченной задолженности'; // Н.Новгород
-		if (/ \d{8}\.[IN]\d{2}/i.test(content)) return '308-П';
-		if ((new RegExp(' IA.{3}'+bank_code+'\\.', 'i')).test(content)) return '601'; // С.Петербург
-		if ((new RegExp(' IN.{3}'+bank_code+'\\.', 'i')).test(content)) return '652'; // С.Петербург
-		if ((new RegExp(' SK.{3}'+bank_code+'\\.', 'i')).test(content)) return 'KAS'; // С.Петербург
+		// Р’ РѕРґРЅРѕР№ РїРѕСЃС‹Р»РєРµ Рј.Р±. С‚РѕР»СЊРєРѕ РѕРґРЅР° С„РѕСЂРјР°:
+		if (/ ZDL\d+\.xls/i.test(content)) return 'РРЅС„.Рѕ РїСЂРѕСЃСЂРѕС‡РµРЅРЅРѕР№ Р·Р°РґРѕР»Р¶РµРЅРЅРѕСЃС‚Рё'; // Рќ.РќРѕРІРіРѕСЂРѕРґ
+		if (/ \d{8}\.[IN]\d{2}/i.test(content)) return '308-Рџ';
+		if ((new RegExp(' IA.{3}'+bank_code+'\\.', 'i')).test(content)) return '601'; // РЎ.РџРµС‚РµСЂР±СѓСЂРі
+		if ((new RegExp(' IN.{3}'+bank_code+'\\.', 'i')).test(content)) return '652'; // РЎ.РџРµС‚РµСЂР±СѓСЂРі
+		if ((new RegExp(' SK.{3}'+bank_code+'\\.', 'i')).test(content)) return 'KAS'; // РЎ.РџРµС‚РµСЂР±СѓСЂРі
 
-		// В одной посылке м.б. несколько различных форм:
-		FindFormName(content, new RegExp(' F(.{3})'+bank_code+'[1-C]\\.', 'gi')); // С.Петербург (664, 665, KRK, PSV, VBK)
-		FindFormName(content, new RegExp(' F'+bank_code+'(.{2,4})\\.(ZIP|DOC)', 'gi')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
+		// Р’ РѕРґРЅРѕР№ РїРѕСЃС‹Р»РєРµ Рј.Р±. РЅРµСЃРєРѕР»СЊРєРѕ СЂР°Р·Р»РёС‡РЅС‹С… С„РѕСЂРј:
+		FindFormName(content, new RegExp(' F(.{3})'+bank_code+'[1-C]\\.', 'gi')); // РЎ.РџРµС‚РµСЂР±СѓСЂРі (664, 665, KRK, PSV, VBK)
+		FindFormName(content, new RegExp(' F'+bank_code+'(.{2,4})\\.(ZIP|DOC)', 'gi')); // Рќ.РќРѕРІРіРѕСЂРѕРґ (308P, 652, 601, 664, 665, KR, PS, VBK)
 
 		return form_names.join(',');
 	}
-	// Возвращает содержимое сообщения по форме 311-П
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРѕРґРµСЂР¶РёРјРѕРµ СЃРѕРѕР±С‰РµРЅРёСЏ РїРѕ С„РѕСЂРјРµ 311-Рџ
 	function Get311PContent(ind){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
@@ -646,7 +666,7 @@ function StartRefresh(){
 		var arr = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
 		return arr ? ' <s>(' + arr.length + ')</s>' : '';
 	}
-	// Возвращает содержимое сообщения по форме 322-П
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРѕРґРµСЂР¶РёРјРѕРµ СЃРѕРѕР±С‰РµРЅРёСЏ РїРѕ С„РѕСЂРјРµ 322-Рџ
 	function Get322PContent(ind){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
@@ -664,35 +684,35 @@ function StartRefresh(){
 			}
 		}
 		var html = '';
-		if (rpo != 0) html += '<font color="#990000">решение о приост.</font> <s>(' + rpo + ')</s> ';
-		if (roo != 0) html += '<font color="#990000">отмена решения</font> <s>(' + roo + ')</s> ';
-		if (kwt != 0) html += 'квит. <s>(' + kwt + ')</s> ';
-		if (pb != 0) html += 'подтв. <s>(' + pb + ')</s> ';
-		if (izv != 0) html += 'извещение <s>(' + izv + ')</s> ';
+		if (rpo != 0) html += '<font color="#990000">СЂРµС€РµРЅРёРµ Рѕ РїСЂРёРѕСЃС‚.</font> <s>(' + rpo + ')</s> ';
+		if (roo != 0) html += '<font color="#990000">РѕС‚РјРµРЅР° СЂРµС€РµРЅРёСЏ</font> <s>(' + roo + ')</s> ';
+		if (kwt != 0) html += 'РєРІРёС‚. <s>(' + kwt + ')</s> ';
+		if (pb != 0) html += 'РїРѕРґС‚РІ. <s>(' + pb + ')</s> ';
+		if (izv != 0) html += 'РёР·РІРµС‰РµРЅРёРµ <s>(' + izv + ')</s> ';
 		return html;
 	}
-	//Возвращает результат (отправлен/получен/не/принят)
+	//Р’РѕР·РІСЂР°С‰Р°РµС‚ СЂРµР·СѓР»СЊС‚Р°С‚ (РѕС‚РїСЂР°РІР»РµРЅ/РїРѕР»СѓС‡РµРЅ/РЅРµ/РїСЂРёРЅСЏС‚)
 	function postResult(i){
-		if (ATable[i][5] == '6') return 'отправлен';
+		if (ATable[i][5] == '6') return 'РѕС‚РїСЂР°РІР»РµРЅ';
 		if (ATable[i][5] == '7'){
 			if (ATable[i][8] == '0'){
-				if (ATable[i][0] == 'ИЭС1'){
-					return 'получен';
+				if (ATable[i][0] == 'РР­РЎ1'){
+					return 'РїРѕР»СѓС‡РµРЅ';
 				}else{
-					return '<font color="green"><b>принят</b></font>';
+					return '<font color="green"><b>РїСЂРёРЅСЏС‚</b></font>';
 				}
 			}else{
-				return '<font color="red"><b>не принят</b></font>';
+				return '<font color="red"><b>РЅРµ РїСЂРёРЅСЏС‚</b></font>';
 			}
 		}
 		return ' ';
 	}
-	// Форматирование даты для вставки в SQL запрос
+	// Р¤РѕСЂРјР°С‚РёСЂРѕРІР°РЅРёРµ РґР°С‚С‹ РґР»СЏ РІСЃС‚Р°РІРєРё РІ SQL Р·Р°РїСЂРѕСЃ
 	function FormatSQLDate(dt){
 		var dt = dt.split('.');
 		return "{d\'" + dt[2] + "-" + dt[1] + "-" + dt[0] + "\'}";
 	}
-	// Возвращает имя формы по типу поста
+	// Р’РѕР·РІСЂР°С‰Р°РµС‚ РёРјСЏ С„РѕСЂРјС‹ РїРѕ С‚РёРїСѓ РїРѕСЃС‚Р°
 	function GetFormName(post_type){
 		for (var i=0; i<Toolbar.PostType.length; i++) {
 			if (Toolbar.PostType.options[i].value == post_type) return Toolbar.PostType.options[i].text;
@@ -735,7 +755,7 @@ function StartRefresh(){
 					HTMLtable += '<td>&nbsp;' + Get322PContent(i);
 					break;
 				case '2z':
-					if (ATable[i][0] != 'ИЭС1'){
+					if (ATable[i][0] != 'РР­РЎ1'){
 						HTMLtable += '<td colspan=2>&nbsp;' + ATable[i][0] + Get311PContent(i);
 					}else{
 						HTMLtable += '<td colspan=2>&nbsp;' + ATable[i][0];
@@ -756,9 +776,9 @@ function StartRefresh(){
 	}
 }
 
-// Показ содержимого рейса в нижнем фрейме
+// РџРѕРєР°Р· СЃРѕРґРµСЂР¶РёРјРѕРіРѕ СЂРµР№СЃР° РІ РЅРёР¶РЅРµРј С„СЂРµР№РјРµ
 function ShowPreview(){
-	// Удаление ЭЦП
+	// РЈРґР°Р»РµРЅРёРµ Р­Р¦Рџ
 	function ReplaceSignature(stext){
 		if (/o000000/.test(stext)) {
 			var text = RegExp.leftContext;
@@ -769,15 +789,15 @@ function ShowPreview(){
 		return stext;
 	}
 	// -----------------------------
-	// Показ содержимого заархивированного файла
+	// РџРѕРєР°Р· СЃРѕРґРµСЂР¶РёРјРѕРіРѕ Р·Р°Р°СЂС…РёРІРёСЂРѕРІР°РЅРЅРѕРіРѕ С„Р°Р№Р»Р°
 	function ArchiveView(filename){
 		// -----------------------------
-		// Возвращает содержимое файла
+		// Р’РѕР·РІСЂР°С‰Р°РµС‚ СЃРѕРґРµСЂР¶РёРјРѕРµ С„Р°Р№Р»Р°
 		function GetFileContent(filename){
 			var text = ReadBinaryFile(filename);
-			var first = text.match(/^.{12}/); // берем первые 12 символов
-			if ((!first)||(first[0].match(/[\x00-\x1F]/))) { // и если в них имеется символ с кодом от 0 до 31
-				return '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое - - - </span>';
+			var first = text.match(/^.{12}/); // Р±РµСЂРµРј РїРµСЂРІС‹Рµ 12 СЃРёРјРІРѕР»РѕРІ
+			if ((!first)||(first[0].match(/[\x00-\x1F]/))) { // Рё РµСЃР»Рё РІ РЅРёС… РёРјРµРµС‚СЃСЏ СЃРёРјРІРѕР» СЃ РєРѕРґРѕРј РѕС‚ 0 РґРѕ 31
+				return '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - РЅРµС‡РёС‚Р°Р±РµР»СЊРЅРѕРµ СЃРѕРґРµСЂР¶РёРјРѕРµ - - - </span>';
 			}
 			if (text != ''){
 				if (/[\x80-\xBF]/.test(text)) {
@@ -789,11 +809,11 @@ function ShowPreview(){
 			}
 		}
 		// -----------------------------
-		// Распаковка заархивированного файла
+		// Р Р°СЃРїР°РєРѕРІРєР° Р·Р°Р°СЂС…РёРІРёСЂРѕРІР°РЅРЅРѕРіРѕ С„Р°Р№Р»Р°
 		function UnpackFile(arcfile){
-			// не пытаемся распаковать и показать содержимое служебных файлов
+			// РЅРµ РїС‹С‚Р°РµРјСЃСЏ СЂР°СЃРїР°РєРѕРІР°С‚СЊ Рё РїРѕРєР°Р·Р°С‚СЊ СЃРѕРґРµСЂР¶РёРјРѕРµ СЃР»СѓР¶РµР±РЅС‹С… С„Р°Р№Р»РѕРІ
 			if (/(card\.inf)|(\.xml$)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.dbf$)/i.test(arcfile)){
-				HTML_text += '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span>';
+				HTML_text += '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - СЃРѕРґРµСЂР¶РёРјРѕРµ СЃРєСЂС‹С‚Рѕ - - - </span>';
 			}else{
 				var out = RunConsole('"'+unpacker+'" e -y "'+arcfile+'"', tmp_dir);
 				if (/Error:/.test(out.text)) {
@@ -804,7 +824,7 @@ function ShowPreview(){
 					var re_lp = RegExp.lastParen;
 					HTML_text += '<table border=1 cellpadding=2 cellspacing=0><tr><th>'+re_lp+'<tr><td>';
 					UnpackFile (re_lp);
-					if (/\.vrb$/i.test(re_lp)){ // разделитель страниц для vrb файлов
+					if (/\.vrb$/i.test(re_lp)){ // СЂР°Р·РґРµР»РёС‚РµР»СЊ СЃС‚СЂР°РЅРёС† РґР»СЏ vrb С„Р°Р№Р»РѕРІ
 						HTML_text += '</table><br style="page-break-after:always">';
 					}else{
 						HTML_text += '</table><br>';
@@ -814,8 +834,8 @@ function ShowPreview(){
 		}
 
 		// -----------------------------
-		Preview.document.body.innerHTML = '<i>Идет распаковка. Ждите...</i>';
-		if (!FSO.FileExists(unpacker)) return '<i>' + unpacker + ' не найден!</i>';
+		Preview.document.body.innerHTML = '<i>РРґРµС‚ СЂР°СЃРїР°РєРѕРІРєР°. Р–РґРёС‚Рµ...</i>';
+		if (!FSO.FileExists(unpacker)) return '<i>' + unpacker + ' РЅРµ РЅР°Р№РґРµРЅ!</i>';
 
 		var HTML_text = '';
 		if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
@@ -834,10 +854,10 @@ function ShowPreview(){
 			text = text.replace(/\r\n/g, '<br>');
 		}
 		if (ATable[select_index][5] == '7'){
-			text = text.replace(/(принята)/g, '<q>$1</q>');
-			text = text.replace(/(принято)/g, '<q>$1</q>');
-			text = text.replace(/(принят)/g, '<q>$1</q>');
-			text = text.replace(/(не )/g, '<i>$1</i>');
+			text = text.replace(/(РїСЂРёРЅСЏС‚Р°)/g, '<q>$1</q>');
+			text = text.replace(/(РїСЂРёРЅСЏС‚Рѕ)/g, '<q>$1</q>');
+			text = text.replace(/(РїСЂРёРЅСЏС‚)/g, '<q>$1</q>');
+			text = text.replace(/(РЅРµ )/g, '<i>$1</i>');
 		}
 		text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 
@@ -845,16 +865,16 @@ function ShowPreview(){
 		text = text.replace(re, '$1<q>$2</q>$3');
 		re = new RegExp('Z('+bank_code+')(212)(\.doc)', 'gi');
 		text = text.replace(re, 'Z$1<q>$2</q>$3');
-		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
-		text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
+		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // РїРѕРґСЃРІРµС‚РєР° РґР°С‚ РІРёРґР° 19.03.2010 Рё 19-03-2010
+		text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // РїРѕРґСЃРІРµС‚РєР° РґР°С‚ РІРёРґР° 20100319
 	} else {
-		text = '<font color="red">Файл отчета "'+select_filePathNameTime+'" не найден!</font>';
-		text += '<p>Для быстрого просмотра необходим отказ от использования архивирования отчетов средствами ПТК ПСД.<br>Настройки ПТК ПСД - Модуль архивирования - Интервал установить в 0.';
+		text = '<font color="red">Р¤Р°Р№Р» РѕС‚С‡РµС‚Р° "'+select_filePathNameTime+'" РЅРµ РЅР°Р№РґРµРЅ!</font>';
+		text += '<p>Р”Р»СЏ Р±С‹СЃС‚СЂРѕРіРѕ РїСЂРѕСЃРјРѕС‚СЂР° РЅРµРѕР±С…РѕРґРёРј РѕС‚РєР°Р· РѕС‚ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёСЏ Р°СЂС…РёРІРёСЂРѕРІР°РЅРёСЏ РѕС‚С‡РµС‚РѕРІ СЃСЂРµРґСЃС‚РІР°РјРё РџРўРљ РџРЎР”.<br>РќР°СЃС‚СЂРѕР№РєРё РџРўРљ РџРЎР” - РњРѕРґСѓР»СЊ Р°СЂС…РёРІРёСЂРѕРІР°РЅРёСЏ - РРЅС‚РµСЂРІР°Р» СѓСЃС‚Р°РЅРѕРІРёС‚СЊ РІ 0.';
 	}
 	Preview.document.body.innerHTML = text;
 }
 
-// Делаем первую выборку
+// Р”РµР»Р°РµРј РїРµСЂРІСѓСЋ РІС‹Р±РѕСЂРєСѓ
 function Start(){
 	var DSN = INI.Settings.dsn;
 	var user = INI.Settings.user;
@@ -866,7 +886,7 @@ function Start(){
 	} else {
 		var database = ptk_psd_dir + "Database\\etalon97.mdb";
 		if (!FSO.FileExists(database)) {
-			PostList.document.body.innerHTML = '<font color="red">Файл базы данных '+database+' не найден!</font>';
+			PostList.document.body.innerHTML = '<font color="red">Р¤Р°Р№Р» Р±Р°Р·С‹ РґР°РЅРЅС‹С… '+database+' РЅРµ РЅР°Р№РґРµРЅ!</font>';
 			return;
 		}
 		connect = "Driver={Microsoft Access Driver (*.mdb)};DBQ=" + database;
