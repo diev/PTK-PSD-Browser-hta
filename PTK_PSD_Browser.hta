@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.2
+	version=3.8.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -807,9 +807,11 @@ function ShowPreview(){
 	function ReplaceSignature(stext){
 		if (/o000000/.test(stext)) {
 			var text = RegExp.leftContext;
-			var sign = RegExp.rightContext.match(/[0-9A-W]{12}/);
-			if (!sign) sign = 'undefined';
-			stext = text + '<s>[KA ' + sign + ']</s>';
+			var sign = RegExp.rightContext;
+			var ka = sign.match(/(\d{12})\D/);
+			if (!ka) ka = sign.match(/([0-9A-W]{12})\D/);
+			ka = ka ? ka[1] : 'undefined';
+			stext = text + '<s>[KA ' + ka + ']</s>';
 		}
 		return stext;
 	}
