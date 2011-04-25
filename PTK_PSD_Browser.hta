@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.5
+	version=3.8.6
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -367,7 +367,7 @@ function DeleteSignature (filepath){
 	var content=escape(ReadBinaryFile(filepath));
 	if (/o000000/.test(content)) {
 		content=RegExp.leftContext;
-		var sign = RegExp.rightContext.match(/[0-9A-Z]{12}/);
+		var sign = RegExp.rightContext.match(/\d{4}[0-9A-Z]{6}\d{2}/);
 		if (sign) SaveBinaryData(filepath, unescape(content));
 	}
 }
@@ -808,8 +808,7 @@ function ShowPreview(){
 		if (/o000000/.test(stext)) {
 			var text = RegExp.leftContext;
 			var sign = RegExp.rightContext;
-			var ka = sign.match(/(\d{12})\D/); // Верба
-			if (!ka) ka = sign.match(/([0-9A-Z]{12})\D/); // Сигнатура
+			var ka = sign.match(/(\d{4}[0-9A-Z]{6}\d{2})\D/);
 			ka = ka ? ka[1] : 'не распознан';
 			stext = text + '<s>[KA ' + ka + ']</s>';
 		}
