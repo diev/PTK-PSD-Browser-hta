@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.6
+	version=3.8.7
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -838,14 +838,14 @@ function ShowPreview(){
 		// Распаковка заархивированного файла
 		function UnpackFile(arcfile){
 			// не пытаемся распаковать и показать содержимое служебных файлов
-			if (/(card\.inf)|(\.xml$)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.dbf$)/i.test(arcfile)){
+			if (/(card\.inf)|(\.xml$)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(arcfile)){
 				HTML_text += '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span>';
 			}else{
 				var out = RunConsole('"'+unpacker+'" e -y "'+arcfile+'"', tmp_dir);
 				if (/Error:/.test(out.text)) {
 					HTML_text += GetFileContent(arcfile);
 				}
-				var re = /^Extracting\s+([\w$.]+)$/gm;
+				var re = /^Extracting\s+([^\r\n]+)/gm;
 				while (re.exec(out.text)){
 					var re_lp = RegExp.lastParen;
 					HTML_text += '<table border=1 cellpadding=2 cellspacing=0><tr><th>'+re_lp+'<tr><td>';
