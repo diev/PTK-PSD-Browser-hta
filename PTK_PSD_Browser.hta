@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.7
+	version=3.8.8
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -662,7 +662,6 @@ function StartRefresh(){
 		var cmd = '( "'+unpacker+'" e -y "'+select_filePathNameTime+'" && "'+unpacker+'" l *.arj && DEL /Q /F *.arj )';
 		if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
 		var output = RunConsole(cmd, tmp_dir);
-		var count = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig).length;
 		var adr = output.text.match(/([ABCDOPS])\d{13}\.ARJ/i);
 		if (adr) {
 			adr = adr[1].toUpperCase();
@@ -685,9 +684,10 @@ function StartRefresh(){
 			}
 		}
 		var content = '';
+		var count = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
 		if (count) {
-			content = ' <s>(' + count + ')</s>';
-			if (adr) content = ' <s>(' + adr + '-' + count + ')</s>';
+			content = ' <s>(' + count.length + ')</s>';
+			if (adr) content = ' <s>(' + adr + '-' + count.length + ')</s>';
 		}
 		return content;
 	}
@@ -780,7 +780,7 @@ function StartRefresh(){
 					HTMLtable += '<td>&nbsp;' + Get322PContent(i);
 					break;
 				case '2z':
-					if (ATable[i][0] != 'ИЭС1'){
+					if ((ATable[i][0] == 'ОЭС') || (ATable[i][0] == 'ИЭС2')){
 						HTMLtable += '<td colspan=2>&nbsp;' + ATable[i][0] + Get311PContent(i);
 					}else{
 						HTMLtable += '<td colspan=2>&nbsp;' + ATable[i][0];
