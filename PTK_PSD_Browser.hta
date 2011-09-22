@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.8
+	version=3.8.9
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -298,6 +298,9 @@ function ShowRCMenu(pane){
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">&lt;';
 			html_menu += '<td>&nbsp;Сохранить посылку в...&nbsp;';
+			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveUnpackAll();\">';
+			html_menu += '<td style=\"font:12pt Wingdings;\">4';
+			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 			if (/решен/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения и квитанции" отображается только на решениях 322П
 				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer322P();\">';
 				html_menu += '<td style=\"font:12pt Wingdings;\">+';
@@ -310,7 +313,10 @@ function ShowRCMenu(pane){
 			html_menu += '<td>&nbsp;Сохранить всю посылку в...&nbsp;';
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace(true);\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">=';
-			html_menu += '<td>&nbsp;Сохранить текущий файл в...&nbsp;';
+			html_menu += '<td>&nbsp;Сохранить файл под курсором в...&nbsp;';
+			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveUnpackAll();\">';
+			html_menu += '<td style=\"font:12pt Wingdings;\">4';
+			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 			break;
 		default:
 			return;
@@ -383,6 +389,24 @@ function SaveRace(one_file_from_race){
 	var source = ((one_file_from_race) && (one_filename!='')) ? tmp_dir + '\\' + one_filename : select_filePathNameTime;
 	FSO.CopyFile(source, out_filename, true);
 	if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(out_filename);
+}
+
+// Распаковка всей посылки в указанный каталог
+function SaveUnpackAll(){
+	var Shell = new ActiveXObject("Shell.Application");
+	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения распакованных файлов", 0, INI.Settings.save_root_dir);
+	if (!objFolder) return;
+	var dest_dir = objFolder.Self.Path + '\\';
+
+	var folder = FSO.GetFolder(tmp_dir);
+	var files = new Enumerator(folder.Files);
+	for (; !files.atEnd(); files.moveNext()){
+		var file = files.item();
+		if (!/\.(inf|tmp|arj|zip)$/i.test(file.Name)) {
+			FSO.CopyFile (file.Path, dest_dir, true);
+			if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(dest_dir + file.Name);
+		}
+	}
 }
 
 // Формирование квитанций и подтверждений на сообщение 322-П
