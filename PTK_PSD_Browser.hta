@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.9
+	version=3.8.10
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -850,11 +850,11 @@ function ShowPreview(){
 				return '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое - - - </span>';
 			}
 			if (text != ''){
-				if (/[\x80-\xBF]/.test(text)) {
-					text = dos2win(text);
+				if (!/\.xml$/i.test(filename)) {
+					if (/[\x80-\xBF]/.test(text)) text = dos2win(text);
+					text = text.replace(/\n/g, '<br>');
 				}
 				text = ReplaceSignature(text);
-				text = text.replace(/\n/g, '<br>');
 				return text;
 			}
 		}
@@ -862,7 +862,7 @@ function ShowPreview(){
 		// Распаковка заархивированного файла
 		function UnpackFile(arcfile){
 			// не пытаемся распаковать и показать содержимое служебных файлов
-			if (/(card\.inf)|(\.xml$)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(arcfile)){
+			if (/(card\.inf)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(arcfile)){
 				HTML_text += '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span>';
 			}else{
 				var out = RunConsole('"'+unpacker+'" e -y "'+arcfile+'"', tmp_dir);
