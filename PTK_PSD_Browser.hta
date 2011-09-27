@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.8.10
+	version=3.9.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -50,9 +50,11 @@ if (/^\\\\/.test(unc_path)) { // Если скрипт расположен на
 	WshShell.RegWrite('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\ZoneMap\\Domains' + host + '\\file', 2, 'REG_DWORD');
 }
 
-var INI = ReadINIFile(script_path + "\\PTK_PSD_Browser.ini");
-var bank_code = INI.Settings.bank_code;
-var ptk_psd_dir = INI.Settings.ptk_psd_dir + '\\';
+var INI = {};
+ReadINIFile( WshShell.ExpandEnvironmentStrings("%WINDIR%\\elo.ini") );
+ReadINIFile( script_path + "\\PTK_PSD_Browser.ini" );
+var bank_code = INI.User.CurBik.replace(/^.{5}/, '');
+var ptk_psd_dir = INI.Path.PTKPSD ? (INI.Path.PTKPSD + '\\') : (INI.Path.HOME.replace(/[^\\]*$/, ''));
 var store_dir = ptk_psd_dir + 'POST\\Store\\';
 var out = WshShell.ExpandEnvironmentStrings('%temp%\\expand.out');
 var tmp_dir = WshShell.ExpandEnvironmentStrings("%temp%\\$ptk$");
@@ -195,7 +197,6 @@ function CreateShortcut(){
 
 // Чтение ini файла в объект INI
 function ReadINIFile(ini_file) {
-	var INI = {};
 	if ((FSO.FileExists(ini_file)) && (FSO.GetFile(ini_file).Size > 0)) {
 		with (FSO.OpenTextFile(ini_file)) {
 			var text = ReadAll();
@@ -205,7 +206,7 @@ function ReadINIFile(ini_file) {
 			for (var i in arr_lines){
 				if (/^\[(\w+)\]/.test(arr_lines[i])){
 					section = RegExp.$1;
-					INI[section] = {};
+					if (!INI[section]) INI[section] = {};
 				}
 				if (/^([^;#][^=]*?)\s*=\s*([^\r\n]*?)\s*$/.test(arr_lines[i])){
 					param = RegExp.$1;
@@ -380,7 +381,7 @@ function DeleteSignature (filepath){
 
 // Сохранение файла отчетности (целиком или одного из вложенных)
 function SaveRace(one_file_from_race){
-	var save_root_dir = INI.Settings.save_root_dir;
+	var save_root_dir = INI.BrowserSettings.save_root_dir;
 	var Shell = new ActiveXObject("Shell.Application");
 	var save_filename = ((one_file_from_race) && (one_filename!='')) ? one_filename : select_fileName;
 	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения файла\n" + save_filename, 0, save_root_dir);
@@ -388,13 +389,13 @@ function SaveRace(one_file_from_race){
 	var out_filename = objFolder.Self.Path + '\\' + save_filename;
 	var source = ((one_file_from_race) && (one_filename!='')) ? tmp_dir + '\\' + one_filename : select_filePathNameTime;
 	FSO.CopyFile(source, out_filename, true);
-	if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(out_filename);
+	if (INI.BrowserSettings.sign_delete_onsave == '1') DeleteSignature(out_filename);
 }
 
 // Распаковка всей посылки в указанный каталог
 function SaveUnpackAll(){
 	var Shell = new ActiveXObject("Shell.Application");
-	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения распакованных файлов", 0, INI.Settings.save_root_dir);
+	var objFolder = Shell.BrowseForFolder(0, "Выберите папку для сохранения распакованных файлов", 0, INI.BrowserSettings.save_root_dir);
 	if (!objFolder) return;
 	var dest_dir = objFolder.Self.Path + '\\';
 
@@ -404,7 +405,7 @@ function SaveUnpackAll(){
 		var file = files.item();
 		if (!/\.(inf|tmp|arj|zip)$/i.test(file.Name)) {
 			FSO.CopyFile (file.Path, dest_dir, true);
-			if (INI.Settings.sign_delete_onsave == '1') DeleteSignature(dest_dir + file.Name);
+			if (INI.BrowserSettings.sign_delete_onsave == '1') DeleteSignature(dest_dir + file.Name);
 		}
 	}
 }
@@ -417,7 +418,7 @@ function Answer322P(){
 			Close();
 		}
 	}
-	var outbox_dir_322P = INI.Settings.outbox_dir_322P;
+	var outbox_dir_322P = INI.BrowserSettings.outbox_dir_322P;
 	if (!outbox_dir_322P) {
 		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
 		return;
@@ -543,7 +544,7 @@ function CreateFormList(){
 	}
 	// Извлекает список форм, разрешенных текущему пользователю
 	function GetForms(){
-		var usrname = INI.Settings.usrname;
+		var usrname = INI.User.CurUser;
 		if (!usrname) usrname = WshShell.ExpandEnvironmentStrings('%username%');
 		document.title += ' [' + usrname + ']';
 		CheckUsers(usrname);
@@ -927,9 +928,9 @@ function ShowPreview(){
 
 // Делаем первую выборку
 function Start(){
-	var DSN = INI.Settings.dsn;
-	var user = INI.Settings.user;
-	var password = INI.Settings.password;
+	var DSN = INI.DataBase.ODBC;
+	var user = INI.DataBase.user;
+	var password = INI.DataBase.password;
 	if (DSN) {
 		connect = "DSN=" + DSN + ";";
 		if (user) connect += "UID=" + user + ";";
