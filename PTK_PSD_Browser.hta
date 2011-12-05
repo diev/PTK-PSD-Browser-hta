@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.9.0
+	version=3.9.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -53,8 +53,16 @@ if (/^\\\\/.test(unc_path)) { // Если скрипт расположен на
 var INI = {};
 ReadINIFile( WshShell.ExpandEnvironmentStrings("%WINDIR%\\elo.ini") );
 ReadINIFile( script_path + "\\PTK_PSD_Browser.ini" );
-var bank_code = INI.User.CurBik.replace(/^.{5}/, '');
+if (!INI.User.CurBik) {
+	WshShell.Popup('Не задан БИК !\nЗадайте параметр CurBik в ini-файле', 6, "Ошибка", 48);
+	self.close();
+}
+var bank_code = INI.User.CurBik.replace(/.*(\d{3})$/, '$1');
 var ptk_psd_dir = INI.Path.PTKPSD ? (INI.Path.PTKPSD + '\\') : (INI.Path.HOME.replace(/[^\\]*$/, ''));
+if (!FSO.FolderExists(ptk_psd_dir)) {
+	WshShell.Popup('Каталог установки ПТК ПСД\n' + ptk_psd_dir + '\nне существует!\nОтредактируйте ini-файл', 6, "Ошибка", 48);
+	self.close();
+}
 var store_dir = ptk_psd_dir + 'POST\\Store\\';
 var out = WshShell.ExpandEnvironmentStrings('%temp%\\expand.out');
 var tmp_dir = WshShell.ExpandEnvironmentStrings("%temp%\\$ptk$");
