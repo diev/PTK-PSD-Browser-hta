@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.10.1
+	version=3.10.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -455,7 +455,7 @@ function Answer365P(){
 	}
 	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = '" + select_fileNameTime + "'";
 	QueryDatabase(sql_str);
-	StartRefresh();
+	setTimeout('StartRefresh()', 0);
 	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
 }
 
@@ -479,9 +479,9 @@ function load_Toolbar(){
 	var html_toolbar = '';
 	html_toolbar += '<table cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\"><tr>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
-	html_toolbar += '		&nbsp;<select name=PostType onChange=\"parent.StartRefresh();\"><option value=\"*\">Все формы</option></select>&nbsp;';
+	html_toolbar += '		&nbsp;<select name=PostType onChange=\"setTimeout(\'parent.StartRefresh()\', 0);\"><option value=\"*\">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartRefresh(); return false;\">[</a>';
+	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"setTimeout(\'parent.StartRefresh()\', 0); return false;\">[</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Период:&nbsp;</b></legend>';
 	html_toolbar += '		<input type=\"radio\" id=r0 name=Interval hidefocus onClick=\"parent.SetInterval(0);\" checked>';
 	html_toolbar += '		<label for=r0>Сегодня</label>';
@@ -493,8 +493,8 @@ function load_Toolbar(){
 	html_toolbar += '		<label for=r3>за 7 дней</label>';
 	html_toolbar += '		<input type=\"radio\" id=r4 name=Interval hidefocus onClick=\"parent.SetInterval(4);\">';
 	html_toolbar += '		<label for=r4>с:</label>';
-	html_toolbar += '		<input hidefocus id=\"startDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();\">';
-	html_toolbar += '		по: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) parent.StartRefresh();;\">&nbsp;';
+	html_toolbar += '		<input hidefocus id=\"startDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) setTimeout(\'parent.StartRefresh()\', 0);\">';
+	html_toolbar += '		по: <input hidefocus id=\"endDate\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"if (event.keyCode == 13) setTimeout(\'parent.StartRefresh()\', 0);\">&nbsp;';
 	html_toolbar += '	</fieldset>';
 	html_toolbar += '	<td style=\"font:14pt Wingdings; width:100%; text-align:center; text-valign:middle;\"><a href="#" hidefocus title=\"Создать на Рабочем столе\nярлык для запуска программы\" onClick=\"parent.CreateShortcut(); return false;\">O</a>&nbsp;';
 	html_toolbar += '</table>';
@@ -597,22 +597,22 @@ function SetInterval(i){
 		case 0: // сегодня
 			Toolbar.startDate.value = SetDate(0);
 			Toolbar.endDate.value = SetDate(1);
-			StartRefresh();
+			setTimeout('StartRefresh()', 0);
 			break;
 		case 1: // вчера
 			Toolbar.startDate.value = SetDate(-1);
 			Toolbar.endDate.value = SetDate(0);
-			StartRefresh();
+			setTimeout('StartRefresh()', 0);
 			break;
 		case 2: // за 3 дня
 			Toolbar.startDate.value = SetDate(-2);
 			Toolbar.endDate.value = SetDate(1);
-			StartRefresh();
+			setTimeout('StartRefresh()', 0);
 			break;
 		case 3: // за 7 дней
 			Toolbar.startDate.value = SetDate(-6);
 			Toolbar.endDate.value = SetDate(1);
-			StartRefresh();
+			setTimeout('StartRefresh()', 0);
 			break;
 		case 4: // за произвольный период
 			Toolbar.startDate.disabled = false;
