@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.9.2
+	version=3.9.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -847,16 +847,19 @@ function ShowPreview(){
 		// Возвращает содержимое файла
 		function GetFileContent(filename){
 			var text = ReadBinaryFile(filename);
-			var first = text.match(/^.{12}/); // берем первые 12 символов
+			var first = text.match(/^.{10}/); // берем первые 10 символов
 			if ((!first)||(first[0].match(/[\x00-\x1F]/))) { // и если в них имеется символ с кодом от 0 до 31
 				return '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое - - - </span>';
 			}
 			if (text != ''){
+				text = ReplaceSignature(text);
 				if (!/\.xml$/i.test(filename)) {
 					if (/[\x80-\xBF]/.test(text)) text = dos2win(text);
 					text = text.replace(/\n/g, '<br>');
 				}
-				text = ReplaceSignature(text);
+				if (/^(PB1|IZV|KWT)[\w_]{31,39}\.txt$/i.test(filename)) { // подтверждение, извещение, квитанция 322П
+					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
+				}
 				return text;
 			}
 		}
@@ -906,14 +909,14 @@ function ShowPreview(){
 			text = ReplaceSignature(text);
 			text = text.replace(/\r\n/g, '<br>');
 		}
-		if (ATable[select_index][5] == '7'){
+		if (ATable[select_index][5] == '7'){ // подсветка только для полученных
 			text = text.replace(/(принята)/g, '<q>$1</q>');
 			text = text.replace(/(принято)/g, '<q>$1</q>');
 			text = text.replace(/(принят)/g, '<q>$1</q>');
 			text = text.replace(/(не )/g, '<i>$1</i>');
 		}
-		text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 
+		 // подсветка для всех
 		var re = new RegExp('('+bank_code+')(.{2,4})(\.zip)', 'gi');
 		text = text.replace(re, '$1<q>$2</q>$3');
 		re = new RegExp('Z('+bank_code+')(212)(\.doc)', 'gi');
