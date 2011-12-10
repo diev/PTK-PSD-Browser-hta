@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.9.3
+	version=3.9.4
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -170,6 +170,16 @@ function RunConsole(command, dir){
 	output.text = ReadTextFile(output_file);
 	if (output.text != '') output.text = dos2win(output.text);
 	return output;
+}
+
+// Возвращает массив со списком файлов в архиве любой вложенности
+function GetArcFileList(arc_fullname) {
+	var archive_list = script_path + '\\bin\\archive_list.cmd';
+	var cmd = archive_list + ' ' + arc_fullname;
+	var filelist = RunConsole(cmd, tmp_dir).text;
+	// var arr_files = filelist.split('\r\n');
+	// arr_files.pop();
+	return filelist;
 }
 
 // Return date as object
@@ -424,14 +434,13 @@ function Answer322P(){
 		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
 		return;
 	}
-	if (!FSO.FolderExists(outbox_dir_322P)) FSO.CreateFolder(outbox_dir_322P);
-	WshShell.Run('cmd /c EXPAND -D "'+select_filePathNameTime+'" > "'+out+'"', 0, true);
-	var content = ReadTextFile(out);
-	var re = /: (.*)/g;
+	if (!FSO.FolderExists(outbox_dir_365P)) FSO.CreateFolder(outbox_dir_322P);
+	if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
+
+	var arr_fnames = Preview.idFname;
 	var count = 0;
-	while (re.exec(content)){
-		count++;
-		var r_name = RegExp.lastParen.replace(/\..+$/,'');
+	for (var i=0; i<arr_fnames.length; i++) {
+		var r_name = arr_fnames[i].innerText;
 		var kwt_text = r_name + '###\r\n';
 		kwt_text += '14@@@\r\n';
 		var dt = FormatDate(new Date());
@@ -440,6 +449,7 @@ function Answer322P(){
 		kwt_text += '===\r\n';
 		WriteFile(outbox_dir_322P + '\\KWTVVV_' + r_name + '.txt', kwt_text);
 		WriteFile(outbox_dir_322P + '\\PB1_' + r_name + '.txt', kwt_text.replace(/\r\n14@@@\r\n/,'\r\n12@@@\r\n'));
+		count++;
 	}
 	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = '" + select_fileNameTime + "'";
 	QueryDatabase(sql_str);
@@ -685,10 +695,8 @@ function StartRefresh(){
 	function Get311PContent(ind){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
-		var cmd = '( "'+unpacker+'" e -y "'+select_filePathNameTime+'" && "'+unpacker+'" l *.arj && DEL /Q /F *.arj )';
-		if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
-		var output = RunConsole(cmd, tmp_dir);
-		var adr = output.text.match(/([ABCDOPS])\d{13}\.ARJ/i);
+		var files_list = GetArcFileList(select_filePathNameTime);
+		var adr = files_list.match(/([ABCDOPS])\d{13}\.ARJ/i);
 		if (adr) {
 			adr = adr[1].toUpperCase();
 			switch(adr){
@@ -710,7 +718,7 @@ function StartRefresh(){
 			}
 		}
 		var content = '';
-		var count = output.text.match(/SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT/ig);
+		var count = files_list.match(/^SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT$/igm);
 		if (count) {
 			content = ' <s>(' + count.length + ')</s>';
 			if (adr) content = ' <s>(' + adr + '-' + count.length + ')</s>';
@@ -721,25 +729,18 @@ function StartRefresh(){
 	function Get322PContent(ind){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
-		WshShell.Run('cmd /c EXPAND -D "'+select_filePathNameTime+'" > "'+out+'"', 0, true);
-		var content = ReadTextFile(out);
-		var rpo = roo = kwt = pb = izv = 0;
-		var re = /: (\D{2,3})/ig;
-		while (re.exec(content)){
-			switch(RegExp.lastParen.toLowerCase()){
-				case 'rpo': rpo++; break;
-				case 'roo': roo++; break;
-				case 'kwt': kwt++; break;
-				case 'pb':  pb++; break;
-				case 'izv': izv++; break;
-			}
-		}
+		var files_list = GetArcFileList(select_filePathNameTime);
+		var rpo = files_list.match(/^RPO[\w_]{28}\.VRB$/igm);
+		var roo = files_list.match(/^ROO[\w_]{28}\.VRB$/igm);
+		var kwt = files_list.match(/^KWT[\w_]{31,39}\.txt$/igm);
+		var pb1 = files_list.match(/^PB1[\w_]{32}\.txt$/igm);
+		var izv = files_list.match(/^IZV[\w_]{36,39}\.txt$/igm);
 		var html = '';
-		if (rpo != 0) html += '<font color="#990000">решение о приост.</font> <s>(' + rpo + ')</s> ';
-		if (roo != 0) html += '<font color="#990000">отмена решения</font> <s>(' + roo + ')</s> ';
-		if (kwt != 0) html += 'квит. <s>(' + kwt + ')</s> ';
-		if (pb != 0) html += 'подтв. <s>(' + pb + ')</s> ';
-		if (izv != 0) html += 'извещение <s>(' + izv + ')</s> ';
+		if (rpo) html += '<font color="#990000">решение о приост.</font> <s>(' + rpo.length + ')</s> ';
+		if (roo) html += '<font color="#990000">отмена решения</font> <s>(' + roo.length + ')</s> ';
+		if (kwt) html += 'квит. <s>(' + kwt.length + ')</s> ';
+		if (pb1) html += 'подтв. <s>(' + pb1.length + ')</s> ';
+		if (izv) html += 'извещение <s>(' + izv.length + ')</s> ';
 		return html;
 	}
 	//Возвращает результат (отправлен/получен/не/принят)
@@ -877,7 +878,7 @@ function ShowPreview(){
 				var re = /^Extracting\s+([^\r\n]+)/gm;
 				while (re.exec(out.text)){
 					var re_lp = RegExp.lastParen;
-					HTML_text += '<table border=1 cellpadding=2 cellspacing=0><tr><th>'+re_lp+'<tr><td>';
+					HTML_text += '<table border=1 cellpadding=2 cellspacing=0><tr><th id=idFname>'+re_lp+'<tr><td>';
 					UnpackFile (re_lp);
 					if (/\.vrb$/i.test(re_lp)){ // разделитель страниц для vrb файлов
 						HTML_text += '</table><br style="page-break-after:always">';
