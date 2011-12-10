@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.9.4
+	version=3.10.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -313,10 +313,10 @@ function ShowRCMenu(pane){
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveUnpackAll();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">4';
 			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
-			if (/решен/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения и квитанции" отображается только на решениях 322П
-				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer322P();\">';
+			if (/решен|запрос/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах и решениях 365П
+				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer365P();\">';
 				html_menu += '<td style=\"font:12pt Wingdings;\">+';
-				html_menu += '<td>&nbsp;Сформировать подтверждения и квитанции&nbsp;';
+				html_menu += '<td>&nbsp;Сформировать подтверждения&nbsp;';
 			}
 			break;
 		case 'Preview':
@@ -421,40 +421,42 @@ function SaveUnpackAll(){
 	}
 }
 
-// Формирование квитанций и подтверждений на сообщение 322-П
-function Answer322P(){
+// Формирование подтверждений на сообщение 365-П
+function Answer365P(){
 	function WriteFile(filename, text) {
 		with (FSO.OpenTextFile(filename, 2, true)) {
 			Write(text);
 			Close();
 		}
 	}
-	var outbox_dir_322P = INI.BrowserSettings.outbox_dir_322P;
-	if (!outbox_dir_322P) {
+	var outbox_dir_365P = INI.BrowserSettings.outbox_dir_365P;
+	if (!outbox_dir_365P) {
 		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
 		return;
 	}
-	if (!FSO.FolderExists(outbox_dir_365P)) FSO.CreateFolder(outbox_dir_322P);
+	if (!FSO.FolderExists(outbox_dir_365P)) FSO.CreateFolder(outbox_dir_365P);
 	if (FSO.FolderExists(tmp_dir)) FSO.DeleteFile(tmp_dir + '\\*.*', true);
 
 	var arr_fnames = Preview.idFname;
 	var count = 0;
 	for (var i=0; i<arr_fnames.length; i++) {
 		var r_name = arr_fnames[i].innerText;
-		var kwt_text = r_name + '###\r\n';
-		kwt_text += '14@@@\r\n';
-		var dt = FormatDate(new Date());
-		kwt_text += dt.year+'-'+dt.month+'-'+dt.day+'@@@\r\n';
-		kwt_text += dt.hours+':'+dt.min+':'+dt.sec+'@@@\r\n';
-		kwt_text += '===\r\n';
-		WriteFile(outbox_dir_322P + '\\KWTVVV_' + r_name + '.txt', kwt_text);
-		WriteFile(outbox_dir_322P + '\\PB1_' + r_name + '.txt', kwt_text.replace(/\r\n14@@@\r\n/,'\r\n12@@@\r\n'));
-		count++;
+		if (/([\w_]+)\.vrb$/i.test(r_name)) {
+			var fname = RegExp.$1;
+			var pb1_text = fname + '###\r\n';
+			pb1_text += '10@@@\r\n';
+			var dt = FormatDate(new Date());
+			pb1_text += dt.year+'-'+dt.month+'-'+dt.day+'@@@\r\n';
+			pb1_text += dt.hours+':'+dt.min+':'+dt.sec+'@@@\r\n';
+			pb1_text += '===\r\n';
+			WriteFile(outbox_dir_365P + '\\PB1_' + fname + '.txt', pb1_text);
+			count++;
+		}
 	}
 	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = '" + select_fileNameTime + "'";
 	QueryDatabase(sql_str);
 	StartRefresh();
-	WshShell.Popup('Сформировано:\n- квитанций:\t'+count+'\n- подтверждений:\t'+count, 2, "Формирование ответных квитанций", 64);
+	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
 }
 
 //=====================================================
@@ -725,22 +727,28 @@ function StartRefresh(){
 		}
 		return content;
 	}
-	// Возвращает содержимое сообщения по форме 322-П
-	function Get322PContent(ind){
+	// Возвращает содержимое сообщения по форме 365-П
+	function Get365PContent(ind){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
 		var files_list = GetArcFileList(select_filePathNameTime);
 		var rpo = files_list.match(/^RPO[\w_]{28}\.VRB$/igm);
 		var roo = files_list.match(/^ROO[\w_]{28}\.VRB$/igm);
+		var zno = files_list.match(/^ZNO[\w_]{28}\.VRB$/igm);
 		var kwt = files_list.match(/^KWT[\w_]{31,39}\.txt$/igm);
 		var pb1 = files_list.match(/^PB1[\w_]{32}\.txt$/igm);
 		var izv = files_list.match(/^IZV[\w_]{36,39}\.txt$/igm);
+		var buv = files_list.match(/^BUV[\w_]{24}\.txt$/igm);
+		var bos = files_list.match(/^BOS[\w_]{32}\.txt$/igm);
 		var html = '';
 		if (rpo) html += '<font color="#990000">решение о приост.</font> <s>(' + rpo.length + ')</s> ';
 		if (roo) html += '<font color="#990000">отмена решения</font> <s>(' + roo.length + ')</s> ';
+		if (zno) html += '<font color="#990000">запрос</font> <s>(' + zno.length + ')</s> ';
 		if (kwt) html += 'квит. <s>(' + kwt.length + ')</s> ';
 		if (pb1) html += 'подтв. <s>(' + pb1.length + ')</s> ';
 		if (izv) html += 'извещение <s>(' + izv.length + ')</s> ';
+		if (buv) html += 'уведомление <s>(' + buv.length + ')</s> ';
+		if (bos) html += 'свед. об остатках <s>(' + bos.length + ')</s> ';
 		return html;
 	}
 	//Возвращает результат (отправлен/получен/не/принят)
@@ -803,8 +811,9 @@ function StartRefresh(){
 					HTMLtable += '<td>&nbsp;' + GetSAcontent(i);
 					break;
 				case '5z':
+				case 'mz':
 					HTMLtable += '<td>&nbsp;' + ATable[i][0];
-					HTMLtable += '<td>&nbsp;' + Get322PContent(i);
+					HTMLtable += '<td>&nbsp;' + Get365PContent(i);
 					break;
 				case '2z':
 					if ((ATable[i][0] == 'ОЭС') || (ATable[i][0] == 'ИЭС2')){
@@ -858,7 +867,7 @@ function ShowPreview(){
 					if (/[\x80-\xBF]/.test(text)) text = dos2win(text);
 					text = text.replace(/\n/g, '<br>');
 				}
-				if (/^(PB1|IZV|KWT)[\w_]{31,39}\.txt$/i.test(filename)) { // подтверждение, извещение, квитанция 322П
+				if (/^(PB1|IZV|KWT)[\w_]{31,39}\.txt$/i.test(filename)) { // подтверждение, извещение, квитанция 365П
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 				}
 				return text;
