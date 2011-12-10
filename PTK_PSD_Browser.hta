@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.9.1
+	version=3.9.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -44,9 +44,8 @@ try {
 
 var script_path = unescape(document.URL).replace(/.*([A-Z]:\\.*)\\.*$/i, '$1');
 
-var unc_path = GetUNCpath(script_path);
-if (/^\\\\/.test(unc_path)) { // Если скрипт расположен на сетевом диске
-	var host = unc_path.match(/^\\\\\w*/); // добавляем хост в список доверенных сайтов
+var host = GetHostName(script_path);
+if (host) { // Если скрипт расположен на сетевом диске, то добавляем хост в список доверенных сайтов
 	WshShell.RegWrite('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\ZoneMap\\Domains' + host + '\\file', 2, 'REG_DWORD');
 }
 
@@ -73,17 +72,11 @@ var available_forms = ""; // строка для SQL запроса со спи�
 //  ОБЩИЕ ФУНКЦИИ
 //=====================================================
 
-// Возвращает путь в UNC виде
-function GetUNCpath(path){
-	var disk = FSO.GetDriveName(path).toUpperCase();
-	var Network = new ActiveXObject("WScript.Network");
-	var drives = Network.EnumNetworkDrives();
-	var i = 0;
-	do {
-		if (disk == drives.Item(i)) return path.replace(/^\w:/, drives.Item(i+1))
-		i = i + 2;
-	} while (i<drives.Count());
-	return path;
+// Находит имя хоста если путь указывает на сетевой каталог
+function GetHostName(path){
+	var drive = FSO.GetDrive(FSO.GetDriveName(path));
+	var uncPath = drive.ShareName;
+	if (uncPath) return uncPath.replace(/^(\\\\\w*).*/, '$1');
 }
 
 // Выполняет SQL запрос к БД
