@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.10.0
+	version=3.10.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -867,7 +867,16 @@ function ShowPreview(){
 					if (/[\x80-\xBF]/.test(text)) text = dos2win(text);
 					text = text.replace(/\n/g, '<br>');
 				}
+				// подсветка (подсказки) для содержимого сообщения
+				if (/^ZNO[\w_]{28}\.VRB$/i.test(filename)) { // запрос 365П
+					text = text.replace(/(<br>ВидЗапр:1)/m, '$1 <q>(запрос о наличии счетов в банке)</q>');
+					text = text.replace(/(<br>ВидЗапр:2)/m, '$1 <q>(запрос об остатках денежных средств на счете)</q>');
+					text = text.replace(/(<br>ВидЗапр:3)/m, '$1 <q>(запрос выписки по операциям на счете)</q>');
+					text = text.replace(/(<br>ТипЗапр:1)/m, '$1 <q>(по всем счетам)</q>');
+					text = text.replace(/(<br>ТипЗапр:2)/m, '$1 <q>(по указанным в запросе счетам)</q>');
+				} else
 				if (/^(PB1|IZV|KWT)[\w_]{31,39}\.txt$/i.test(filename)) { // подтверждение, извещение, квитанция 365П
+					text = text.replace(/(<br>10@@@|<br>01@@@|<br>20@@@)/m, '$1 <q>(положительный результат проверки)</q>');
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 				}
 				return text;
