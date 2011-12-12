@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.10.2
+	version=3.10.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -313,7 +313,7 @@ function ShowRCMenu(pane){
 			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveUnpackAll();\">';
 			html_menu += '<td style=\"font:12pt Wingdings;\">4';
 			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
-			if (/решен|запрос/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах и решениях 365П
+			if (/требование|решени|запрос|поручение/i.test(PostList.Row[select_row].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах 365П
 				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer365P();\">';
 				html_menu += '<td style=\"font:12pt Wingdings;\">+';
 				html_menu += '<td>&nbsp;Сформировать подтверждения&nbsp;';
@@ -441,7 +441,7 @@ function Answer365P(){
 	var count = 0;
 	for (var i=0; i<arr_fnames.length; i++) {
 		var r_name = arr_fnames[i].innerText;
-		if (/([\w_]+)\.vrb$/i.test(r_name)) {
+		if (/(\w+)\.vrb$/i.test(r_name)) {
 			var fname = RegExp.$1;
 			var pb1_text = fname + '###\r\n';
 			pb1_text += '10@@@\r\n';
@@ -732,23 +732,35 @@ function StartRefresh(){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
 		var files_list = GetArcFileList(select_filePathNameTime);
-		var rpo = files_list.match(/^RPO[\w_]{28}\.VRB$/igm);
-		var roo = files_list.match(/^ROO[\w_]{28}\.VRB$/igm);
-		var zno = files_list.match(/^ZNO[\w_]{28}\.VRB$/igm);
-		var kwt = files_list.match(/^KWT[\w_]{31,39}\.txt$/igm);
-		var pb1 = files_list.match(/^PB1[\w_]{32}\.txt$/igm);
-		var izv = files_list.match(/^IZV[\w_]{36,39}\.txt$/igm);
-		var buv = files_list.match(/^BUV[\w_]{24}\.txt$/igm);
-		var bos = files_list.match(/^BOS[\w_]{32}\.txt$/igm);
+		var rpo = files_list.match(/^RPO\w+\.(txt|vrb)$/igm); // 1.1	Решение о приостановлении операций по счетам
+		var roo = files_list.match(/^ROO\w+\.(txt|vrb)$/igm); // 1.2	Решение об отмене приостановления операций по счетам
+		var pno = files_list.match(/^PNO\w+\.(txt|vrb)$/igm); // 1.3	Поручение налогового органа на списание и перечисление в бюджетную систему Российской Федерации денежных средств
+		var zno = files_list.match(/^ZNO\w+\.(txt|vrb)$/igm); // 1.4	Запрос налогового органа
+		var trb = files_list.match(/^TRB\w+\.(txt|vrb)$/igm); // 1.5	Требование о перечислении налога, сбора, пени, штрафа в бюджетную систему Российской Федерации
+		var trg = files_list.match(/^TRG\w+\.(txt|vrb)$/igm); // 1.6	Требование об уплате денежной суммы по банковской гарантии
+		var bos = files_list.match(/^BOS\w+\.(txt|vrb)$/igm); // 1.7	Сведения об остатках денежных средств на счете (счетах)
+		var bns = files_list.match(/^BNS\w+\.(txt|vrb)$/igm); // 1.8	Справка о наличии счетов
+		var bv  = files_list.match(/^BV\w+\.(txt|vrb)$/igm);  // 1.9	Выписка по операциям на счете (счетах)
+		var izv = files_list.match(/^IZV\w+\.txt$/igm); // п.1	Извещение, формируемое подразделениями Банка России
+		var pb =  files_list.match(/^PB\w+\.txt$/igm);  // п.2	Подтверждение
+		var kwt = files_list.match(/^KWT\w+\.txt$/igm); // п.3	Извещение, формируемое МИ ФНС России по ЦОД
+		var dsb_buv = files_list.match(/^(DSB|BUV)\w+\.txt$/igm); // п.4	Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
+																	// п.5	Уведомление банка (филиала банка) о начале, прекращении, временном приостановлении, возобновлении обмена сообщениями
+
 		var html = '';
 		if (rpo) html += '<font color="#990000">решение о приост.</font> <s>(' + rpo.length + ')</s> ';
 		if (roo) html += '<font color="#990000">отмена решения</font> <s>(' + roo.length + ')</s> ';
+		if (pno) html += '<font color="#990000">поручение</font> <s>(' + pno.length + ')</s> ';
 		if (zno) html += '<font color="#990000">запрос</font> <s>(' + zno.length + ')</s> ';
-		if (kwt) html += 'квит. <s>(' + kwt.length + ')</s> ';
-		if (pb1) html += 'подтв. <s>(' + pb1.length + ')</s> ';
-		if (izv) html += 'извещение <s>(' + izv.length + ')</s> ';
-		if (buv) html += 'уведомление <s>(' + buv.length + ')</s> ';
+		if (trb) html += '<font color="#990000">требование</font> <s>(' + trb.length + ')</s> ';
+		if (trg) html += '<font color="#990000">треб.гарант</font> <s>(' + trg.length + ')</s> ';
 		if (bos) html += 'свед. об остатках <s>(' + bos.length + ')</s> ';
+		if (bns) html += 'нал.счетов <s>(' + bns.length + ')</s> ';
+		if (bv)  html += 'выписка <s>(' + bv.length + ')</s> ';
+		if (izv) html += 'извещение <s>(' + izv.length + ')</s> ';
+		if (pb)  html += 'подтв. <s>(' + pb.length + ')</s> ';
+		if (kwt) html += 'квит. <s>(' + kwt.length + ')</s> ';
+		if (dsb_buv) html += 'уведомление <s>(' + dsb_buv.length + ')</s> ';
 		return html;
 	}
 	//Возвращает результат (отправлен/получен/не/принят)
@@ -868,14 +880,14 @@ function ShowPreview(){
 					text = text.replace(/\n/g, '<br>');
 				}
 				// подсветка (подсказки) для содержимого сообщения
-				if (/^ZNO[\w_]{28}\.VRB$/i.test(filename)) { // запрос 365П
+				if (/^ZNO\w+\.(txt|vrb)$/i.test(filename)) { // запрос 365П
 					text = text.replace(/(<br>ВидЗапр:1)/m, '$1 <q>(запрос о наличии счетов в банке)</q>');
 					text = text.replace(/(<br>ВидЗапр:2)/m, '$1 <q>(запрос об остатках денежных средств на счете)</q>');
 					text = text.replace(/(<br>ВидЗапр:3)/m, '$1 <q>(запрос выписки по операциям на счете)</q>');
 					text = text.replace(/(<br>ТипЗапр:1)/m, '$1 <q>(по всем счетам)</q>');
 					text = text.replace(/(<br>ТипЗапр:2)/m, '$1 <q>(по указанным в запросе счетам)</q>');
 				} else
-				if (/^(PB1|IZV|KWT)[\w_]{31,39}\.txt$/i.test(filename)) { // подтверждение, извещение, квитанция 365П
+				if (/^(IZV|PB|KWT)\w+\.(txt|vrb)$/i.test(filename)) { // подтверждение, извещение, квитанция 365П
 					text = text.replace(/(<br>10@@@|<br>01@@@|<br>20@@@)/m, '$1 <q>(положительный результат проверки)</q>');
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 				}
