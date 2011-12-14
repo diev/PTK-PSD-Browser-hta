@@ -1,7 +1,7 @@
 @ECHO OFF
-IF "%1"=="" EXIT 1
+IF [%1]==[] EXIT 1
 
-SET unpacker=%~dp0\7z.exe
+SET unpacker=%~sdp07z.exe
 SET mtmp=%TEMP%\$mtmp$
 IF EXIST %mtmp% (DEL /Q /F %mtmp%\*.*) ELSE (MD %mtmp%)
 PUSHD %mtmp%
