@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.10.3
+	version=3.10.4
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -174,11 +174,8 @@ function RunConsole(command, dir){
 
 // Возвращает массив со списком файлов в архиве любой вложенности
 function GetArcFileList(arc_fullname) {
-	var archive_list = script_path + '\\bin\\archive_list.cmd';
-	var cmd = archive_list + ' ' + arc_fullname;
+	var cmd = '"' + script_path + '\\bin\\archive_list.cmd" "' + arc_fullname + '"';
 	var filelist = RunConsole(cmd, tmp_dir).text;
-	// var arr_files = filelist.split('\r\n');
-	// arr_files.pop();
 	return filelist;
 }
 
