@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=3.10.4
+	version=3.10.5
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -695,10 +695,8 @@ function StartRefresh(){
 		select_filePathNameTime = GetCurrentFile(ind);
 		if (!FSO.FileExists(select_filePathNameTime)) return '';
 		var files_list = GetArcFileList(select_filePathNameTime);
-		var adr = files_list.match(/([ABCDOPS])\d{13}\.ARJ/i);
-		if (adr) {
-			adr = adr[1].toUpperCase();
-			switch(adr){
+		if (/^([ABCDOPS])\d{13}\.ARJ$/im.test(files_list)){
+			switch(RegExp.lastParen.toUpperCase()){
 				case 'A':
 					adr = 'Всем';
 					break;
@@ -956,6 +954,13 @@ function ShowPreview(){
 		text += '<p>Для быстрого просмотра необходим отказ от использования архивирования отчетов средствами ПТК ПСД.<br>Настройки ПТК ПСД - Модуль архивирования - Интервал установить в 0.';
 	}
 	Preview.document.body.innerHTML = text;
+	// добавляем возможность копировать имена файлов по клику на заголовке
+	for (var i=0; i<Preview.idFname.length; i++) {
+		with (Preview.idFname[i]) {
+			title = "Щелкните для копирования в буфер обмена";
+			onclick = function(){window.clipboardData.setData("Text", this.innerText.replace(/\.\w+?$/,''))};
+		}
+	}
 }
 
 // Делаем первую выборку
