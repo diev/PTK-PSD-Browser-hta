@@ -852,6 +852,18 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				}
 				return form_names.join(', ');
 			}
+
+			// В одной посылке м.б. только одна форма:
+			if (/^ZDL\d+\.xls$/im.test(files_list)) return 'Инф.о просроченной задолженности'; // Н.Новгород
+			if ((new RegExp('^IA\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '601'; // С.Петербург
+			if ((new RegExp('^IN\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '652'; // С.Петербург
+			if ((new RegExp('^SK\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return 'KAS'; // С.Петербург
+
+			// В одной посылке м.б. несколько различных форм:
+			var formnames = GetFormNames(files_list, new RegExp('^F(\\w{3})'+bank_code+'[1-C]\\.', 'gim')); // С.Петербург (664, 665, KRK, PSV, VBK)
+			if (formnames != '') return formnames;
+			formnames = GetFormNames(files_list, new RegExp('^F'+bank_code+'(\\w{2,4})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
+			return formnames;
 		}
 		// -----------------------------------------------------------
 		var info = '';
