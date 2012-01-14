@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.0.0
+	version=4.0.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -492,7 +492,7 @@ function Answer365P(){
 	}
 	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = ?";
 	QueryDatabase(sql_str, arrDB[select_row_idx].filename);
-	StartRefresh();
+	StartCreatePostsList();
 	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
 }
 
@@ -517,9 +517,9 @@ function load_Toolbar(){
 	var html_toolbar = '';
 	html_toolbar += '<table id=\"idToolbar\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\"><tr>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
-	html_toolbar += '		&nbsp;<select name=idPostType onChange=\"parent.StartRefresh();\"><option value=\"*\">Все формы</option></select>&nbsp;';
+	html_toolbar += '		&nbsp;<select name=idPostType onChange=\"parent.StartCreatePostsList();\"><option value=\"*\">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartRefresh(); return false;\">[</a>';
+	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartCreatePostsList(); return false;\">[</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Период:&nbsp;</b></legend>';
 	html_toolbar += '		<input type=\"radio\" id=r0 name=Interval hidefocus onClick=\"parent.SetInterval(0);\" checked>';
 	html_toolbar += '		<label for=r0>Сегодня</label>';
@@ -662,26 +662,26 @@ function SetInterval(i){
 			FixedOrPeriod(true);
 			Toolbar.idDateInput[0].value = GetDate(0);
 			Toolbar.idDateInput[1].value = GetDate(0);
-			StartRefresh();
+			StartCreatePostsList();
 			break;
 		case 1: // вчера
 			FixedOrPeriod(true);
 			Toolbar.idDateInput[0].value = GetDate(-1);
 			Toolbar.idDateInput[1].value = GetDate(-1);
-			StartRefresh();
+			StartCreatePostsList();
 			break;
 		case 2: // за 3 дня
 			FixedOrPeriod(false);
 			Toolbar.idDateInput[0].value = GetDate(-2);
 			Toolbar.idDateInput[1].value = GetDate(0);
-			StartRefresh();
+			StartCreatePostsList();
 			break;
 		case 3: // за неделю
 			FixedOrPeriod(false);
 			var day = (new Date()).getDay();
 			Toolbar.idDateInput[0].value = GetDate(1-day);
 			Toolbar.idDateInput[1].value = GetDate(0);
-			StartRefresh();
+			StartCreatePostsList();
 			break;
 		case 4: // за произвольный период
 			Toolbar.idDateInput[0].disabled = false;
@@ -717,7 +717,7 @@ function EnterDate(inp_idx){
 		if (CorrectDate(Toolbar.idDateInput[inp_idx])) {
 			if (Toolbar.event.keyCode == 13) { // Enter
 				if (Toolbar.idEndDateHide.style.display == 'none') Toolbar.idDateInput[1].value = Toolbar.idDateInput[0].value;
-				if (CorrectDate(Toolbar.idDateInput[1^inp_idx]))   StartRefresh();
+				if (CorrectDate(Toolbar.idDateInput[1^inp_idx]))   StartCreatePostsList();
 			} else { // Tab
 				Toolbar.idDateInput[1^inp_idx].focus();
 			}
@@ -784,13 +784,10 @@ function CheckCalendarActiveX(){
 // Сохранение данных (info и preview) в массиве Cache
 function KeepInfoToCache() {
 	for (var i=0; i<arrDB.length; i++) {
-		if ((PostList.idInfo[i]) && (PostList.idPreviewHide[i])){
-			Cache[arrDB[i].filename] = {
-				info: PostList.idInfo[i].innerHTML,
-				preview: PostList.idPreviewHide[i].innerHTML
-			}
-		} else {
-			alert ('Ошибка при парсинге файла\n' + arrDB[i].filename + '\nСообщите разработчику!');
+		Cache[arrDB[i].filename] = {
+			info: PostList.idInfo[i].innerHTML,
+			preview: PostList.idPreviewHide[i].innerHTML
+		}
 		}
 	}
 }
@@ -1058,7 +1055,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 //=====================================================
 
 // Составление списка рейсов
-function Refresh(){
+function CreatePostsList(){
 	//Возвращает результат (отправлен/получен/не/принят)
 	function postResult(i){
 		if (arrDB[i].state_ == '6') return 'отправлен';
@@ -1157,14 +1154,15 @@ function Refresh(){
 	KeepInfoToCache();
 	setTimeout(SaveCache, 0);
 	Toolbar.idToolbar.disabled = false;
+	select_row_idx = undefined;
 }
 
-// Запуск ф-ции Refresh отдельным процессом
-function StartRefresh(){
+// Запуск ф-ции CreatePostsList отдельным процессом
+function StartCreatePostsList(){
 	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
 	Preview.document.body.innerHTML = '';
 	Toolbar.idToolbar.disabled = true;
-	setTimeout('Refresh()', 0);
+	setTimeout('CreatePostsList()', 0);
 }
 
 // Действия при старте приложения
@@ -1192,6 +1190,10 @@ function Start(){
 		self.close();
 	}
 	bank_code = INI.User.CurBik.replace(/.*(\d{3})$/, '$1');
+	if ((!INI.Path.PTKPSD) && (!INI.Path.HOME)) {
+		WshShell.Popup('Каталог установки ПТК ПСД не задан\nни в elo.ini\nни в PTK_PSD_Browser.ini', 6, "Ошибка", 48);
+		self.close();
+	}
 	ptk_psd_dir = INI.Path.PTKPSD ? (INI.Path.PTKPSD + '\\') : (INI.Path.HOME.replace(/[^\\]*$/, ''));
 	if (!FSO.FolderExists(ptk_psd_dir)) {
 		WshShell.Popup('Каталог установки ПТК ПСД\n' + ptk_psd_dir + '\nне существует!\nОтредактируйте ini-файл', 6, "Ошибка", 48);
