@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.0.2
+	version=4.0.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -301,7 +301,7 @@ function OnKeydownFromPostList(){
 			}
 			break;
 		case 38: // вверх
-			if (select_row_idx > 0) {
+			if (select_row_idx > 1) {
 				SelectRow(select_row_idx - 1);
 			}
 	}
@@ -783,11 +783,10 @@ function CheckCalendarActiveX(){
 
 // Сохранение данных (info и preview) в массиве Cache
 function KeepInfoToCache() {
-	for (var i=0; i<arrDB.length; i++) {
+	for (var i=1; i<arrDB.length; i++) {
 		Cache[arrDB[i].filename] = {
 			info: PostList.idInfo[i].innerHTML,
 			preview: PostList.idPreviewHide[i].innerHTML
-		}
 		}
 	}
 }
@@ -1089,8 +1088,10 @@ function CreatePostsList(){
 	arrDB = QueryDatabase(sql_string, [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
 	if (arrDB.length > 0) {
 		var HTMLtable = '<table cellpadding="0" cellspacing="0" border="1" frame="void">';
+		HTMLtable += '<tr id="idRow" style="display:none"><td id="idInfo"><td id="idPreviewHide">'; // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
+		arrDB.unshift({}); // добавляем пустышку в начало массива, чтобы индекс его элементов соответствовал индексу узлов
 		var form_name_prev = '';
-		for (var i=0; i<arrDB.length; i++) {
+		for (var i=1; i<arrDB.length; i++) {
 			// ------ Построение списка посылок -----------------------------------------------------------
 			if (arrDB[i].posttype != form_name_prev) {
 				HTMLtable += '<tr><th colspan=7>'+GetFormName(arrDB[i].posttype);
@@ -1136,7 +1137,7 @@ function CreatePostsList(){
 		PostList.document.body.innerHTML = HTMLtable;
 
 		// добавляем эвенты
-		for (i=0;i<PostList.idRow.length;i++){
+		for (i=1;i<PostList.idRow.length;i++){
 			PostList.idRow[i].onmouseover = function() { // курсор мыши попал на строку
 				this.style.backgroundColor = "infobackground";
 			};
