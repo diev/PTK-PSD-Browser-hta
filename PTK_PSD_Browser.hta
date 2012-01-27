@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.0.4
+	version=4.0.5
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -998,10 +998,10 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					if (/(card\.inf)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(filename)){
 						html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
 					} else {
-						UnpackArchive(tmp_dir + '\\' + filename);
+						line_count = UnpackArchive(tmp_dir + '\\' + filename);
 					}
-					if (/\.vrb$/i.test(filename)){ // разделитель страниц для vrb файлов
-						html_text += '</table><br style="page-break-after:always">';
+					if ((files_list.length > 1) && (line_count > 18)) { // если в посылке более 1 файла и кол-во строк в тексте превышает указанное значение, то
+						html_text += '</table><br style="page-break-after:always">';  // вставляем разделитель страниц для печати
 					}else{
 						html_text += '</table><br>';
 					}
@@ -1023,6 +1023,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 						}
 					} else {
 						if (/[\x80-\xA6\xAC-\xB7\xBC-\xBF]/.test(text)) text = dos2win(text);
+						var line_count = text.match(/\n/g).length;
 						text = text.replace(/[\r\n]+/g, '<br>');
 					}
 				}
@@ -1033,6 +1034,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				// -------------------------------------------
 				html_text = HighlightTextWithHeaders(html_text, filename);
 			}
+			return line_count;
 		}
 
 		if (FSO.FileExists(tmp_dir + "\\*.*")) FSO.DeleteFile(tmp_dir + "\\*.*", true);
