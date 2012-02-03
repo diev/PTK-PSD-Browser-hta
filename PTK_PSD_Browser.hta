@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.0.5
+	version=4.1.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -77,7 +77,7 @@ function QueryDatabase(sql_query, params){
 			while (!objRecordSet.EOF){
 				var tmp = {};
 				for (var f=0; f<objRecordSet.Fields.Count; f++) {
-					tmp[objRecordSet.Fields(f).Name] = objRecordSet(f).Value;
+					tmp[objRecordSet.Fields(f).Name.toLowerCase()] = objRecordSet(f).Value;
 				}
 				arrResult[arrResult.length] = tmp;
 				objRecordSet.MoveNext();
@@ -610,7 +610,7 @@ function CreateFormList(){
 			'FROM ELO_USERS_ACCESS UA LEFT JOIN ELO_SPR_POST_SUB SP ON UA.FORMNAME = SP.CODE ' +
 			'WHERE UA.USERID = ?', userid);
 		var tmp = [];
-		for (var i=0; i<available_forms_arr.length; i++) tmp[tmp.length] = available_forms_arr[i].POSTTYPE;
+		for (var i=0; i<available_forms_arr.length; i++) tmp[tmp.length] = available_forms_arr[i].posttype;
 		available_forms = "'" + tmp.join("','") + "'"; // сохраним в глобальной переменной (еще понадобится);
 		var posttype_name_list = QueryDatabase('SELECT posttype, postname FROM elo_spr_post WHERE posttype IN ' +
 			'(' + available_forms + ') ORDER BY postname');
@@ -851,9 +851,10 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 
 			// В одной посылке м.б. только одна форма:
 			if (/^ZDL\d+\.xls$/im.test(files_list)) return 'Инф.о просроченной задолженности'; // Н.Новгород
-			if ((new RegExp('^IA\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '601'; // С.Петербург
-			if ((new RegExp('^IN\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '652'; // С.Петербург
-			if ((new RegExp('^SK\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return 'KAS'; // С.Петербург
+			if ((new RegExp('^MN\\d{3}'+bank_code+'\\.xls$', 'im')).test(files_list)) return 'Сведения о работе с монетой БР'; // Н.Новгород
+			if ((new RegExp('^IA\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '601'; // С.Петербург
+			if ((new RegExp('^IN\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '652'; // С.Петербург
+			if ((new RegExp('^SK\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return 'KAS'; // С.Петербург
 
 			// В одной посылке м.б. несколько различных форм:
 			var formnames = GetFormNames(files_list, new RegExp('^F(\\w{3})'+bank_code+'[1-C]\\.', 'gim')); // С.Петербург (664, 665, KRK, PSV, VBK)
@@ -1115,8 +1116,13 @@ function CreatePostsList(){
 				}
 			}
 			if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
-				post_content = GetObjPostContent(GetCurrentFile(i), arrDB[i]); // извлекаем данные самостоятельно
-				cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
+				var current_filepath = GetCurrentFile(i);
+				if (FSO.FileExists(current_filepath)) {
+					post_content = GetObjPostContent(current_filepath, arrDB[i]); // извлекаем данные самостоятельно
+					cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
+				} else {
+					post_content = {preview:'<table><tr><td><i>Запись о файле "' + current_filepath + '" имеется в базе данных,<br> но файл отсутствует на диске!</i></table>'};
+				}
 			}
 			switch(arrDB[i].posttype) {
 				case 'sa': // у перечисленных типов будет показана дополнительная колонка с внутренним содержанием
@@ -1208,7 +1214,11 @@ function Start(){
 	store_dir = ptk_psd_dir + 'POST\\Store\\';
 	cache_filepath = INI.BrowserSettings.cache;
 	if (cache_filepath) {
-		if (!/^([A-Z]:\\|\\\\)/i.test(cache_filepath)) cache_filepath = script_path + cache_filepath;
+		if (/^(%|[A-Z]:\\|\\\\)/i.test(cache_filepath)) {
+			cache_filepath = WshShell.ExpandEnvironmentStrings(cache_filepath);
+		} else {
+			cache_filepath = script_path + cache_filepath;
+		}
 	}
 	unpacker = script_path + 'bin\\7z.exe';
 	// Задание временного каталога
