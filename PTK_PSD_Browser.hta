@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.1.0
+	version=4.2.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -417,22 +417,19 @@ function SaveRace(save_filename){
 			if (sign) SaveFile(filepath, unescape(content));
 		}
 	}
-	// Извлекает все файлы из посылки (или один указанный - dest_filename) в заданный каталог
+	// Извлекает из архива arc_filepath в каталог dest_path файл dest_filename (или все, когда dest_filename==undefined)
 	function ExtractFromArchive (arc_filepath, dest_path, dest_filename) {
-		var arc_files_list = [];
-		if (IsArchive(arc_filepath)) arc_files_list = UnpackArchiveCmd(arc_filepath);
-		if ( (arc_files_list.length == 0) && (!dest_filename) && (!/\.(inf|tmp|arj|zip)$/i.test(FSO.GetFileName(arc_filepath))) ) {
-			FSO.CopyFile(arc_filepath, dest_path + '\\', true);
-			if (INI.BrowserSettings.sign_delete_onsave == '1') DeleteSignature(dest_path + '\\' + dest_filename);
+		var arc_filename = FSO.GetFileName(arc_filepath);
+		if ((arc_filename == dest_filename) || // единственный файл
+			((dest_filename == undefined) && (!/\.(inf|tmp|arj|zip|\d{6})$/i.test(arc_filename)))) { // все файлы
+				FSO.CopyFile(arc_filepath, dest_path + '\\', true);
+				if (INI.BrowserSettings.sign_delete_onsave == '1') DeleteSignature(dest_path + '\\' + arc_filename);
+				return;
 		} else {
+			var arc_files_list = [];
+			if (IsArchive(arc_filepath)) arc_files_list = UnpackArchiveCmd(arc_filepath);
 			for (var i=0; i<arc_files_list.length; i++) {
-				var filename = arc_files_list[i];
-				if (filename == dest_filename) {
-					FSO.CopyFile(tmp_dir + '\\' + filename, dest_path + '\\', true);
-					if (INI.BrowserSettings.sign_delete_onsave == '1') DeleteSignature(dest_path + '\\' + dest_filename);
-					return;
-				}
-				ExtractFromArchive(tmp_dir + '\\' + filename, dest_path, dest_filename);
+				ExtractFromArchive(tmp_dir + '\\' + arc_files_list[i], dest_path, dest_filename);
 			}
 		}
 	}
@@ -466,13 +463,13 @@ function Answer365P(){
 			Close();
 		}
 	}
+	// ---------------------------------------------------------------
 	var outbox_dir_365P = INI.BrowserSettings.outbox_dir_365P;
 	if (!outbox_dir_365P) {
 		WshShell.Popup('Не задан каталог для выгрузки квитанций !\nОтредактируйте PTK_PSD_Browser.ini', 2, "Ошибка", 48);
 		return;
 	}
 	if (!FSO.FolderExists(outbox_dir_365P)) FSO.CreateFolder(outbox_dir_365P);
-	if (FSO.FileExists(tmp_dir + "\\*.*")) FSO.DeleteFile(tmp_dir + "\\*.*", true);
 
 	var arr_fnames = Preview.idFname;
 	var count = 0;
@@ -490,8 +487,7 @@ function Answer365P(){
 			count++;
 		}
 	}
-	var sql_str = "UPDATE elo_arh_post SET error_ = 0 WHERE filename = ?";
-	QueryDatabase(sql_str, arrDB[select_row_idx].filename);
+	QueryDatabase("UPDATE elo_arh_post SET error_ = 0 WHERE filename = ?", arrDB[select_row_idx].filename);
 	StartCreatePostsList();
 	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
 }
