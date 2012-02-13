@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.2.0
+	version=4.2.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -417,7 +417,7 @@ function SaveRace(save_filename){
 			if (sign) SaveFile(filepath, unescape(content));
 		}
 	}
-	// Извлекает из архива arc_filepath в каталог dest_path файл dest_filename (или все, когда dest_filename==undefined)
+	// Извлекает из архива arc_filepath в каталог dest_path файл dest_filename (или все, если dest_filename==undefined)
 	function ExtractFromArchive (arc_filepath, dest_path, dest_filename) {
 		var arc_filename = FSO.GetFileName(arc_filepath);
 		if ((arc_filename == dest_filename) || // единственный файл
@@ -518,11 +518,11 @@ function load_Toolbar(){
 	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartCreatePostsList(); return false;\">[</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Период:&nbsp;</b></legend>';
 	html_toolbar += '		<input type=\"radio\" id=r0 name=Interval hidefocus onClick=\"parent.SetInterval(0);\" checked>';
-	html_toolbar += '		<label for=r0>Сегодня</label>';
+	html_toolbar += '		<label for=r0>сегодня</label>';
 	html_toolbar += '		<input type=\"radio\" id=r1 name=Interval hidefocus onClick=\"parent.SetInterval(1);\">';
-	html_toolbar += '		<label for=r1>Вчера</label>';
+	html_toolbar += '		<label for=r1>вчера</label>';
 	html_toolbar += '		<input type=\"radio\" id=r2 name=Interval hidefocus onClick=\"parent.SetInterval(2);\">';
-	html_toolbar += '		<label for=r2>за 3 дня</label>';
+	html_toolbar += '		<label for=r2>за 4 дня</label>';
 	html_toolbar += '		<input type=\"radio\" id=r3 name=Interval hidefocus onClick=\"parent.SetInterval(3);\">';
 	html_toolbar += '		<label for=r3>за неделю</label>';
 	html_toolbar += '		<input type=\"radio\" id=r4 name=Interval hidefocus onClick=\"parent.SetInterval(4);\">';
@@ -666,9 +666,9 @@ function SetInterval(i){
 			Toolbar.idDateInput[1].value = GetDate(-1);
 			StartCreatePostsList();
 			break;
-		case 2: // за 3 дня
+		case 2: // за 4 дня
 			FixedOrPeriod(false);
-			Toolbar.idDateInput[0].value = GetDate(-2);
+			Toolbar.idDateInput[0].value = GetDate(-3);
 			Toolbar.idDateInput[1].value = GetDate(0);
 			StartCreatePostsList();
 			break;
