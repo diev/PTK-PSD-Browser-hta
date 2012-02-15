@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.2.1
+	version=4.2.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -616,9 +616,11 @@ function CreateFormList(){
 	// Заполняем комбобокс
 	var forms = GetForms();
 	for (var i=0; i<forms.length; i++) {
+		var post_name = forms[i].postname.replace(/ПТК ПСД\.\s+/,'').replace(/\.$/,'');
 		var option = Toolbar.document.createElement("option");
 		option.value = forms[i].posttype;
-		option.text = forms[i].postname.replace(/ПТК ПСД\.\s+/,'');
+		option.text = post_name;
+		option.title = post_name;
 		Toolbar.idPostType.add(option);
 	}
 }
