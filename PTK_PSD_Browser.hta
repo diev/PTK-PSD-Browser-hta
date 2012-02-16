@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.2.2
+	version=4.2.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -985,6 +985,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				return {text:stext, sign:(ka) ? '<s>[KA '+ka+']</s>' : ''};
 			}
 			// -------------------------------------------------------------
+			var line_count = 0;
 			var files_list = [];
 			var filename;
 			if (IsArchive(filepath)) files_list = UnpackArchiveCmd(filepath);
@@ -1009,29 +1010,31 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			} else {
 				// ------- содержимое файла ------------------
 				var text = ReadFile(filepath);
-				var content = SignatureDetect(text);
-				text = content.text;
-				if (/[\x00-\x08\x10-\x1B]/.test(text)){
-					text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не читабельное содержимое (возможно зашировано) - - - </span>';
-				} else {
-					if (/\.xml$/i.test(filepath)) {
-						if (/^\<\?xml/i.test(text)){
-							text = text.replace(/<\\?.+?>/g,'');
-						} else {
-							text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
-						}
+				if (text) {
+					var content = SignatureDetect(text);
+					text = content.text;
+					if (/[\x00-\x08\x10-\x1B]/.test(text)){
+						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не читабельное содержимое (возможно зашировано) - - - </span>';
 					} else {
-						if (/[\x80-\xA6\xAC-\xB7\xBC-\xBF]/.test(text)) text = dos2win(text);
-						var line_count = text.match(/\n/g).length;
-						text = text.replace(/[\r\n]+/g, '<br>');
+						if (/\.xml$/i.test(filepath)) {
+							if (/^\<\?xml/i.test(text)){
+								text = text.replace(/<\\?.+?>/g,'');
+							} else {
+								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
+							}
+						} else {
+							if (/[\x80-\xA6\xAC-\xB7\xBC-\xBF]/.test(text)) text = dos2win(text);
+							line_count = text.match(/\n/g).length;
+							text = text.replace(/[\r\n]+/g, '<br>');
+						}
 					}
+					filename = FSO.GetFileName(filepath);
+					text = HighlightText(text, filename);
+					text += content.sign;
+					html_text += '<tr><td>' + text + '</td></tr>';
+					// -------------------------------------------
+					html_text = HighlightTextWithHeaders(html_text, filename);
 				}
-				filename = FSO.GetFileName(filepath);
-				text = HighlightText(text, filename);
-				text += content.sign;
-				html_text += '<tr><td>' + text + '</td></tr>';
-				// -------------------------------------------
-				html_text = HighlightTextWithHeaders(html_text, filename);
 			}
 			return line_count;
 		}
