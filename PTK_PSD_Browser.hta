@@ -9,7 +9,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.2.3
+	version=4.2.4
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -56,6 +56,7 @@ function AddTrustedSites() {
 	var host = GetHostName(script_path);
 	if (host) { // добавляем хост в список доверенных сайтов
 		WshShell.RegWrite('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\ZoneMap\\Domains' + host + '\\file', 2, 'REG_DWORD');
+		WshShell.RegWrite('HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\Zones\\2\\1406', 0, 'REG_DWORD'); // разрешаем опцию 1406 (Доступ к источникам данных за пределами домена) для зоны 2 (Доверенные сайты)
 	}
 }
 
@@ -979,7 +980,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (/o000000/.test(stext)) {
 					stext = RegExp.leftContext;
 					var sign = RegExp.rightContext;
-					var ka = sign.match(/(\d{4}[0-9A-Z]{6}\d{2})\D/);
+					var ka = sign.match(/(\d{4}[0-9A-Z]{6}\d{2})/);
 					ka = ka ? ka[1] : 'не распознан';
 				}
 				return {text:stext, sign:(ka) ? '<s>[KA '+ka+']</s>' : ''};
