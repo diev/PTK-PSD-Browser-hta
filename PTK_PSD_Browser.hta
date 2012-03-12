@@ -1,7 +1,6 @@
 <HTML>
 <head>
 <meta http-equiv=content-type content="text-html; charset=utf-8">
-<meta http-equiv=MSThemeCompatible content=yes>
 <hta:application
 	id=hta_App
 	applicationName=ПТК_ПСД_-_Обозреватель_отчетности
@@ -9,12 +8,12 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=4.2.4
+	version=5.0.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
 <script language="JavaScript">
-window.resizeTo(830,550); // первоначальные размеры окна приложения
+window.resizeTo(800,550); // первоначальные размеры окна приложения
 //=====================================================
 //  ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 //=====================================================
@@ -36,12 +35,26 @@ var bank_code = '';               // строка с кодом банка
 var db_connect_string = '';       // строка подключения к БД
 var available_forms = '';         // строка со списком кодов всех доступных пользователю форм
 
+var cursor_row_idx;               // индекс строки над которой находится курсор мыши
 var select_row_idx;               // индекс выделенной строки списка = индексу выборки из БД
 var select_filePathNameTime = ''; // полный путь к выделенному в списке файлу = GetCurrentFile(select_row_idx)
+
+var gradient = '';                // строка для задания градиента
 
 //=====================================================
 //  ОБЩИЕ ФУНКЦИИ
 //=====================================================
+
+// Вывод всплывающего окна с сообщением pText
+function Popup(pText){
+	var hhControl = new ActiveXObject("Internet.HHCtrl.1");
+	if (hhControl) {
+		var pStyle = "MS Sans Serif, 8, , plain";
+		hhControl.TextPopup(pText, pStyle, 4, 4, -1, -1);
+	} else {
+		WshShell.Popup(selected, 1, pText, 64);
+	}
+}
 
 // Если скрипт расположен на сетевом диске, то добавляет хост в список доверенных сайтов
 function AddTrustedSites() {
@@ -201,15 +214,6 @@ function Date2Obj(date){
 	return dt;
 }
 
-// Возвращает индекс элемента в массиве
-function GetElementIndex(Arr, elem){
-	var i = 0;
-	while(Arr[i]){
-		if (Arr[i] == elem) return i;
-		i++;
-	}
-}
-
 // Создание ярлыка на Рабочем столе
 function CreateShortcut(){
 	with (WshShell.CreateShortcut(WshShell.SpecialFolders("Desktop") + "\\ПТК ПСД - Обозреватель отчетности.lnk")){
@@ -277,7 +281,7 @@ function ShowPreview(){
 		for (var i=0; i<Preview.idFname.length; i++) {
 			with (Preview.idFname[i]) {
 				title = "Щелкните для копирования в буфер обмена";
-				onclick = function(){window.clipboardData.setData("Text", this.innerText.replace(/\.\w+?$/,''))};
+				onclick = function(){clipboardData.setData("Text", this.innerText.replace(/\.\w+?$/,''))};
 			}
 		}
 	}
@@ -287,7 +291,7 @@ function ShowPreview(){
 function SelectRow(row_idx){
 	if (row_idx == select_row_idx) return;
 	if (select_row_idx !== undefined) PostList.idRow[select_row_idx].style.backgroundColor = "";
-	PostList.idRow[row_idx].style.backgroundColor = "buttonface";
+	PostList.idRow[row_idx].style.backgroundColor = "inactivecaption";
 	select_row_idx = row_idx;
 	select_filePathNameTime = GetCurrentFile(select_row_idx);
 	ShowPreview();
@@ -318,40 +322,46 @@ function ShowContextMenu(pane, file_on_clicked_in_preview){
 	var html_menu = '<table width=100% cellpadding=2 cellspacing=0>';
 	switch(pane.name){
 		case 'PostList':
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.PrintForm();\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">3';
+			html_menu += '<tr id="menuitem" onClick="parent.PrintForm();">';
+			html_menu += '<td style="font:12pt Wingdings;">3';
 			html_menu += '<td>&nbsp;Печать&nbsp;';
 
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.OpenExplorer();\">';
-			html_menu += '<td style=\"font:10pt Wingdings;\">1';
+			html_menu += '<tr id="menuitem" onClick="parent.OpenExplorer();">';
+			html_menu += '<td style="font:10pt Wingdings;">1';
 			html_menu += '<td>&nbsp;Открыть каталог&nbsp;';
 
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace(parent.select_filePathNameTime);\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">&lt;';
+			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
+			html_menu += '<td style="font:12pt Wingdings;">&lt;';
 			html_menu += '<td>&nbsp;Сохранить посылку в...&nbsp;';
 
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace();\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">4';
+			html_menu += '<tr id="menuitem" onClick="parent.SaveRace();">';
+			html_menu += '<td style="font:12pt Wingdings;">4';
 			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 
 			if (/требование|решени|запрос|поручение/i.test(PostList.idRow[select_row_idx].cells[2].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах 365П
-				html_menu += '<tr id=\"menuitem\" onClick=\"parent.Answer365P();\">';
-				html_menu += '<td style=\"font:12pt Wingdings;\">+';
+				html_menu += '<tr id="menuitem" onClick="parent.Answer365P();">';
+				html_menu += '<td style="font:12pt Wingdings;">+';
 				html_menu += '<td>&nbsp;Сформировать подтверждения PB1&nbsp;';
 			}
 			break;
 		case 'Preview':
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace(parent.select_filePathNameTime);\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">&lt;';
+			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
+			html_menu += '<td style="font:12pt Wingdings;">&lt;';
 			html_menu += '<td>&nbsp;Сохранить всю посылку в...&nbsp;';
 
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace(\'' + file_on_clicked_in_preview + '\');\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">=';
-			html_menu += '<td>&nbsp;Сохранить файл под курсором в...&nbsp;';
+			if (file_on_clicked_in_preview) {
+				html_menu += '<tr id="menuitem" onClick="parent.SaveRace(\'' + file_on_clicked_in_preview + '\');">';
+				html_menu += '<td style="font:12pt Wingdings;">=';
+				html_menu += '<td>&nbsp;Сохранить файл под курсором в...&nbsp;';
 
-			html_menu += '<tr id=\"menuitem\" onClick=\"parent.SaveRace();\">';
-			html_menu += '<td style=\"font:12pt Wingdings;\">4';
-			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
+				html_menu += '<tr id="menuitem" onClick="parent.SaveRace();">';
+				html_menu += '<td style="font:12pt Wingdings;">4';
+				html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
+
+				html_menu += '<tr id="menuitem" onClick="parent.FindRelatedDocs(\'' + file_on_clicked_in_preview + '\');">';
+				html_menu += '<td style="font:12pt Wingdings;">a';
+				html_menu += '<td>&nbsp;Найти связанные документы&nbsp;';
+			}
 			break;
 		default:
 			return;
@@ -380,20 +390,26 @@ function ShowContextMenu(pane, file_on_clicked_in_preview){
 	ContextMenu.show(pane.event.x, pane.event.y, width, height, pane.window.document.body);
 }
 
-// Запуск контекстного меню в панели предпросмотра
-function PreviewShowContextMenu(event_srcElement){
+// Клик ПКМ в панели предпросмотра
+function PreviewMouseRightClick(event_srcElement){
 	// Находим имя файла, отображаемого в панели предпросмотра, на котором кликнули ПКМ
-	function FindTitle(obj){
+	function GetFileOnClicked(obj){
 		if (obj.tagName == 'TBODY') {
-			current_file = obj.firstChild.innerText;
-			return;
+			var th = obj.getElementsByTagName('TH')[0];
+			return (th) ? th.innerText : '';
 		} else {
-			FindTitle(obj.parentElement);
+			return GetFileOnClicked(obj.parentNode);
 		}
 	}
-	var current_file = '';
-	FindTitle(event_srcElement);
-	ShowContextMenu(Preview, current_file);
+
+	var selected = Preview.document.selection.createRange().text;
+	if (selected) { // если имеется выделенный текст
+		clipboardData.setData("Text", selected);
+		Popup("Скопировано в буфер обмена");
+	} else { // запуск контекстного меню
+		var file_on_clicked = GetFileOnClicked(event_srcElement);
+		ShowContextMenu(Preview, file_on_clicked);
+	}
 }
 
 // Печать выбранного отчета
@@ -493,12 +509,42 @@ function Answer365P(){
 	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
 }
 
+// Поиск в кеше документов, в которых встречается упоминание о текущем файле
+function FindRelatedDocs(filename) {
+	filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB_|PB\d_|BOS\d_)/i, '').replace(/^SB[CPFR]/i, '').replace(/\.\w{3}$/, '');
+	var arrFind = [];
+	for (var fname in Cache){
+		var preview_text = Cache[fname].preview;
+		if ((preview_text) && (preview_text.replace(/<.*?>/g, '').indexOf(filename)!=-1)) arrFind.push(fname);
+	}
+	if (arrFind.length > 1) {
+		var sql_string = "SELECT * FROM elo_arh_post WHERE filename IN ('" + arrFind.join("','") + "') ORDER BY posttype, dt, filetype";
+		arrDB = [];
+		arrDB = QueryDatabase(sql_string);
+		CreatePostsList();
+		ContextMenu.hide();
+	} else {
+		WshShell.Popup('Документов с упоминанием файла \n'+filename+'\nв кеше не найдено!\n\nПопробуйте поискать их вручную.', 2, "Поиск связанных документов", 64);
+	}
+}
 //=====================================================
 //  ЗАПОЛНЯЕМ ЭЛЕМЕНТАМИ ОКНО ПРИЛОЖЕНИЯ
 //=====================================================
 
+// Извлечение значений системных цветов в строку для задания градиента
+function GetGradientColors(){
+	Toolbar.document.body.style.color = 'threedface';
+	gradient = 'StartColorStr=' + Toolbar.document.fgColor + ', EndColorStr=' + Toolbar.document.bgColor;
+	Toolbar.document.body.style.color = '';
+}
+
 // Подготовка фрейма Toolbar (панель инструментов)
 function load_Toolbar(){
+	GetGradientColors();
+	var meta = Toolbar.document.createElement('META');
+	meta.httpEquiv = 'MSThemeCompatible';
+	meta.content = 'yes';
+	Toolbar.document.getElementsByTagName('HEAD')[0].appendChild(meta);
 	with (Toolbar.document.createStyleSheet()){
 		addRule('body','margin: 0px;');
 		addRule('table','font: normal 10pt Verdana; background-color:threedface;');
@@ -509,35 +555,32 @@ function load_Toolbar(){
 		addRule('a:visited','color:activecaption;');
 		addRule('a:hover','color:red;');
 		addRule('select','width:130px;');
-		addRule('#idDateButton','vertical-align:top; font:12pt Webdings;');
+		addRule('#idCalendarButton','vertical-align:top; font:12pt Webdings;');
 	}
 	var html_toolbar = '';
-	html_toolbar += '<table id=\"idToolbar\" cellpadding=\"0\" cellspacing=\"0\" style=\"width:100%;\"><tr>';
+	html_toolbar += '<table id="idToolbar" cellpadding="0" cellspacing="0" style="width:100%;"><tr>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
-	html_toolbar += '		&nbsp;<select name=idPostType onChange=\"parent.StartCreatePostsList();\"><option value=\"*\">Все формы</option></select>&nbsp;';
+	html_toolbar += '		&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style=\"font:14pt Wingdings;\"><a href="#" hidefocus title=\"Обновить список\" onClick=\"parent.StartCreatePostsList(); return false;\">[</a>';
-	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Период:&nbsp;</b></legend>';
-	html_toolbar += '		<input type=\"radio\" id=r0 name=Interval hidefocus onClick=\"parent.SetInterval(0);\" checked>';
-	html_toolbar += '		<label for=r0>сегодня</label>';
-	html_toolbar += '		<input type=\"radio\" id=r1 name=Interval hidefocus onClick=\"parent.SetInterval(1);\">';
-	html_toolbar += '		<label for=r1>вчера</label>';
-	html_toolbar += '		<input type=\"radio\" id=r2 name=Interval hidefocus onClick=\"parent.SetInterval(2);\">';
-	html_toolbar += '		<label for=r2>за 4 дня</label>';
-	html_toolbar += '		<input type=\"radio\" id=r3 name=Interval hidefocus onClick=\"parent.SetInterval(3);\">';
-	html_toolbar += '		<label for=r3>за неделю</label>';
-	html_toolbar += '		<input type=\"radio\" id=r4 name=Interval hidefocus onClick=\"parent.SetInterval(4);\">';
-	html_toolbar += '		<a href="#" hidefocus title=\"Фиксированный|Интервал\" id=idDateFixed onClick=\"parent.FixedOrPeriod(idEndDateHide.style.display==\'\'); return false;\">за:</a>';
-	html_toolbar += '		<input hidefocus id=\"idDateInput\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"parent.EnterDate(0);\">';
-	html_toolbar += '		<a href=\"#\" id=idDateButton style=\"display:none\" onClick=\"if (!this.disabled) parent.ShowCalendarDialog(0); return false;\" hidefocus>¦<\/a>';
-	html_toolbar += '		<span id=\"idEndDateHide\" style=\"display:none\">';
-	html_toolbar += '			по: <input hidefocus id=\"idDateInput\" type=text maxlength=\"10\" style=\"width:70px; text-align:center;\" onkeydown=\"parent.EnterDate(1);\">';
-	html_toolbar += '			<a href=\"#\" id=idDateButton style=\"display:none\" onClick=\"if (!this.disabled) parent.ShowCalendarDialog(1); return false;\" hidefocus>¦<\/a>';
-	html_toolbar += '		</span><span style=\"width:0;\"></span>';
+	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(); return false;">[</a>';
+	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Интервал:&nbsp;</b></legend>';
+	html_toolbar += '		<input type="button" id="idIntervalButton" value="сегодня" title="за ' + parent.GetDate(0) + '" hidefocus onClick="parent.SetInterval(0);">';
+	html_toolbar += '		<input type="button" id="idIntervalButton" value="вчера" title="за ' + parent.GetDate(-1) + '" hidefocus onClick="parent.SetInterval(1);">';
+	html_toolbar += '		<input type="button" id="idIntervalButton" value="за 4 дня" title="За 4 календарных дня" hidefocus onClick="parent.SetInterval(2);">';
+	html_toolbar += '		<input type="button" id="idIntervalButton" value="за неделю" title="С понедельника" hidefocus onClick="parent.SetInterval(3);">';
+	html_toolbar += '		<input type="button" id="idIntervalButton" value="за:" title="За фиксированный день | За период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value!=\'за:\');">';
+
+	html_toolbar += '		<input hidefocus id="idDateInput" type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(0);" onfocus="parent.IntervalButtonSet(4);">';
+	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>¦<\/a>';
+	html_toolbar += '		<span id="idEndDateHide" style="display:none">';
+	html_toolbar += '		по: <input hidefocus id="idDateInput" type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(1);" onfocus="parent.IntervalButtonSet(4);">';
+	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(1); return false;" hidefocus>¦<\/a>';
+
+	html_toolbar += '		</span><span style="width:0;"></span>';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td style=\"font:14pt Wingdings; width:100%; text-align:right; text-valign:middle;\"><a href="#" hidefocus title=\"Создать на Рабочем столе\nярлык для запуска программы\" onClick=\"parent.CreateShortcut(); return false;\">O</a>&nbsp;';
+	html_toolbar += '	<td style="font:14pt Wingdings; width:100%; text-align:right; text-valign:middle;"><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;">O</a>&nbsp;';
 	html_toolbar += '</table>';
-	html_toolbar += '<object id=idAxCalendar classid=\"clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a\" style=\"display:none;\"><\/object>';
+	html_toolbar += '<object id=idAxCalendar classid="clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a" style="display:none;"><\/object>';
 	Toolbar.document.body.innerHTML = html_toolbar;
 }
 
@@ -556,9 +599,9 @@ function load_RCMenu(){
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList(){
 	with (PostList.document.createStyleSheet()){
-		addRule('table','font: normal 10pt Verdana; width:100%; background-color:white; cursor:hand;');
-		addRule('th','color:white; background-color:buttonshadow; border-bottom:0; cursor:default;');
-		addRule('td','text-indent:1px;');
+		addRule('table','font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
+		addRule('th','color:threeddarkshadow; cursor:default; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
+		addRule('td','border-bottom:1px solid threedface; padding:0 2px 0 2px;');
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:buttonshadow;');
 	}
 	PostList.document.onkeydown = function(){parent.OnKeydownFromPostList();};
@@ -574,13 +617,13 @@ function load_Preview(){
 		addRule('i','color:red; font-weight:bold; font-style:normal;');
 		addRule('u','font: normal 8pt MS Sans Serif;');
 		addRule('table','font: normal 10pt Courier New; width:100%;');
-		addRule('th','color:white; background-color:buttonshadow;');
+		addRule('th','color:threeddarkshadow; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
 		addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:green; background-color:infobackground; display:block;');
 		addRule('span','font: normal 8pt MS Sans Serif;');
 	}
 	Preview.document.onmouseup = function(){
-		if (Preview.event.button==2) PreviewShowContextMenu(Preview.event.srcElement);
+		if (Preview.event.button==2) PreviewMouseRightClick(Preview.event.srcElement);
 	};
 	Preview.document.title=parent.document.title;
 }
@@ -628,12 +671,14 @@ function CreateFormList(){
 
 // Переключатель отображения ручного задания периода дат (за фиксированную дату - за период)
 function FixedOrPeriod(fixed){
-	if (fixed) {
-		Toolbar.idDateFixed.innerText = 'за:';
-		Toolbar.idEndDateHide.style.display = 'none';
-	} else {
-		Toolbar.idDateFixed.innerText = 'с:';
-		Toolbar.idEndDateHide.style.display = '';
+	Toolbar.idIntervalButton[4].value =   fixed ? 'за:'  : 'с:';
+	Toolbar.idEndDateHide.style.display = fixed ? 'none' : '';
+}
+
+// Подсветка кнопки с выбранным интервалом
+function IntervalButtonSet(sel_btn){
+	for (var i=0; i<Toolbar.idIntervalButton.length; i++) {
+		Toolbar.idIntervalButton[i].style.color = (i==sel_btn) ? "activecaption" : "";
 	}
 }
 
@@ -651,11 +696,7 @@ function GetDate(days, startDate){
 
 // Задает интервал дат для выборки
 function SetInterval(i){
-	Toolbar.idDateInput[0].disabled = true;
-	Toolbar.idDateInput[1].disabled = true;
-	Toolbar.idDateButton[0].disabled = true;
-	Toolbar.idDateButton[1].disabled = true;
-
+	IntervalButtonSet(i);
 	switch(i){ // Переключатель интервалов
 		case 0: // сегодня
 			FixedOrPeriod(true);
@@ -675,18 +716,13 @@ function SetInterval(i){
 			Toolbar.idDateInput[1].value = GetDate(0);
 			StartCreatePostsList();
 			break;
-		case 3: // за неделю
+		case 3: // за прошедшую неделю
 			FixedOrPeriod(false);
 			var day = (new Date()).getDay();
-			Toolbar.idDateInput[0].value = GetDate(1-day);
+			day = (day==0) ? 6 : day-1;
+			Toolbar.idDateInput[0].value = GetDate(-day);
 			Toolbar.idDateInput[1].value = GetDate(0);
 			StartCreatePostsList();
-			break;
-		case 4: // за произвольный период
-			Toolbar.idDateInput[0].disabled = false;
-			Toolbar.idDateInput[1].disabled = false;
-			Toolbar.idDateButton[0].disabled = false;
-			Toolbar.idDateButton[1].disabled = false;
 	}
 }
 
@@ -732,6 +768,10 @@ function ReturnDate(cdate, inputbox_idx){
 	var dt = Date2Obj(new Date(cdate));
 	Toolbar.idDateInput[inputbox_idx].value = dt.day + '.' + dt.month + '.' + dt.year;
 	Toolbar.idDateInput[inputbox_idx].focus();
+	// иммитируем нажатие Enter в поле ручного ввода даты
+	var evn = Toolbar.document.createEventObject();
+	evn.keyCode = 13;
+	Toolbar.idDateInput[inputbox_idx].fireEvent("onkeydown", evn);
 }
 
 // Подготовка диалогового окна с календарем
@@ -755,11 +795,11 @@ function InitCalendar(DialogWin, inputbox_idx){
 
 // Показывает диалоговое окно с календарем
 function ShowCalendarDialog(inputbox_idx){
-	var html = '<head><title>Выбор даты</title><\/head>';
+	var html = '<head><title>Выбор даты<\/title><\/head>';
 	html += '<body onload=\'window.dialogArguments.InitCalendar(self, 0)\'>';
 	html += '<object id=\'idCalendar\'><\/object>';
 	html += '<\/body>';
-	html += '<script for=\'idCalendar\' event=\'OnDateChanged()\'>window.dialogArguments.ReturnDate(idCalendar.Date, '+inputbox_idx+');<\/script>';
+	html += '<script for=\'idCalendar\' event=\'OnDateChanged()\'>window.dialogArguments.ReturnDate(idCalendar.Date, '+inputbox_idx+'); self.close();<\/script>';
 	showModelessDialog('javascript:"' + html + '"', self, 'status:no; help:no; dialogWidth:200px; dialogHeight:200px; dialogLeft:'+Toolbar.event.screenX+'px; dialogTop:'+Toolbar.event.screenY+'px;');
 }
 
@@ -772,8 +812,8 @@ function CheckCalendarActiveX(){
 		var ret = WshShell.Run('regsvr32 /s "' + ax_path + '"', 1, true);
 		if (ret != 0) return;
 	}
-	Toolbar.idDateButton[0].style.display = '';
-	Toolbar.idDateButton[1].style.display = '';
+	Toolbar.idCalendarButton[0].style.display = '';
+	Toolbar.idCalendarButton[1].style.display = '';
 }
 
 //=====================================================
@@ -1025,8 +1065,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 							}
 						} else {
 							if (/[\x80-\xA6\xAC-\xB7\xBC-\xBF]/.test(text)) text = dos2win(text);
-							line_count = text.match(/\n/g).length;
-							text = text.replace(/[\r\n]+/g, '<br>');
+							line_count = 0;
+							text = text.replace(/[\r\n]+/g, function(){line_count++; return '<br>'});
 						}
 					}
 					filename = FSO.GetFileName(filepath);
@@ -1061,6 +1101,18 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 //  СОСТАВЛЕНИЕ СПИСКА РЕЙСОВ
 //=====================================================
 
+// Создание выборки из БД (по выставленным на панели инструментов датам и типам сообщений)
+function CreateDBSelect() {
+	if ((!CorrectDate(Toolbar.idDateInput[0])) || (!CorrectDate(Toolbar.idDateInput[1]))) return;
+
+	var posttype = Toolbar.idPostType.options[Toolbar.idPostType.selectedIndex].value;
+	posttype = (posttype=='*') ? (" IN ("+available_forms+")") : ("='"+posttype+"'");
+	var sql_string = "SELECT * FROM elo_arh_post WHERE posttype" + posttype + " and dt between ? and ? ORDER BY posttype, dt, filetype";
+
+	arrDB = [];
+	arrDB = QueryDatabase(sql_string, [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
+}
+
 // Составление списка рейсов
 function CreatePostsList(){
 	//Возвращает результат (отправлен/получен/не/принят)
@@ -1086,26 +1138,20 @@ function CreatePostsList(){
 		}
 	}
 	// -----------------------------------------------
-	if ((!CorrectDate(Toolbar.idDateInput[0])) || (!CorrectDate(Toolbar.idDateInput[1]))) return;
-
-	var posttype = Toolbar.idPostType.options[Toolbar.idPostType.selectedIndex].value;
-	posttype = (posttype=='*') ? (" IN ("+available_forms+")") : ("='"+posttype+"'");
-	var sql_string = "SELECT * FROM elo_arh_post WHERE posttype" + posttype + " and dt between ? and ? ORDER BY posttype, dt, filetype";
-
-	arrDB = [];
-	arrDB = QueryDatabase(sql_string, [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
 	if (arrDB.length > 0) {
-		var HTMLtable = '<table cellpadding="0" cellspacing="0" border="1" frame="void">';
+		var HTMLtable = '<table frame="void">';
 		HTMLtable += '<tr id="idRow" style="display:none"><td id="idInfo"><td id="idPreviewHide">'; // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
 		arrDB.unshift({}); // добавляем пустышку в начало массива, чтобы индекс его элементов соответствовал индексу узлов
 		var form_name_prev = '';
+		var idRow_idx = 1;
 		for (var i=1; i<arrDB.length; i++) {
 			// ------ Построение списка посылок -----------------------------------------------------------
 			if (arrDB[i].posttype != form_name_prev) {
 				HTMLtable += '<tr><th colspan=7>'+GetFormName(arrDB[i].posttype);
 				form_name_prev = arrDB[i].posttype;
 			}
-			HTMLtable += '<tr id="idRow">';
+			HTMLtable += '<tr id="idRow" onmouseover="parent.cursor_row_idx='+idRow_idx+'; parent.PostList.idCursor.style.top=this.offsetTop-1;">';
+			idRow_idx++;
 
 			HTMLtable += '<td width=14pt><font style="font-family:Wingdings; font-size:12pt; ';
 			HTMLtable += (arrDB[i].state_ == '6') ? 'color:blue;" >&#xDB;</font>' : 'color:green;" >&#xDC;</font>';
@@ -1143,25 +1189,21 @@ function CreatePostsList(){
 			HTMLtable += '<td>' + dt.day + '.' + dt.month + '.' + dt.year + ' ' + dt.hours + ':' + dt.min;
 			HTMLtable += '<td>' + arrDB[i].filename.replace(/\.[^.]+$/,'');
 			HTMLtable += '<td>' + postResult(i);
-			HTMLtable += '<td id="idPreviewHide" style="display:none">' +post_content.preview;
+			HTMLtable += '<td id="idPreviewHide" style="display:none">' + post_content.preview;
 			// -----------------------------------------------------------------------------------------
 		}
-		HTMLtable += '<\/table>';
+		HTMLtable += '</table>';
+		HTMLtable += '<table id="idCursor" style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px">';
+		HTMLtable += '<tr><td>&nbsp;</td></tr></table>';
 		PostList.document.body.innerHTML = HTMLtable;
 
 		// добавляем эвенты
-		for (i=1;i<PostList.idRow.length;i++){
-			PostList.idRow[i].onmouseover = function() { // курсор мыши попал на строку
-				this.style.backgroundColor = "infobackground";
-			};
-			PostList.idRow[i].onmouseout = function() { // уход мыши со строки
-				this.style.backgroundColor = (parent.GetElementIndex(PostList.idRow, this)==parent.select_row_idx) ? "buttonface" : "";
-			};
-			PostList.idRow[i].onmouseup = function() { // клик мыши по строке
-				parent.SelectRow(parent.GetElementIndex(PostList.idRow, this));
-				if (PostList.event.button==2) parent.ShowContextMenu(PostList);
+		PostList.idCursor.onmouseup = function () { // клик мыши по курсорной строке
+			parent.SelectRow(parent.cursor_row_idx);
+			if (PostList.event.button==2) { // если нажата правая кнопка
+				parent.ShowContextMenu(parent.PostList);
 			}
-		}
+		};
 	} else {
 		PostList.document.body.innerHTML = '';
 	}
@@ -1176,7 +1218,7 @@ function StartCreatePostsList(){
 	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
 	Preview.document.body.innerHTML = '';
 	Toolbar.idToolbar.disabled = true;
-	setTimeout('CreatePostsList()', 0);
+	setTimeout(function(){CreateDBSelect(); CreatePostsList();}, 0);
 }
 
 // Действия при старте приложения
@@ -1228,11 +1270,21 @@ function Start(){
 	if (!FSO.FolderExists(tmp_dir)) FSO.CreateFolder(tmp_dir);
 
 	// Присвоение значения глобальной переменной db_connect_string
-	var DSN = INI.DataBase.ODBC;
-	if (DSN) {
-		db_connect_string = "DSN=" + DSN + ";";
+	var ODBC = INI.DataBase.ODBC;
+	db_connect_string = INI.DataBase.db_connect_string;
+
+	if (ODBC||db_connect_string) {
+		if (ODBC) db_connect_string = "DSN=" + ODBC + ";";
+
 		var user = INI.DataBase.user;
-		if (user) db_connect_string += "UID=" + user + ";";
+		if (user) {
+			if (ODBC) {
+				db_connect_string += "UID=" + user + ";";
+			} else {
+				db_connect_string = db_connect_string.replace(/%user%/, user);
+			}
+		}
+
 		var password = INI.DataBase.password;
 		if (password != undefined) {
 			var m = password.match(/(\d{4})/g);
@@ -1246,7 +1298,13 @@ function Start(){
 				SaveFile(browser_ini, ini_text);
 			}
 		}
-		if (password) db_connect_string += "PWD=" + password + ";";
+		if (password) {
+			if (ODBC) {
+				db_connect_string += "PWD=" + password + ";";
+			} else {
+				db_connect_string = db_connect_string.replace(/%password%/, password);
+			}
+		}
 	} else {
 		var database = ptk_psd_dir + "Database\\etalon97.mdb";
 		if (!FSO.FileExists(database)) {
@@ -1266,7 +1324,7 @@ function Start(){
 
 </script>
 </head>
-<FRAMESET rows="50px, *, 265px" onLoad="setTimeout(Start, 0);" onbeforeunload="FSO.DeleteFolder(tmp_dir, true);">
+<FRAMESET rows="52px, *, 265px" onLoad="setTimeout(Start, 0);" onbeforeunload="FSO.DeleteFolder(tmp_dir, true);">
 	<FRAME src="about:blank" onLoad="load_Toolbar();" name="Toolbar" application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
 	<FRAME src="about:blank" onLoad="load_PostList();" name="PostList" application="yes" marginwidth="0" marginheight="0" scrolling="yes">
 	<FRAME src="about:blank" onLoad="load_Preview();" name="Preview" application="yes" marginwidth="4" marginheight="4">
