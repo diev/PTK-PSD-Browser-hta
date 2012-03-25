@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.0
+	version=5.0.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -285,6 +285,7 @@ function ShowPreview(){
 			}
 		}
 	}
+	Preview.scrollTo(0,0);
 }
 
 // Выделение строки по которой кликнули мышью (или сдвинули выделение курсорными клавишами)
@@ -546,7 +547,7 @@ function load_Toolbar(){
 	meta.content = 'yes';
 	Toolbar.document.getElementsByTagName('HEAD')[0].appendChild(meta);
 	with (Toolbar.document.createStyleSheet()){
-		addRule('body','margin: 0px;');
+		addRule('body','margin:0px;');
 		addRule('table','font: normal 10pt Verdana; background-color:threedface;');
 		addRule('td','white-space: nowrap;');
 		addRule('legend','color:activecaption;');
@@ -1064,7 +1065,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
 							}
 						} else {
-							if (/[\x80-\xA6\xAC-\xB7\xBC-\xBF]/.test(text)) text = dos2win(text);
+							// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
+							if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
 							line_count = 0;
 							text = text.replace(/[\r\n]+/g, function(){line_count++; return '<br>'});
 						}
