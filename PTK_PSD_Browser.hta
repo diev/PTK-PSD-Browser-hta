@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.3
+	version=5.0.4
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -690,7 +690,8 @@ function IntervalButtonSet(sel_btn){
 
 // Возвращает строку даты 'dd.mm.yyyy', отстоящую от заданной (если не задано, то от текущей) на days дней
 function GetDate(days, startDate){
-	var datetime = (startDate) ? new Date(startDate.replace(/^(\d\d)\.(\d\d)\.(\d\d\d\d)$/,'$2-$1-$3')) : new Date();
+	var re = new RegExp('^(\\d\\d)' + sd + '(\\d\\d)' + sd + '(\\d\\d\\d\\d)$', '');
+	var datetime = (startDate) ? new Date(startDate.replace(re, '$2-$1-$3')) : new Date();
 	datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
 	var dt = Date2Obj(datetime);
 	return dt.day + sd + dt.month + sd + dt.year;
