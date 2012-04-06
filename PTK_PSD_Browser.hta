@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.4
+	version=5.0.5
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -604,7 +604,7 @@ function load_PostList(){
 		addRule('table','font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
 		addRule('th','color:threeddarkshadow; cursor:default; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
 		addRule('td','border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
-		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:buttonshadow;');
+		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
 	}
 	PostList.document.onkeydown = function(){parent.OnKeydownFromPostList();};
 	PostList.document.body.innerHTML = '<font color="red"><b>Начальная загрузка данных. Ждите...</b></font>';
