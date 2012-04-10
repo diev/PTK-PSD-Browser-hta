@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.5
+	version=5.0.6
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -987,8 +987,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = text.replace(/<br>(\d\d\;[^@]+)@@@/, '<br><i>$1</i>@@@');
 				}
 				if (RowOfDBTable.state_ == '7'){ // подсветка только для полученных
-					text = text.replace(/(принята|принято|принят)/g, '<q>$1</q>');
-					text = text.replace(/(не [^в]\w+)/g, '<i>$1</i>');
+					text = text.replace(/(не\s+)?(принята|принято|принят)/g, function(str, s1){return s1 ? ('<i>'+str+'</i>') : ('<q>'+str+'</q>')});
 					if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
 						if (/<br>КодОшибки:(\d{3})/.test(text)) {
 							if (RegExp.lastParen != '000') text = text.replace(/<br>НаимОшибки:([^<]+)/gm, '<br>НаимОшибки:<i>$1</i>');
