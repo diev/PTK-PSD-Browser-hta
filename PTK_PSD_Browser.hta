@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.6
+	version=5.0.7
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -1022,7 +1022,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (/o000000/.test(stext)) {
 					stext = RegExp.leftContext;
 					var sign = RegExp.rightContext;
-					var ka = sign.match(/(\d{4}[0-9A-Z]{6}\d{2})/);
+					var ka = sign.match(/^(?:.|\n){64}(\d{4}[0-9A-Z]{6}\d{2})/);
 					ka = ka ? ka[1] : 'не распознан';
 				}
 				return {text:stext, sign:(ka) ? '<s>[KA '+ka+']</s>' : ''};
