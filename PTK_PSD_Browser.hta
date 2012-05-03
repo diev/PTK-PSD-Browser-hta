@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.8
+	version=5.1.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -345,6 +345,11 @@ function ShowContextMenu(pane, file_on_clicked_in_preview){
 				html_menu += '<td style="font:12pt Wingdings;">+';
 				html_menu += '<td>&nbsp;Сформировать подтверждения PB1&nbsp;';
 			}
+
+			html_menu += '<tr id="menuitem" onClick="parent.ReReadRace();">';
+			html_menu += '<td style="font:12pt Wingdings;">[';
+			html_menu += '<td>&nbsp;Перечитать содержимое посылки&nbsp;';
+
 			break;
 		case 'Preview':
 			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
@@ -528,6 +533,21 @@ function FindRelatedDocs(filename) {
 	} else {
 		WshShell.Popup('Документов с упоминанием файла \n'+filename+'\nв кеше не найдено!\n\nПопробуйте поискать их вручную.', 2, "Поиск связанных документов", 64);
 	}
+}
+
+function ReReadRace(){
+	var current_filepath = GetCurrentFile(select_row_idx);
+	var fname = arrDB[select_row_idx].filename;
+	var post_content = GetObjPostContent(current_filepath, arrDB[select_row_idx]); // извлекаем данные самостоятельно
+	if (PostList.idInfo[select_row_idx].style.display == "") {
+		Cache[fname].info = post_content.info;
+		PostList.idInfo[select_row_idx].innerHTML = post_content.info;
+	}
+	Cache[fname].preview = post_content.preview;
+	PostList.idPreviewHide[select_row_idx].innerHTML = post_content.preview;
+	ShowPreview();
+	ContextMenu.hide();
+	setTimeout(SaveCache, 0);
 }
 //=====================================================
 //  ЗАПОЛНЯЕМ ЭЛЕМЕНТАМИ ОКНО ПРИЛОЖЕНИЯ
@@ -1087,17 +1107,22 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		UnpackArchive(filepath);
 	}
 
-	var arrFilesList = [];
-	var html_text = "<table>";
-	GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
-	html_text += '</table>';
+	// ---------------------------------------------------
+	if (FSO.FileExists(filepath)) {
+		var arrFilesList = [];
+		var html_text = "<table>";
+		GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
+		html_text += '</table>';
 
-	var content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
-	if ( (content_info=='') && (RowOfDBTable.info)) { // только для ответов на SA посылки
-		content_info = RowOfDBTable.info;
+		var content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
+		if ( (content_info=='') && (RowOfDBTable.info)) { // только для ответов на SA посылки
+			content_info = RowOfDBTable.info;
+		}
+		cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
+		return {info:content_info, preview:html_text};
+	} else {
+		return {preview:'<table><tr><td><i>Запись о файле "' + filepath + '" имеется в базе данных,<br> но файл отсутствует на диске!</i></table>'};
 	}
-
-	return {info:content_info, preview:html_text};
 }
 
 //=====================================================
@@ -1167,13 +1192,7 @@ function CreatePostsList(){
 				}
 			}
 			if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
-				var current_filepath = GetCurrentFile(i);
-				if (FSO.FileExists(current_filepath)) {
-					post_content = GetObjPostContent(current_filepath, arrDB[i]); // извлекаем данные самостоятельно
-					cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
-				} else {
-					post_content = {preview:'<table><tr><td><i>Запись о файле "' + current_filepath + '" имеется в базе данных,<br> но файл отсутствует на диске!</i></table>'};
-				}
+				post_content = GetObjPostContent(GetCurrentFile(i), arrDB[i]); // извлекаем данные самостоятельно
 			}
 			switch(arrDB[i].posttype) {
 				case 'sa': // у перечисленных типов будет показана дополнительная колонка с внутренним содержанием
