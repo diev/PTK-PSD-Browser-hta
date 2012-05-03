@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.0.7
+	version=5.0.8
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -40,7 +40,7 @@ var select_row_idx;               // индекс выделенной стро�
 var select_filePathNameTime = ''; // полный путь к выделенному в списке файлу = GetCurrentFile(select_row_idx)
 
 var gradient = '';                // строка для задания градиента
-var sd = '';                      // символ, используемый в качестве разделителя в дате
+var sd = '.';                     // символ, используемый в качестве разделителя в дате
 
 //=====================================================
 //  ОБЩИЕ ФУНКЦИИ
@@ -205,14 +205,14 @@ function IsArchive(filepath) {
 // Преобразовывает заданную дату в объект со свойствами: year, month, day, hours, min, sec
 function Date2Obj(date){
 	function format(x){return (x < 10) ? ('0' + x) : String(x);}
-	var dt = {};
-	dt.year  = String(date.getFullYear()); // yyyy
-	dt.month = format(date.getMonth()+1);  // mm
-	dt.day   = format(date.getDate());     // dd
-	dt.hours = format(date.getHours());    // hh
-	dt.min   = format(date.getMinutes());  // mm
-	dt.sec   = format(date.getSeconds());  // ss
-	return dt;
+	return {
+		year:  String(date.getFullYear()), // yyyy
+		month: format(date.getMonth()+1),  // mm
+		day:   format(date.getDate()),     // dd
+		hours: format(date.getHours()),    // hh
+		min:   format(date.getMinutes()),  // mm
+		sec:   format(date.getSeconds())   // ss
+	};
 }
 
 // Создание ярлыка на Рабочем столе
