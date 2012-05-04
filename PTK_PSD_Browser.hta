@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.1.0
+	version=5.1.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -1348,7 +1348,7 @@ function Start(){
 
 </script>
 </head>
-<FRAMESET rows="52px, *, 265px" onLoad="setTimeout(Start, 0);" onbeforeunload="FSO.DeleteFolder(tmp_dir, true);">
+<FRAMESET rows="52px, *, 265px" onLoad="setTimeout(Start, 0);" onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
 	<FRAME src="about:blank" onLoad="load_Toolbar();" name="Toolbar" application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
 	<FRAME src="about:blank" onLoad="load_PostList();" name="PostList" application="yes" marginwidth="0" marginheight="0" scrolling="yes">
 	<FRAME src="about:blank" onLoad="load_Preview();" name="Preview" application="yes" marginwidth="4" marginheight="4">
