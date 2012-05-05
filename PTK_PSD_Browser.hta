@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.1.1
+	version=5.2.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -463,9 +463,8 @@ function SaveRace(save_filename){
 		save_filename = FSO.GetFileName(save_filename);
 		msg_text = "Выберите папку для сохранения файла\n" + save_filename;
 	}
-	with (new ActiveXObject("Shell.Application")){
-		var objFolder = BrowseForFolder(0, msg_text, 0, INI.BrowserSettings.save_root_dir);
-	}
+	var save_dir = INI.BrowserSettings['save_' + arrDB[select_row_idx].posttype] || INI.BrowserSettings.save_default;
+	var objFolder = (new ActiveXObject("Shell.Application")).BrowseForFolder(0, msg_text, 0, save_dir);
 	if (!objFolder) return;
 	var dest_path = objFolder.Self.Path + '\\';
 
