@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.2.0
+	version=5.3.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -517,7 +517,7 @@ function Answer365P(){
 
 // Поиск в кеше документов, в которых встречается упоминание о текущем файле
 function FindRelatedDocs(filename) {
-	filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB_|PB\d_|BOS\d_)/i, '').replace(/^SB[CPFR]/i, '').replace(/\.\w{3}$/, '');
+	filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB|PB\d|BOS\d|BV\d{3})_/i, '').replace(/^SB[CPFR]/i, '').replace(/\.\w{3}$/, '');
 	var arrFind = [];
 	for (var fname in Cache){
 		var preview_text = Cache[fname].preview;
@@ -991,8 +991,11 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 	// Извлекает содержимое одной посылки в массив arrFilesList и стринг html_text
 	function GetPostContent(filepath) {
 		function UnpackArchive(filepath) {
-			// Подсветка (подсказки) для содержимого сообщения
+			// Обработка содержимого сообщения (подсветка, подсказки, удаление лишнего)
 			function HighlightText(text, filename) {
+				if (/^BV\d{3}_ZNO\w+\.(txt|vrb)$/i.test(filename)) { // выписка на запрос 365П
+					text = text.replace(/###<br>ДатаОпер:(.|\n)+/m, '###<br><s>--- Полный перечень операций скрыт от просмотра, ввиду их большого объема ---</s><br>');
+				}
 				if (/^ZNO\w+\.(txt|vrb)$/i.test(filename)) { // запрос 365П
 					text = text.replace(/(<br>ВидЗапр:1)/m, '$1 <q>(запрос о наличии счетов в банке)</q>');
 					text = text.replace(/(<br>ВидЗапр:2)/m, '$1 <q>(запрос об остатках денежных средств на счете)</q>');
