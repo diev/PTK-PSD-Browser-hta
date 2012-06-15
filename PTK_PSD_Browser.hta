@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.3.0
+	version=5.4.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -232,14 +232,17 @@ function ReadINIFile(ini_file) {
 		with (FSO.OpenTextFile(ini_file)) {
 			var text = ReadAll();
 			Close();
-			var arr_lines = text.split('\n');
-			var section, param, value;
-			for (var i in arr_lines){
-				if (/^\[(\w+)\]/.test(arr_lines[i])){
+		}
+		var arr_lines = text.match(/[^\r\n]+/g);
+		var section, param, value;
+		for(var i = 0, line; line = arr_lines[i++];) {
+			line = line.replace(/^\s*/, '').replace(/\s*$/, '');
+			if (!/^[;#]/.test(line)) {        // comment
+				if (/^\[(.+)\]/.test(line)) { // section
 					section = RegExp.$1;
-					if (!INI[section]) INI[section] = {};
+					if ((section) && (!INI[section])) INI[section] = {};
 				}
-				if (/^([^;#][^=]*?)\s*=\s*([^\r\n]*?)\s*$/.test(arr_lines[i])){
+				else if (/^(.+?)\s*=\s*(.+)/.test(line)){ // param=value
 					param = RegExp.$1;
 					value = RegExp.$2;
 					INI[section][param] = value;
@@ -247,7 +250,6 @@ function ReadINIFile(ini_file) {
 			}
 		}
 	}
-	return INI;
 }
 
 // Возвращает полный путь к выбранному файлу отчетности
