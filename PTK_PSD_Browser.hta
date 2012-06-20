@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.0
+	version=5.4.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -996,7 +996,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			// Обработка содержимого сообщения (подсветка, подсказки, удаление лишнего)
 			function HighlightText(text, filename) {
 				if (/^BV\d{3}_ZNO\w+\.(txt|vrb)$/i.test(filename)) { // выписка на запрос 365П
-					text = text.replace(/###<br>ДатаОпер:(.|\n)+/m, '###<br><s>--- Полный перечень операций скрыт от просмотра, ввиду их большого объема ---</s><br>');
+					text = text.replace(/ДатаОпер:.*?<br>###<br>/g, 'Op').replace(/(Op)+/g, '<s>--- Перечень операций скрыт от просмотра, ввиду их большого объема ---</s><br>');
 				}
 				if (/^ZNO\w+\.(txt|vrb)$/i.test(filename)) { // запрос 365П
 					text = text.replace(/(<br>ВидЗапр:1)/m, '$1 <q>(запрос о наличии счетов в банке)</q>');
