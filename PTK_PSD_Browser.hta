@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.1
+	version=5.4.2
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -640,6 +640,7 @@ function load_Preview(){
 		addRule('i','color:red; font-weight:bold; font-style:normal;');
 		addRule('u','font: normal 8pt MS Sans Serif;');
 		addRule('table','font: normal 10pt Courier New; width:100%;');
+		addRule('.tbl','border: 1px solid buttonshadow; border-collapse:collapse; page-break-inside:avoid;');
 		addRule('th','color:threeddarkshadow; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
 		addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:green; background-color:infobackground; display:block;');
@@ -1060,7 +1061,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				for (var i=0; i<files_list.length; i++) {
 					filename = files_list[i];
 					arrFilesList[arrFilesList.length] = filename;
-					html_text += '<tr><td><table cellpadding=2 cellspacing=0 style="border: 1px solid buttonshadow; border-collapse:collapse; page-break-inside:avoid;">';
+					html_text += '<tr><td><table class="tbl">';
 					html_text += '<tr><th id=idFname>' + filename + '</th></tr>';
 					if (/(card\.inf)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(filename)){
 						html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
