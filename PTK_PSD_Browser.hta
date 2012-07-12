@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.2
+	version=5.4.3
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -991,6 +991,26 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		return info;
 	}
 
+	// Подсветка всего текста (включая заголовки с именами файлов)
+	function HighlightTextWithHeaders(text) {
+		if (RowOfDBTable.posttype == 'sa') { // подсветка наименования посылки в имени файла SA посылки
+			var re = new RegExp('(F'+bank_code+')(\\w{2,4})(\.zip)', 'gi');
+			// ---------------------------------------------------------------------
+			// Ответы на SA посылки не содержат вложений, поэтому ф-ция GetContentInfoFromFilesList не может показать содержимое
+			// Выделенный код - не подсветка , а поиск имен форм в тексте ответа
+			if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
+				var tmp = [];
+				while (re.exec(text)) tmp[tmp.length] = 'на ' + RegExp.$2;
+				RowOfDBTable.info = tmp.join(', '); // используем придуманное свойство info переменной верхнего уровня чтобы передать найденное значение
+			}
+			// ---------------------------------------------------------------------
+			text = text.replace(re, '$1<q>$2</q>$3');
+		}
+		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
+		text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
+		return text;
+	}
+
 	// Извлекает содержимое одной посылки в массив arrFilesList и стринг html_text
 	function GetPostContent(filepath) {
 		function UnpackArchive(filepath) {
@@ -1009,7 +1029,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (/^(IZV|PB|KWT)\w+\.(txt|vrb)$/i.test(filename)) { // подтверждение, извещение, квитанция 365П
 					text = text.replace(/(<br>10@@@|<br>01@@@|<br>20@@@)/m, '$1 <q>(положительный результат проверки)</q>');
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
-					text = text.replace(/<br>(\d\d\;[^@]+)@@@/, '<br><i>$1</i>@@@');
+					text = text.replace(/<br>(\d\d);([^@]+)@@@/, '<br><q>$1</q>;<i>$2</i>@@@');
 				}
 				if (RowOfDBTable.state_ == '7'){ // подсветка только для полученных
 					text = text.replace(/(не\s+)?(принята|принято|принят)/g, function(str, s1){return s1 ? ('<i>'+str+'</i>') : ('<q>'+str+'</q>')});
@@ -1019,25 +1039,6 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 						}
 					}
 				}
-				return text;
-			}
-			// Подсветка всего текста (включая заголовки с именами файлов)
-			function HighlightTextWithHeaders(text, filename) {
-				if (RowOfDBTable.posttype == 'sa') { // подсветка наименования посылки в имени файла SA посылки
-					var re = new RegExp('(F'+bank_code+')(\\w{2,4})(\.zip)', 'gi');
-					// ---------------------------------------------------------------------
-					// Ответы на SA посылки не содержат вложений, поэтому ф-ция GetContentInfoFromFilesList не может показать содержимое
-					// Выделенный код - не подсветка , а поиск имен форм в тексте ответа
-					if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
-						var tmp = [];
-						while (re.exec(text)) tmp[tmp.length] = 'на ' + RegExp.$2;
-						RowOfDBTable.info = tmp.join(', '); // используем придуманное свойство info переменной верхнего уровня чтобы передать найденное значение
-					}
-					// ---------------------------------------------------------------------
-					text = text.replace(re, '$1<q>$2</q>$3');
-				}
-				text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
-				text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
 				return text;
 			}
 			// Возвращает объект:
@@ -1101,8 +1102,6 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = HighlightText(text, filename);
 					text += content.sign;
 					html_text += '<tr><td>' + text + '</td></tr>';
-					// -------------------------------------------
-					html_text = HighlightTextWithHeaders(html_text, filename);
 				}
 			}
 			return line_count;
@@ -1118,6 +1117,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		var html_text = "<table>";
 		GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
 		html_text += '</table>';
+		html_text = HighlightTextWithHeaders(html_text);
 
 		var content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
 		if ( (content_info=='') && (RowOfDBTable.info)) { // только для ответов на SA посылки
