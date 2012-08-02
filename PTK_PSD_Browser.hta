@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.3
+	version=5.4.4
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -106,7 +106,7 @@ function QueryDatabase(sql_query, params){
 	return arrResult;
 }
 
-// Чтение текстового файла
+// Чтение файла
 // Если кол-во байт (byte_read) не указано, то читается весь файл
 function ReadFile(filename, byte_read) {
 	var content = '';
@@ -434,13 +434,11 @@ function OpenExplorer(){
 
 // Сохранение файла отчетности (как есть целиком, одно из вложенний, или все вложения)
 function SaveRace(save_filename){
-	// Удаление ЭЦП у сохраненного файла
+	// Удаление ЭЦП у сохраняемого файла
 	function DeleteSignature (filepath){
-		var content=escape(ReadFile(filepath));
-		if (/o000000/.test(content)) {
-			content=RegExp.leftContext;
-			var sign = RegExp.rightContext.match(/\d{4}[0-9A-Z]{6}\d{2}/);
-			if (sign) SaveFile(filepath, unescape(content));
+		var content = ReadFile(filepath);
+		if (/o000000(?:.|\n){64}(\d{4}[0-9A-Z]{6}\d{2})(?:.|\n){15}$/.test(content)) {
+			SaveFile(filepath, RegExp.leftContext);
 		}
 	}
 	// Извлекает из архива arc_filepath в каталог dest_path файл dest_filename (или все, если dest_filename==undefined)
@@ -1043,15 +1041,16 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			}
 			// Возвращает объект:
 			// obj.text = содержит текст без подписи
-			// obj.sign = содержит культурно оформленную ЭЦП
+			// obj.sign = содержит html-текст КА
 			function SignatureDetect(stext){
-				if (/o000000/.test(stext)) {
+				if (/o000000(?:.|\n){64}(\d{4}[0-9A-Z]{6}\d{2})(?:.|\n){15}$/.test(stext)) {
 					stext = RegExp.leftContext;
-					var sign = RegExp.rightContext;
-					var ka = sign.match(/^(?:.|\n){64}(\d{4}[0-9A-Z]{6}\d{2})/);
-					ka = ka ? ka[1] : 'не распознан';
+					var ka = RegExp.$1 || 'не распознан';
 				}
-				return {text:stext, sign:(ka) ? '<s>[KA '+ka+']</s>' : ''};
+				return {
+					text:stext,
+					sign:(ka) ? '<s>[KA '+ka+']</s>' : ''
+				};
 			}
 			// -------------------------------------------------------------
 			var line_count = 0;
