@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.4
+	version=5.4.5
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -17,30 +17,31 @@ window.resizeTo(800,550); // первоначальные размеры окн�
 //=====================================================
 //  ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 //=====================================================
-var INI = {};                     // объект, хранящий в виде параметров все ключи ini-файла
-var arrDB = [];                   // массив, хранящий текущую выборку из БД
-var Cache = {};                   // объект, хранящий результаты обработки содержимого файлов
-var cache_contains_unique_data;   // признак того, что наш объект содержит данные, отсутствующие в кеше загруженном с диска
-var cache_DateLastModified;       // хранит время последнего изменения кеша на диске
-var ContextMenu;                  // объект контекстное меню
-var WshShell, FSO;                // ActiveX объекты
+var INI = {};                        // объект, хранящий в виде параметров все ключи ini-файла
+var arrDB = [];                      // массив, хранящий текущую выборку из БД
+var Cache = {};                      // объект, хранящий результаты обработки содержимого файлов
+var cache_contains_unique_data;      // признак того, что наш объект содержит данные, отсутствующие в кеше загруженном с диска
+var cache_DateLastModified;          // хранит время последнего изменения кеша на диске
+var ContextMenu;                     // объект контекстное меню
+var WshShell, FSO;                   // ActiveX объекты
 
-var script_path = '';             // путь к данному скрипту
-var ptk_psd_dir = '';             // путь к каталогу ПТК ПСД
-var store_dir = '';               // путь к архивному каталогу ПТК ПСД Store
-var tmp_dir = '';                 // путь к временному каталогу (в нем происходит распаковка архивов)
-var cache_filepath = '';          // путь к кешу данных
-var unpacker = '';                // путь к распаковщику (используется 7-Zip <www.7-zip.org>)
-var bank_code = '';               // строка с кодом банка
-var db_connect_string = '';       // строка подключения к БД
-var available_forms = '';         // строка со списком кодов всех доступных пользователю форм
+var script_path = '';                // путь к данному скрипту
+var ptk_psd_dir = '';                // путь к каталогу ПТК ПСД
+var store_dir = '';                  // путь к архивному каталогу ПТК ПСД Store
+var tmp_dir = '';                    // путь к временному каталогу (в нем происходит распаковка архивов)
+var cache_filepath = '';             // путь к кешу данных
+var unpacker = '';                   // путь к распаковщику (используется 7-Zip <www.7-zip.org>)
+var bank_code = '';                  // строка с кодом банка
+var db_connect_string = '';          // строка подключения к БД
+var available_forms = '';            // строка со списком кодов всех доступных пользователю форм
 
-var cursor_row_idx;               // индекс строки над которой находится курсор мыши
-var select_row_idx;               // индекс выделенной строки списка = индексу выборки из БД
-var select_filePathNameTime = ''; // полный путь к выделенному в списке файлу = GetCurrentFile(select_row_idx)
+var cursor_row_idx;                  // индекс строки над которой находится курсор мыши
+var select_row_idx;                  // индекс выделенной строки списка = индексу выборки из БД
+var select_filePathNameTime = '';    // полный путь к выделенному в списке файлу = GetCurrentFile(select_row_idx)
+var file_on_clicked_in_preview = ''; // имя файла в окне предпросмотра, на котором кликнули мышью
 
-var gradient = '';                // строка для задания градиента
-var sd = '.';                     // символ, используемый в качестве разделителя в дате
+var gradient = '';                   // строка для задания градиента
+var sd = '.';                        // символ, используемый в качестве разделителя в дате
 
 //=====================================================
 //  ОБЩИЕ ФУНКЦИИ
@@ -321,54 +322,54 @@ function OnKeydownFromPostList(){
 //=====================================================
 
 // Показывает контекстное меню по правой кнопке мыши
-function ShowContextMenu(pane, file_on_clicked_in_preview){
+function ShowContextMenu(pane){
 	// вставляем html содержимое меню
 	var html_menu = '<table width=100% cellpadding=2 cellspacing=0>';
 	switch(pane.name){
 		case 'PostList':
 			html_menu += '<tr id="menuitem" onClick="parent.PrintForm();">';
-			html_menu += '<td style="font:12pt Wingdings;">3';
+			html_menu += '<td style="font:12pt Wingdings 2;">&#x36;';
 			html_menu += '<td>&nbsp;Печать&nbsp;';
 
 			html_menu += '<tr id="menuitem" onClick="parent.OpenExplorer();">';
-			html_menu += '<td style="font:10pt Wingdings;">1';
+			html_menu += '<td style="font:10pt Wingdings;">&#x31;';
 			html_menu += '<td>&nbsp;Открыть каталог&nbsp;';
 
 			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
-			html_menu += '<td style="font:12pt Wingdings;">&lt;';
+			html_menu += '<td style="font:12pt Wingdings;">&#x3C;';
 			html_menu += '<td>&nbsp;Сохранить посылку в...&nbsp;';
 
 			html_menu += '<tr id="menuitem" onClick="parent.SaveRace();">';
-			html_menu += '<td style="font:12pt Wingdings;">4';
+			html_menu += '<td style="font:12pt Wingdings;">&#x34;';
 			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 
 			if (/требование|решени|запрос|поручение/i.test(PostList.idRow[select_row_idx].cells[2].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах 365П
 				html_menu += '<tr id="menuitem" onClick="parent.Answer365P();">';
-				html_menu += '<td style="font:12pt Wingdings;">+';
+				html_menu += '<td style="font:12pt Wingdings;">&#x2B;';
 				html_menu += '<td>&nbsp;Сформировать подтверждения PB1&nbsp;';
 			}
 
 			html_menu += '<tr id="menuitem" onClick="parent.ReReadRace();">';
-			html_menu += '<td style="font:12pt Wingdings;">[';
+			html_menu += '<td style="font:12pt Wingdings;">&#x5B;';
 			html_menu += '<td>&nbsp;Перечитать содержимое посылки&nbsp;';
 
 			break;
 		case 'Preview':
 			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
-			html_menu += '<td style="font:12pt Wingdings;">&lt;';
+			html_menu += '<td style="font:12pt Wingdings;">&#x3C;';
 			html_menu += '<td>&nbsp;Сохранить всю посылку в...&nbsp;';
 
 			if (file_on_clicked_in_preview) {
 				html_menu += '<tr id="menuitem" onClick="parent.SaveRace(\'' + file_on_clicked_in_preview + '\');">';
-				html_menu += '<td style="font:12pt Wingdings;">=';
+				html_menu += '<td style="font:12pt Wingdings;">&#x3D;';
 				html_menu += '<td>&nbsp;Сохранить файл под курсором в...&nbsp;';
 
 				html_menu += '<tr id="menuitem" onClick="parent.SaveRace();">';
-				html_menu += '<td style="font:12pt Wingdings;">4';
+				html_menu += '<td style="font:12pt Wingdings;">&#x34;';
 				html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 
 				html_menu += '<tr id="menuitem" onClick="parent.FindRelatedDocs(\'' + file_on_clicked_in_preview + '\');">';
-				html_menu += '<td style="font:12pt Wingdings;">a';
+				html_menu += '<td style="font:12pt Wingdings;">&#x61;';
 				html_menu += '<td>&nbsp;Найти связанные документы&nbsp;';
 			}
 			break;
@@ -416,8 +417,8 @@ function PreviewMouseRightClick(event_srcElement){
 		clipboardData.setData("Text", selected);
 		Popup("Скопировано в буфер обмена");
 	} else { // запуск контекстного меню
-		var file_on_clicked = GetFileOnClicked(event_srcElement);
-		ShowContextMenu(Preview, file_on_clicked);
+		file_on_clicked_in_preview = GetFileOnClicked(event_srcElement);
+		ShowContextMenu(Preview);
 	}
 }
 
@@ -583,7 +584,7 @@ function load_Toolbar(){
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
 	html_toolbar += '		&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(); return false;">[</a>';
+	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(); return false;">&#x5B;</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Интервал:&nbsp;</b></legend>';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="сегодня" title="за ' + parent.GetDate(0) + '" hidefocus onClick="parent.SetInterval(0);">';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="вчера" title="за ' + parent.GetDate(-1) + '" hidefocus onClick="parent.SetInterval(1);">';
@@ -592,14 +593,14 @@ function load_Toolbar(){
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="за:" title="За фиксированный день | За период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value!=\'за:\');">';
 
 	html_toolbar += '		<input hidefocus id="idDateInput" type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(0);" onfocus="parent.IntervalButtonSet(4);">';
-	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>¦<\/a>';
+	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>&#xA6;<\/a>';
 	html_toolbar += '		<span id="idEndDateHide" style="display:none">';
 	html_toolbar += '		по: <input hidefocus id="idDateInput" type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(1);" onfocus="parent.IntervalButtonSet(4);">';
-	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(1); return false;" hidefocus>¦<\/a>';
+	html_toolbar += '		<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(1); return false;" hidefocus>&#xA6;<\/a>';
 
 	html_toolbar += '		</span><span style="width:0;"></span>';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td style="font:14pt Wingdings; width:100%; text-align:right; text-valign:middle;"><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;">O</a>&nbsp;';
+	html_toolbar += '	<td style="font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; text-valign:middle;"><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;">&#x4F;</a>';
 	html_toolbar += '</table>';
 	html_toolbar += '<object id=idAxCalendar classid="clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a" style="display:none;"><\/object>';
 	Toolbar.document.body.innerHTML = html_toolbar;
