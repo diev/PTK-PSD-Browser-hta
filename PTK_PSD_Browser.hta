@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.4.5
+	version=5.5.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -344,7 +344,7 @@ function ShowContextMenu(pane){
 			html_menu += '<td>&nbsp;Распаковать все файлы в...&nbsp;';
 
 			if (/требование|решени|запрос|поручение/i.test(PostList.idRow[select_row_idx].cells[2].innerText)) { // пункт "Сформировать подтверждения" отображается только на запросах 365П
-				html_menu += '<tr id="menuitem" onClick="parent.Answer365P();">';
+				html_menu += '<tr id="menuitem" onClick="parent.Answer365PB1();">';
 				html_menu += '<td style="font:12pt Wingdings;">&#x2B;';
 				html_menu += '<td>&nbsp;Сформировать подтверждения PB1&nbsp;';
 			}
@@ -355,6 +355,12 @@ function ShowContextMenu(pane){
 
 			break;
 		case 'Preview':
+			if (/\.VRB$/i.test(file_on_clicked_in_preview)) {
+				html_menu += '<tr id="menuitem" onClick="parent.DialogAnswer365P(\'' + file_on_clicked_in_preview + '\');">';
+				html_menu += '<td style="font:12pt Wingdings;">&#x2B;';
+				html_menu += '<td>&nbsp;Сформировать подтверждение PB...&nbsp;';
+			}
+
 			html_menu += '<tr id="menuitem" onClick="parent.SaveRace(parent.select_filePathNameTime);">';
 			html_menu += '<td style="font:12pt Wingdings;">&#x3C;';
 			html_menu += '<td>&nbsp;Сохранить всю посылку в...&nbsp;';
@@ -479,8 +485,8 @@ function SaveRace(save_filename){
 	}
 }
 
-// Формирование подтверждений на сообщение 365-П
-function Answer365P(){
+// Формирование подтверждения на сообщение 365-П
+function Answer365P(ans_file, ans_text){
 	function WriteFile(filename, text) {
 		with (FSO.OpenTextFile(filename, 2, true)) {
 			Write(text);
@@ -495,25 +501,36 @@ function Answer365P(){
 	}
 	if (!FSO.FolderExists(outbox_dir_365P)) FSO.CreateFolder(outbox_dir_365P);
 
+	var pb_text = ans_file + '###\r\n';
+	pb_text += ans_text || '10@@@\r\n';
+	var dt = Date2Obj(new Date());
+	pb_text += dt.year+'-'+dt.month+'-'+dt.day+'@@@\r\n';
+	pb_text += dt.hours+':'+dt.min+':'+dt.sec+'@@@\r\n';
+	pb_text += '===\r\n';
+	var pb2 = ans_text && (ans_text != '10@@@\r\n');
+	WriteFile(outbox_dir_365P + '\\PB' + (pb2 ? '2' : '1') + '_' + ans_file + '.txt', pb_text);
+	if (ans_text) WshShell.Popup('Подтверждение ' + (pb2 ? 'PB2' : 'PB1') + '\nна ' + ans_file + '\nуспешно сформировано', 2, "Формирование подтверждений", 64);
+}
+
+// Формирование подтверждений PB1 на сообщение 365-П
+function Answer365PB1(){
 	var arr_fnames = Preview.idFname;
 	var count = 0;
 	for (var i=0; i<arr_fnames.length; i++) {
 		var r_name = arr_fnames[i].innerText;
 		if (/(\w+)\.vrb$/i.test(r_name)) {
-			var fname = RegExp.$1;
-			var pb1_text = fname + '###\r\n';
-			pb1_text += '10@@@\r\n';
-			var dt = Date2Obj(new Date());
-			pb1_text += dt.year+'-'+dt.month+'-'+dt.day+'@@@\r\n';
-			pb1_text += dt.hours+':'+dt.min+':'+dt.sec+'@@@\r\n';
-			pb1_text += '===\r\n';
-			WriteFile(outbox_dir_365P + '\\PB1_' + fname + '.txt', pb1_text);
+			Answer365P(RegExp.$1);
 			count++;
 		}
 	}
 	QueryDatabase("UPDATE elo_arh_post SET error_ = 0 WHERE filename = ?", arrDB[select_row_idx].filename);
 	StartCreatePostsList();
-	WshShell.Popup('Сформировано:\n- подтверждений:\t'+count, 2, "Формирование подтверждений", 64);
+	WshShell.Popup('Сформировано ' + count + ' подтверждений PB1', 2, "Формирование подтверждений", 64);
+}
+
+// Формирование произвольных подтверждений на сообщение 365-П
+function DialogAnswer365P(filename) {
+	showModalDialog('pb.html', self.parent, 'status:no; help:no; dialogWidth:500px; dialogHeight:260px;');
 }
 
 // Поиск в кеше документов, в которых встречается упоминание о текущем файле
