@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.5.0
+	version=5.5.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -1002,6 +1002,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (pb2) info += 'подтв.<font color="red">PB2</font> <s>(' + pb2.length + ')</s> ';
 				if (kwt) info += 'квит. <s>(' + kwt.length + ')</s> ';
 				if (dsb_buv) info += 'уведомление <s>(' + dsb_buv.length + ')</s> ';
+				if (RowOfDBTable.filetype == 'ИЭС3') info = 'подтверждение о получении';
 				break;
 		}
 		return info;
