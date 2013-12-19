@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.5.1
+	version=5.6.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -949,7 +949,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				info += GetSAForms(files_list);
 				break;
 			case '2z': // 311П
-				if (/^([ABCDOPS])\d{13}\.ARJ$/im.test(files_list)){
+				if (/^([ABCDOPSZY])\d{13}\.ARJ$/im.test(files_list)){
 					switch(RegExp.lastParen.toUpperCase()){
 						case 'A':
 							adr = 'Всем';
@@ -966,8 +966,12 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 						case 'S':
 							adr = 'ФСС';
 							break;
+						case 'Z':
+						case 'Y':
+							adr = 'ФНС спр.';
+							break;
 					}
-					var count = files_list.match(/^SB\w\d{9}_\d{12}_\d{16}_\d{3}\.TXT$/igm);
+					var count = files_list.match(/^(SB\w\d{9}_\d{12}_\d{16}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.TXT$/igm);
 					if (count) info += adr + ' <s>(' + count.length + ')</s>';
 				}
 				break;
