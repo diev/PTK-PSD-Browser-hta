@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.6.0
+	version=5.7.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -949,7 +949,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				info += GetSAForms(files_list);
 				break;
 			case '2z': // 311П
-				if (/^([ABCDOPSZY])\d{13}\.ARJ$/im.test(files_list)){
+				if (/^([ABCDOPSZY])N?\d{13,15}\.ARJ$/im.test(files_list)) {
 					switch(RegExp.lastParen.toUpperCase()){
 						case 'A':
 							adr = 'Всем';
@@ -971,7 +971,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 							adr = 'ФНС спр.';
 							break;
 					}
-					var count = files_list.match(/^(SB\w\d{9}_\d{12}_\d{16}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.TXT$/igm);
+					var count = files_list.match(/^(SB\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
 					if (count) info += adr + ' <s>(' + count.length + ')</s>';
 				}
 				break;
@@ -1109,7 +1109,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					} else {
 						if (/\.xml$/i.test(filepath)) {
 							if (/^\<\?xml/i.test(text)){
-								text = text.replace(/<\\?.+?>/g,'');
+								text = text.replace(/\<[\?\/].*?\>/g, '');
 							} else {
 								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
 							}
