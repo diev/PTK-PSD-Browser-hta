@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.7.0
+	version=5.8.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -535,7 +535,7 @@ function DialogAnswer365P(filename) {
 
 // Поиск в кеше документов, в которых встречается упоминание о текущем файле
 function FindRelatedDocs(filename) {
-	filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB|PB\d|BOS\d|BV\d{3})_/i, '').replace(/^SB[CPFR]/i, '').replace(/\.\w{3}$/, '');
+	filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB|PB\d|BOS\d|BV\d{3})_/i, '').replace(/^S[FB][CPFREKT]?/i, '').replace(/\.\w{3}$/, '');
 	var arrFind = [];
 	for (var fname in Cache){
 		var preview_text = Cache[fname].preview;
@@ -642,6 +642,7 @@ function load_PostList(){
 		addRule('th','color:threeddarkshadow; cursor:default; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
 		addRule('td','border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
+		addRule('tt','font: normal 8pt MS Sans Serif; color:#990000;');
 	}
 	PostList.document.onkeydown = function(){parent.OnKeydownFromPostList();};
 	PostList.document.body.innerHTML = '<font color="red"><b>Начальная загрузка данных. Ждите...</b></font>';
@@ -661,6 +662,7 @@ function load_Preview(){
 		addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:green; background-color:infobackground; display:block;');
 		addRule('span','font: normal 8pt MS Sans Serif;');
+		addRule('.tag','color:threeddarkshadow;');
 	}
 	Preview.document.onmouseup = function(){
 		if (Preview.event.button==2) PreviewMouseRightClick(Preview.event.srcElement);
@@ -942,6 +944,30 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			formnames = GetFormNames(files_list, new RegExp('^F'+bank_code+'(\\w{2,4})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
 			return formnames;
 		}
+		// Преобразует символ из имени файла в читабельный тип посылки 311-П
+		function Get311Type(char){
+			switch(char.toUpperCase()){
+				case 'A':
+					return 'сообщ. в ФНС <tt>1 типа</tt>';
+				case 'O':
+					return 'квит. из ФНС <tt>1 типа</tt>';
+				case 'B':
+					return 'сообщ. в ФНС <tt>2 типа</tt>';
+				case 'N':
+					return 'квит. из ФНС <tt>2 типа</tt>';
+				case 'C':
+					return 'сообщ. в ПФ';
+				case 'P':
+					return 'квит. из ПФ';
+				case 'D':
+					return 'сообщ. в ФСС';
+				case 'S':
+					return 'квит. из ФСС';
+				case 'Z':
+				case 'Y':
+					return 'ФНС спр.';
+			}
+		}
 		// -----------------------------------------------------------
 		var info = '';
 		switch(post_type){
@@ -949,30 +975,14 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				info += GetSAForms(files_list);
 				break;
 			case '2z': // 311П
-				if (/^([ABCDOPSZY])N?\d{13,15}\.ARJ$/im.test(files_list)) {
-					switch(RegExp.lastParen.toUpperCase()){
-						case 'A':
-							adr = 'Всем';
-							break;
-						case 'B':
-						case 'O':
-							adr = 'ФНС';
-							break;
-						case 'C':
-						case 'P':
-							adr = 'ПФ';
-							break;
-						case 'D':
-						case 'S':
-							adr = 'ФСС';
-							break;
-						case 'Z':
-						case 'Y':
-							adr = 'ФНС спр.';
-							break;
-					}
-					var count = files_list.match(/^(SB\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
-					if (count) info += adr + ' <s>(' + count.length + ')</s>';
+				if (/^([ABCDOPSZYN])N?\d{13,15}\.ARJ$/im.test(files_list)) {
+					adr = Get311Type(RegExp.$1);
+					count = files_list.match(/^(S\w\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
+					var count_bad = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
+					if (count) info += adr + ' <s>(' + count.length + (count_bad ? '/<font color="red">'+count_bad.length+'</font>' : '') + ')</s>';
+				} else if (/^UV(\w).+\.XML$/im.test(files_list)) {
+					var uvtype = Get311Type(RegExp.$1);
+					info += '<s>уведом. ЦБ на ' + uvtype + '</s>';
 				}
 				break;
 			case '5z': // 322П
@@ -1012,19 +1022,28 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		return info;
 	}
 
+	// Извлечение информации о посылке из ее текста
+	function GetContentInfoFromFileText(text, post_type) {
+		switch(post_type){
+			case 'sa':
+				if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
+					var tmp = [];
+					var re = new RegExp('F'+bank_code+'(\\w{2,5})\.zip', 'gi');
+					while (re.exec(text)) tmp[tmp.length] = 'на ' + RegExp.$1;
+					if (tmp.length) return tmp.join(', ');
+				}
+			break;
+			case '2z': // 311П
+				return ((RowOfDBTable.filetype == 'ИЭС1') && (/nRec="(\d+)"/.test(text))) ? '<s> ('+RegExp.$1+')</s>' : '';
+			break;
+		}
+		return '';
+	}
+
 	// Подсветка всего текста (включая заголовки с именами файлов)
 	function HighlightTextWithHeaders(text) {
 		if (RowOfDBTable.posttype == 'sa') { // подсветка наименования посылки в имени файла SA посылки
 			var re = new RegExp('(F'+bank_code+')(\\w{2,4})(\.zip)', 'gi');
-			// ---------------------------------------------------------------------
-			// Ответы на SA посылки не содержат вложений, поэтому ф-ция GetContentInfoFromFilesList не может показать содержимое
-			// Выделенный код - не подсветка , а поиск имен форм в тексте ответа
-			if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
-				var tmp = [];
-				while (re.exec(text)) tmp[tmp.length] = 'на ' + RegExp.$2;
-				RowOfDBTable.info = tmp.join(', '); // используем придуманное свойство info переменной верхнего уровня чтобы передать найденное значение
-			}
-			// ---------------------------------------------------------------------
 			text = text.replace(re, '$1<q>$2</q>$3');
 		}
 		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
@@ -1109,7 +1128,16 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					} else {
 						if (/\.xml$/i.test(filepath)) {
 							if (/^\<\?xml/i.test(text)){
-								text = text.replace(/\<[\?\/].*?\>/g, '');
+								if (/\\VBK.+?\.xml$/i.test(filepath)) { // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
+									text = text.replace(/<.+?>/g,'');
+								} else { // обработка XML
+									var aText = [];
+									var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
+									while (re.exec(text)){
+										aText.push('<font class="tag"><b>' + RegExp.$1 + '</b>' + (RegExp.$2 || '') + '</font> ' + (RegExp.$3 || ''));
+									}
+									text = aText.join('<br>');
+								}
 							} else {
 								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
 							}
@@ -1139,12 +1167,18 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		var html_text = "<table>";
 		GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
 		html_text += '</table>';
-		html_text = HighlightTextWithHeaders(html_text);
 
-		var content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
-		if ( (content_info=='') && (RowOfDBTable.info)) { // только для ответов на SA посылки
-			content_info = RowOfDBTable.info;
+	// ---- добавление в строку со списком дополнительной информации о посылке ----
+		var content_info = '';
+		if (arrFilesList.length) {
+			content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype); // инфа извлекается из списка файлов, содержащихся в посылке
 		}
+		if ((content_info=='') || (RowOfDBTable.posttype != 'sa')) {
+			content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype); // инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
+		}
+	// ---------------------------------------------------
+
+		html_text = HighlightTextWithHeaders(html_text);
 		cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
 		return {info:content_info, preview:html_text};
 	} else {
