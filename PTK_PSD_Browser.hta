@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.8.1
+	version=5.9.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -933,6 +933,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 
 			// В одной посылке м.б. только одна форма:
 			if (/^ZDL\d+\.xls$/im.test(files_list)) return 'Инф.о просроченной задолженности'; // Н.Новгород
+			if (/^[ep]nu\d{6}\.cry$/im.test(files_list)) return 'Перечень ДФМиВК'; // Н.Новгород
 			if ((new RegExp('^MN\\d{3}'+bank_code+'\\.xls$', 'im')).test(files_list)) return 'Сведения о работе с монетой БР'; // Н.Новгород
 			if ((new RegExp('^IA\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '601'; // С.Петербург
 			if ((new RegExp('^IN\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) return '652'; // С.Петербург
@@ -1030,6 +1031,9 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					var re = new RegExp('F'+bank_code+'(\\w{2,5})\.zip', 'gi');
 					while (re.exec(text)) tmp[tmp.length] = 'на ' + RegExp.$1;
 					if (tmp.length) return tmp.join(', ');
+				}
+				if (((RowOfDBTable.filetype=='ОЭС')||(RowOfDBTable.filetype=='ИЭС1')) && (/[ep]nu\d{6}\.cry/im.test(text))) {
+					return 'Подтв. о получении Перечня'; // Н.Новгород
 				}
 			break;
 			case '2z': // 311П
