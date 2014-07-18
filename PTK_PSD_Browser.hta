@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.9.0
+	version=5.10.0
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -42,6 +42,7 @@ var file_on_clicked_in_preview = ''; // имя файла в окне предп
 
 var gradient = '';                   // строка для задания градиента
 var sd = '.';                        // символ, используемый в качестве разделителя в дате
+var find_text = '';                  // строка, содержащая часть имени файла для поиска связанных с этим файлом документов
 
 //=====================================================
 //  ОБЩИЕ ФУНКЦИИ
@@ -289,7 +290,13 @@ function ShowPreview(){
 			}
 		}
 	}
-	Preview.scrollTo(0,0);
+	if (find_text == '') {
+		Preview.scrollTo(0,0);
+	} else {
+		var TextRange = Preview.document.body.createTextRange();
+		TextRange.findText(find_text);
+		TextRange.select();
+	}
 }
 
 // Выделение строки по которой кликнули мышью (или сдвинули выделение курсорными клавишами)
@@ -547,6 +554,7 @@ function FindRelatedDocs(filename) {
 		arrDB = QueryDatabase(sql_string);
 		CreatePostsList();
 		ContextMenu.hide();
+		find_text = filename;
 	} else {
 		WshShell.Popup('Документов с упоминанием файла \n'+filename+'\nв кеше не найдено!\n\nПопробуйте поискать их вручную.', 2, "Поиск связанных документов", 64);
 	}
@@ -971,6 +979,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		}
 		// -----------------------------------------------------------
 		var info = '';
+		var count = 0;
 		switch(post_type){
 			case 'sa':
 				info += GetSAForms(files_list);
@@ -1302,6 +1311,7 @@ function CreatePostsList(){
 
 // Запуск ф-ции CreatePostsList отдельным процессом
 function StartCreatePostsList(){
+	find_text = '';
 	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
 	Preview.document.body.innerHTML = '';
 	Toolbar.idToolbar.disabled = true;
