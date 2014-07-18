@@ -8,7 +8,7 @@
 	scroll=no
 	contextMenu=no
 	singleinstance=yes
-	version=5.8.0
+	version=5.8.1
 	author=mozers™, mozers@mail.ru, icq#256106175
 	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
 >
@@ -941,7 +941,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			// В одной посылке м.б. несколько различных форм:
 			var formnames = GetFormNames(files_list, new RegExp('^F(\\w{3})'+bank_code+'[1-C]\\.', 'gim')); // С.Петербург (664, 665, KRK, PSV, VBK)
 			if (formnames != '') return formnames;
-			formnames = GetFormNames(files_list, new RegExp('^F'+bank_code+'(\\w{2,4})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
+			formnames = GetFormNames(files_list, new RegExp('^F'+bank_code+'(\\w{2,5})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
 			return formnames;
 		}
 		// Преобразует символ из имени файла в читабельный тип посылки 311-П
@@ -1016,7 +1016,6 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (pb2) info += 'подтв.<font color="red">PB2</font> <s>(' + pb2.length + ')</s> ';
 				if (kwt) info += 'квит. <s>(' + kwt.length + ')</s> ';
 				if (dsb_buv) info += 'уведомление <s>(' + dsb_buv.length + ')</s> ';
-				if (RowOfDBTable.filetype == 'ИЭС3') info = 'подтверждение о получении';
 				break;
 		}
 		return info;
@@ -1043,7 +1042,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 	// Подсветка всего текста (включая заголовки с именами файлов)
 	function HighlightTextWithHeaders(text) {
 		if (RowOfDBTable.posttype == 'sa') { // подсветка наименования посылки в имени файла SA посылки
-			var re = new RegExp('(F'+bank_code+')(\\w{2,4})(\.zip)', 'gi');
+			var re = new RegExp('(F'+bank_code+')(\\w{2,5})(\.zip)', 'gi');
 			text = text.replace(re, '$1<q>$2</q>$3');
 		}
 		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
@@ -1124,7 +1123,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					var content = SignatureDetect(text);
 					text = content.text;
 					if (/[\x00-\x08\x10-\x1B]/.test(text)){
-						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не читабельное содержимое (возможно зашировано) - - - </span>';
+						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не читабельное содержимое (возможно зашифровано) - - - </span>';
 					} else {
 						if (/\.xml$/i.test(filepath)) {
 							if (/^\<\?xml/i.test(text)){
@@ -1139,7 +1138,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 									text = aText.join('<br>');
 								}
 							} else {
-								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашировано) - - - </span>';
+								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашифровано) - - - </span>';
 							}
 						} else {
 							// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
@@ -1176,6 +1175,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		if ((content_info=='') || (RowOfDBTable.posttype != 'sa')) {
 			content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype); // инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
 		}
+		if ((RowOfDBTable.posttype == 'mz') && (RowOfDBTable.filetype == 'ИЭС3')) content_info = 'подтв. о получении';
 	// ---------------------------------------------------
 
 		html_text = HighlightTextWithHeaders(html_text);
