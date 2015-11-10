@@ -2,16 +2,16 @@
 <head>
 <meta http-equiv=content-type content="text-html; charset=utf-8">
 <hta:application
-	id=hta_App
-	applicationName=ПТК_ПСД_-_Обозреватель_отчетности
-	icon=icon.ico
-	scroll=no
-	contextMenu=no
-	singleinstance=yes
-	version=5.10.0
-	author=mozers™, mozers@mail.ru, icq#256106175
-	coauthor=Dmitry Evdokimov, diev@mail.ru, icq#7372116
->
+	id="hta_App"
+	applicationName="ПТК ПСД - Обозреватель отчетности"
+	icon="icon.ico"
+	scroll="no"
+	contextMenu="no"
+	singleinstance="yes"
+	version="5.10.1"
+	author="mozers™, mozers@mail.ru, icq#256106175"
+	coauthor="Dmitry Evdokimov, diev@mail.ru, icq#7372116"
+ />
 <script language="JavaScript">
 window.resizeTo(800,550); // первоначальные размеры окна приложения
 //=====================================================
@@ -1320,7 +1320,7 @@ function StartCreatePostsList(){
 
 // Действия при старте приложения
 function Start(){
-	document.title = hta_App.applicationName.replace(/_/g,' ') + ' - ' + hta_App.version;
+	document.title = hta_App.applicationName + ' - ' + hta_App.version;
 
 	try { // Инициализация объектов ActiveX
 		WshShell = new ActiveXObject("WScript.Shell");
