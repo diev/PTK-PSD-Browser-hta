@@ -8,12 +8,14 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.0.4"
+	version="6.0.5"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
  />
 <script language="JavaScript">
-window.resizeTo(800,550); // первоначальные размеры окна приложения
+//window.resizeTo(800,550); // первоначальные размеры окна приложения
+window.moveTo(50,20);
+window.resizeTo(screen.width-100,screen.height-70);
 //=====================================================
 //  ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 //=====================================================
@@ -180,6 +182,22 @@ function dos2win(text_in) {
 		Flush();
 		Position = 0;
 		Charset = 'cp866';
+		var text_out = ReadText(-1);
+		Close();
+	}
+	return text_out;
+}
+
+// Перекодировщик текста utf8 -> win1251
+function utf2win(text_in) {
+	with (new ActiveXObject("ADODB.Stream")) {
+		Open();
+		Type = 2; // adTypeText
+		Charset = 'windows-1251';
+		WriteText(text_in);
+		Flush();
+		Position = 0;
+		Charset = 'utf-8';
 		var text_out = ReadText(-1);
 		Close();
 	}
@@ -1183,6 +1201,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 								if (/\\VBK.+?\.xml$/i.test(filepath)) { // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
 									text = text.replace(/<.+?>/g,'');
 								} else { // обработка XML
+									if (/^\<\?xml.* encoding=["']utf-8["']*/i.test(text)) text = utf2win(text);
 									var aText = [];
 									var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
 									while (re.exec(text)) {
@@ -1195,7 +1214,9 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 							}
 						} else {
 							// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
-							if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
+							//if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
+							// только такие файлы все еще приходят в кодировке 866:
+							if (/(\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i.test(filepath)) text = dos2win(text);
 							line_count = 0;
 							text = text.replace(/[\r\n]+/g, function() {line_count++; return '<br>'});
 						}
