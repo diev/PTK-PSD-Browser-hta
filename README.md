@@ -1,4 +1,6 @@
 # ![ptkpsd.png](docs/images/ptkpsd.png) ПТК ПСД - Обозреватель отчетности
+[![Build status](https://ci.appveyor.com/api/projects/status/j011cbjlv4k6wirk?svg=true)](https://ci.appveyor.com/project/diev/ptk-psd-browser-hta)
+
 Наглядный просмотр и работа с архивом посылок ПТК ПСД Банка России.
 
 ![Рабочее окно приложения](docs/images/screen.png)
