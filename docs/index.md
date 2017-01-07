@@ -1,7 +1,9 @@
 # ![ptkpsd.png](images/ptkpsd.png) ПТК ПСД - Обозреватель отчетности
+
 [![Build status](https://ci.appveyor.com/api/projects/status/j011cbjlv4k6wirk?svg=true)](https://ci.appveyor.com/project/diev/ptk-psd-browser-hta)
 
-Наглядный просмотр и работа с архивом посылок ПТК ПСД Банка России.
+Наглядный просмотр и работа с архивом посылок [ПТК ПСД](http://ptkpsd.ru/) 
+Банка России.
 
 ![Рабочее окно приложения](images/screen.png)
 
@@ -42,15 +44,15 @@
 
 ## История версий
 
-Программа импортирована на GitHub с версии 6.0.6 с ее страницы на 
+Проект импортирован на GitHub с версии 6.0.6 с его страницы на 
 [Bitbucket](https://bitbucket.org/html-applications/ptkpsd-browser).  
 О более старой истории первоначального автора **mozers** есть в прилагаемом 
 [файле](changelog.md).
 
 ## Лицензионное соглашение
 
-Приложение распространяется по лицензии 
-[Apache 2.0](http://www.apache.org/licenses/LICENSE-2.0 "Текст лицензии").  
+Licensed under the [Apache License, 
+Version 2.0](http://www.apache.org/licenses/LICENSE-2.0 "LICENSE").  
 (Вы можете использовать его совершенно свободно без всяких ограничений.)
 
 Данные для обратной связи находятся в коде заголовка HTA приложения.
