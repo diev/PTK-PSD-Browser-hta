@@ -1,6 +1,7 @@
 # ![ptkpsd.png](docs/images/ptkpsd.png) [ПТК ПСД - Обозреватель отчетности](http://diev.github.io/PTK-PSD-Browser-hta)
 
 [![Build status](https://ci.appveyor.com/api/projects/status/j011cbjlv4k6wirk?svg=true)](https://ci.appveyor.com/project/diev/ptk-psd-browser-hta)
+[![GitHub Release](https://img.shields.io/github/release/diev/PTK-PSD-Browser-hta.svg)](https://github.com/diev/PTK-PSD-Browser-hta/releases/latest)
 
 Наглядный просмотр и работа с архивом посылок [ПТК ПСД](http://ptkpsd.ru/) 
 Банка России.
