@@ -8,10 +8,10 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.0.10"
+	version="6.0.11"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
- />
+/>
 <script language="JavaScript">
 //window.resizeTo(800,550); // первоначальные размеры окна приложения
 window.moveTo(50,20);
@@ -232,10 +232,13 @@ function UnpackArchiveCmd(filepath) {
 	var unpack_cmd = '"' + unpacker + '" e -y "' + filepath + '"';
 	var out = ExecHide(unpack_cmd, tmp_dir);
 	if (out.ExitCode == 0) {
-		out = out.Output;
-		var re = /^Extracting\s+([\w\.]+)$/gm;
+		out = dos2win(out.Output);
+		var re = /^Extracting  (.+)$/gm;
 		while (re.exec(out)) {
-			files_list[files_list.length] = RegExp.lastParen;
+			var filename = RegExp.lastParen.replace("\r", "");
+			if (!/\.xml\.ka$/i.test(filename)) {
+				files_list[files_list.length] = filename;
+			}
 		}
 	}
 	return files_list;
