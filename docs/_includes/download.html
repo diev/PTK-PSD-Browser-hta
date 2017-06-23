@@ -9,12 +9,9 @@
 <th>{{ site.locales[lang].date }}</th>
 </tr>
 </thead>
-<tbody>
-<noscript>
-<tr><td colspan="3"><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></td></tr>
-</noscript>
-</tbody>
+<tbody></tbody>
 </table>
+<div class="loading"><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></div>
 <script>
 $.getJSON("{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases").done(function(json){
 for(var i=0;i<json.length;i++){
@@ -26,6 +23,7 @@ $(".table-downloads tbody").append($("<tr>")
 .append($("<td>").append(asset.name+" ").append($("<a>").attr("href",asset.browser_download_url).text(fileSize.toLocaleString()+"KB")))
 .append($("<td>").text(asset.updated_at.substring(0,10))));
 }}
+$(".loading").hide();
 $(".spinning").hide();
 $(".table.downloads").fadeIn();
 });
