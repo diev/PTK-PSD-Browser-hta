@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.0.11"
+	version="6.0.12"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -661,7 +661,7 @@ function load_Toolbar() {
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
 	html_toolbar += '		&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(); return false;">&#x5B;</a>';
+	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Интервал:&nbsp;</b></legend>';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="сегодня" title="за ' + parent.GetDate(0) + '" hidefocus onClick="parent.SetInterval(0);">';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="вчера" title="за ' + parent.GetDate(-1) + '" hidefocus onClick="parent.SetInterval(1);">';
@@ -970,6 +970,15 @@ function LoadCache() {
 	}
 }
 
+// Удаление кеша с диска для его последующей принудительной перезагрузки
+function DeleteCache() {
+	if (!cache_filepath) return;
+	if (!FSO.FileExists(cache_filepath)) return;
+	FSO.DeleteFile(cache_filepath, true);
+	Cache = {}; // объект, хранящий результаты обработки содержимого файлов
+	alert("Кеш просмотра очищен");
+}
+
 //=====================================================
 //  ЧТЕНИЕ И ОБРАБОТКА СОДЕРЖИМОГО ПОСЫЛКИ
 //=====================================================
@@ -1197,7 +1206,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					var content = SignatureDetect(text);
 					text = content.text;
 					if (/[\x00-\x08\x10-\x1B]/.test(text)) {
-						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не читабельное содержимое (возможно зашифровано) - - -</span>';
+						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое (возможно зашифровано) - - -</span>';
 					} else {
 						if (/\.xml$/i.test(filepath)) {
 							if (/^\<\?xml/i.test(text)) {
@@ -1374,7 +1383,8 @@ function CreatePostsList() {
 }
 
 // Запуск ф-ции CreatePostsList отдельным процессом
-function StartCreatePostsList() {
+function StartCreatePostsList(shiftKey) {
+	if (shiftKey) DeleteCache();
 	find_text = '';
 	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
 	Preview.document.body.innerHTML = '';
