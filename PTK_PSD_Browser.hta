@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.0.12"
+	version="6.0.13"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -247,7 +247,7 @@ function UnpackArchiveCmd(filepath) {
 // Определяет является ли файл архивом
 function IsArchive(filepath) {
 	var filename = FSO.GetFileName(filepath);
-	if (/\.(txt|xml|vrb|inf|doc|T\d\d)$/i.test(filename)) return false;
+	if (/\.(txt|xml|vrb|inf|doc|docx|xlsx|T\d\d)$/i.test(filename)) return false;
 	if (/\.(zip|arj|cab)$/i.test(filename)) return true;
 	if (!/^(MSCF|PK|`к|0)/.test(ReadFile(filepath, 4))) return false;
 	// Возможно что архивом будет признан не-архив. Это - не страшно
@@ -1119,8 +1119,10 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			var re = new RegExp('(F'+bank_code+')(\\w{2,5})(\.zip)', 'gi');
 			text = text.replace(re, '$1<q>$2</q>$3');
 		}
-		text = text.replace(/(\d{2}[.-]\d{2}[.-]\d{4})/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
-		text = text.replace(/(201\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
+		text = text.replace(/([0-3]\d[.-][0-1]\d[.-]20[1-2]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
+		text = text.replace(/([0-3]\d[0-1]\d20[1-2]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 19032010
+		text = text.replace(/(20[1-2]\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
+		text = text.replace(/(20[1-2]\d-[01]\d-[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 2010-03-19 (XML)
 		return text;
 	}
 
@@ -1298,7 +1300,7 @@ function CreatePostsList() {
 				if (arrDB[i].filetype == 'ИЭС1') {
 					return 'получен';
 				} else {
-					return '<font color="green"><b>принят</b></font>';
+					return '<font color="green"><b>ответ</b></font>';
 				}
 			} else {
 				return '<font color="red"><b>не принят</b></font>';
