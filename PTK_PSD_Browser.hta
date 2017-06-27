@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.0.13"
+	version="6.1.0"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -661,7 +661,7 @@ function load_Toolbar() {
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Отчетность:&nbsp;</b></legend>';
 	html_toolbar += '		&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все формы</option></select>&nbsp;';
 	html_toolbar += '	</fieldset>';
-	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>';
+	html_toolbar += '	<td valign=middle style="font:14pt Wingdings;"><a href="#" hidefocus title="Обновить список (с Shift перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>';
 	html_toolbar += '	<td><fieldset><legend><b>&nbsp;Интервал:&nbsp;</b></legend>';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="сегодня" title="за ' + parent.GetDate(0) + '" hidefocus onClick="parent.SetInterval(0);">';
 	html_toolbar += '		<input type="button" id="idIntervalButton" value="вчера" title="за ' + parent.GetDate(-1) + '" hidefocus onClick="parent.SetInterval(1);">';
@@ -1119,7 +1119,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			var re = new RegExp('(F'+bank_code+')(\\w{2,5})(\.zip)', 'gi');
 			text = text.replace(re, '$1<q>$2</q>$3');
 		}
-		text = text.replace(/([0-3]\d[.-][0-1]\d[.-]20[1-2]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010
+		text = text.replace(/([0-3]\d[.-\/][0-1]\d[.-\/]20[1-2]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 19.03.2010 и 19-03-2010 (и 19/03/2010 по 550-П)
 		text = text.replace(/([0-3]\d[0-1]\d20[1-2]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 19032010
 		text = text.replace(/(20[1-2]\d[01]\d[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 20100319
 		text = text.replace(/(20[1-2]\d-[01]\d-[0-3]\d)/g, '<tt>$1</tt>'); // подсветка дат вида 2010-03-19 (XML)
@@ -1133,7 +1133,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			function HighlightText(text, filename) {
 				if (/^BV\d{3}_ZNO\w+\.(txt|vrb)$/i.test(filename)) { // выписка на запрос 365П
 					text = text.replace(/ДатаОпер:.*?<br>###<br>/g, 'Op').replace(/(Op)+/g, '<s>--- Перечень операций скрыт от просмотра, ввиду их большого объема ---</s><br>');
-				}
+				} else
 				if (/^ZNO\w+\.(txt|vrb)$/i.test(filename)) { // запрос 365П
 					text = text.replace(/(<br>ВидЗапр:1)/m, '$1 <q>(запрос о наличии счетов в банке)</q>');
 					text = text.replace(/(<br>ВидЗапр:2)/m, '$1 <q>(запрос об остатках денежных средств на счете)</q>');
@@ -1146,6 +1146,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 					text = text.replace(/<br>(\d\d);([^@]+)@@@/, '<br><q>$1</q>;<i>$2</i>@@@');
 				}
+
 				if (RowOfDBTable.state_ == '7') { // подсветка только для полученных
 					text = text.replace(/(не\s+)?(принята|принято|принят)/g, function(str, s1) {return s1 ? ('<i>'+str+'</i>') : ('<q>'+str+'</q>')});
 					if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
@@ -1189,7 +1190,10 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					arrFilesList[arrFilesList.length] = filename;
 					html_text += '<tr><td><table class="tbl">';
 					html_text += '<tr><th id=idFname>' + filename + '</th></tr>';
-					if (/(card\.inf)|(\.xls$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.tif$)|(\.dbf$)/i.test(filename)) {
+					if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
+						html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое зашифровано - - - </span></td></tr>';
+					} else
+					if (/(card\.inf)|(\.xls$)|(\.xlsx$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
 						html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
 					} else {
 						line_count = UnpackArchive(tmp_dir + '\\' + filename);
@@ -1209,31 +1213,30 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = content.text;
 					if (/[\x00-\x08\x10-\x1B]/.test(text)) {
 						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое (возможно зашифровано) - - -</span>';
-					} else {
-						if (/\.xml$/i.test(filepath)) {
-							if (/^\<\?xml/i.test(text)) {
-								if (/\\VBK.+?\.xml$/i.test(filepath)) { // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
-									text = text.replace(/<.+?>/g,'');
-								} else { // обработка XML
-									if (/^\<\?xml.* encoding=["']utf-8["']*/i.test(text)) text = utf2win(text);
-									var aText = [];
-									var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
-									while (re.exec(text)) {
-										aText.push('<font class="tag"><b>' + RegExp.$1 + '</b>' + (RegExp.$2 || '') + '</font> ' + (RegExp.$3 || ''));
-									}
-									text = aText.join('<br>');
+					} else
+					if (/\.xml$/i.test(filepath)) {
+						if (/^\<\?xml/i.test(text)) {
+							if (/\\VBK.+?\.xml$/i.test(filepath)) { // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
+								text = text.replace(/<.+?>/g,'');
+							} else { // обработка XML
+								if (/^\<\?xml.* encoding=["']utf-8["']*/i.test(text)) text = utf2win(text);
+								var aText = [];
+								var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
+								while (re.exec(text)) {
+									aText.push('<font class="tag"><b>' + RegExp.$1 + '</b>' + (RegExp.$2 || '') + '</font> ' + (RegExp.$3 || ''));
 								}
-							} else {
-								text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашифровано) - - - </span>';
+								text = aText.join('<br>');
 							}
 						} else {
-							// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
-							//if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
-							// только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-							if ((/(\\KWTFCB_PB.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
-							line_count = 0;
-							text = text.replace(/[\r\n]+/g, function() {line_count++; return '<br>'});
+							text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - не XML содержимое (возможно зашифровано) - - - </span>';
 						}
+					} else {
+						// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
+						//if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
+						// только такие вложенные в архивы файлы все еще приходят в кодировке 866:
+						if ((/(\\KWTFCB_PB.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
+						line_count = 0;
+						text = text.replace(/[\r\n]+/g, function() {line_count++; return '<br>'});
 					}
 					filename = FSO.GetFileName(filepath);
 					text = HighlightText(text, filename);
@@ -1248,6 +1251,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		UnpackArchive(filepath);
 	}
 
+	Preview.document.body.innerHTML = 'Загрузка ' + filepath + '<br>' + Preview.document.body.innerHTML;
 	// ---------------------------------------------------
 	if (FSO.FileExists(filepath)) {
 		var arrFilesList = [];
@@ -1282,12 +1286,14 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 function CreateDBSelect() {
 	if ((!CorrectDate(Toolbar.idDateInput[0])) || (!CorrectDate(Toolbar.idDateInput[1]))) return;
 
+	Preview.document.body.innerHTML = 'Запрос к базе данных<br>' + Preview.document.body.innerHTML;
 	var posttype = Toolbar.idPostType.options[Toolbar.idPostType.selectedIndex].value;
 	posttype = (posttype=='*') ? (" IN ("+available_forms+")") : ("='"+posttype+"'");
 	var sql_string = "SELECT * FROM elo_arh_post WHERE posttype" + posttype + " and dt between ? and ? ORDER BY posttype, dt, filetype";
 
 	arrDB = [];
 	arrDB = QueryDatabase(sql_string, [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
+	Preview.document.body.innerHTML = 'База посылок получена<br>' + Preview.document.body.innerHTML;
 }
 
 // Составление списка рейсов
@@ -1336,6 +1342,7 @@ function CreatePostsList() {
 			var post_content = Cache[arrDB[i].filename]; // вначале пробуем получить info и preview из кеша
 			if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
 				if ((cache_filepath) && (FSO.FileExists(cache_filepath)) && (cache_DateLastModified != FSO.GetFile(cache_filepath).DateLastModified)) { // если кеш на диске был кем то изменен
+					Preview.document.body.innerHTML = 'Загрузка кеша<br>' + Preview.document.body.innerHTML;
 					LoadCache(); // грузим кеш по-новой
 					post_content = Cache[arrDB[i].filename]; // и вновь пробуем получить info и preview из кеша
 				}
@@ -1378,17 +1385,19 @@ function CreatePostsList() {
 	} else {
 		PostList.document.body.innerHTML = '';
 	}
+	Preview.document.body.innerHTML = 'Сохранение информации в кеш<br>' + Preview.document.body.innerHTML;
 	KeepInfoToCache();
 	setTimeout(SaveCache, 0);
 	Toolbar.idToolbar.disabled = false;
 	select_row_idx = undefined;
+	Preview.document.body.innerHTML = '<font color="green">Выберите посылку в верхнем окне</font>';
 }
 
 // Запуск ф-ции CreatePostsList отдельным процессом
 function StartCreatePostsList(shiftKey) {
 	if (shiftKey) DeleteCache();
 	find_text = '';
-	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю запрос. Ждите...</b></font>';
+	PostList.document.body.innerHTML = '<font color="red"><b>Выполняю загрузку. Ждите...</b></font>';
 	Preview.document.body.innerHTML = '';
 	Toolbar.idToolbar.disabled = true;
 	setTimeout(function() {CreateDBSelect(); CreatePostsList();}, 0);
