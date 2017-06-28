@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.0"
+	version="6.1.1"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -1167,7 +1167,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					ka = RegExp.$1 || 'не распознан';
 				} 
 				else if (/^0/.test(stext)) {
-					s = GetTextFromPKCS7(stext) || 'текст отсутствует';
+					s = GetTextFromPKCS7(stext) || '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое зашифровано - - - </span>';
 					ka = ''; //'PKCS#7';
 				}
 				else {
@@ -1234,7 +1234,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 						// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
 						//if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
 						// только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-						if ((/(\\KWTFCB_PB.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
+						if ((/(\\BOS1_RPO.+?\.txt$|\\KWTFCB_PB.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
 						line_count = 0;
 						text = text.replace(/[\r\n]+/g, function() {line_count++; return '<br>'});
 					}
