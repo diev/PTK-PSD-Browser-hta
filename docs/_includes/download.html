@@ -1,4 +1,4 @@
-<output>
+{% if page.url == "/index.html" %}<output>
 <a name="download"><h2>{{ site.locales[lang].download }}</h2></a>
 <div><span class="spinning"></span></div>
 <table class="table-downloads">
@@ -11,10 +11,10 @@
 </thead>
 <tbody></tbody>
 </table>
-<div class="loading"><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></div>
+<div class="loading"><center><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></center></div>
 <script>
 $.getJSON("{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases").done(function(json){
-for(var i=0;i<json.length;i++){
+for(var i=0;i<json.length && i<3;i++){
 var release=json[i];if(release.assets.length===0) continue;
 for(var j=0;j<release.assets.length;j++){
 var asset=release.assets[j];var fileSize=Math.round(asset.size/1024);
@@ -23,9 +23,9 @@ $(".table-downloads tbody").append($("<tr>")
 .append($("<td>").append(asset.name+" ").append($("<a>").attr("href",asset.browser_download_url).text(fileSize.toLocaleString()+"KB")))
 .append($("<td>").text(asset.updated_at.substring(0,10))));
 }}
-$(".loading").hide();
+//$(".loading").hide();
 $(".spinning").hide();
 $(".table.downloads").fadeIn();
 });
 </script>
-</output>
+</output>{% endif %}
