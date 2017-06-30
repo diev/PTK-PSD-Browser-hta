@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.1"
+	version="6.1.3"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -1128,7 +1128,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 
 	// Извлекает содержимое одной посылки в массив arrFilesList и стринг html_text
 	function GetPostContent(filepath) {
-		function UnpackArchive(filepath) {
+		function UnpackArchive(filepath, level) {
 			// Обработка содержимого сообщения (подсветка, подсказки, удаление лишнего)
 			function HighlightText(text, filename) {
 				if (/^BV\d{3}_ZNO\w+\.(txt|vrb)$/i.test(filename)) { // выписка на запрос 365П
@@ -1196,7 +1196,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					if (/(card\.inf)|(\.xls$)|(\.xlsx$)|(\.dat$)|(\.elo$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
 						html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
 					} else {
-						line_count = UnpackArchive(tmp_dir + '\\' + filename);
+						line_count = UnpackArchive(tmp_dir + '\\' + filename, level + 1);
 					}
 					if ((files_list.length > 1) && (line_count > 18)) { // если в посылке более 1 файла и кол-во строк в тексте превышает указанное значение, то
 						html_text += '</table><br style="page-break-after:always">';  // вставляем разделитель страниц для печати
@@ -1205,6 +1205,17 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					}
 				}
 				html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
+			} else
+			if (level == 0) {
+				filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
+				html_text += '<tr><td><table class="tbl">';
+				html_text += '<tr><th id=idFname>' + filename + '</th></tr>';
+				if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
+					html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
+				} else {
+					UnpackArchive(filepath, level + 1);
+				}
+				html_text += '</table><br>';
 			} else {
 				// ------- содержимое файла ------------------
 				var text = ReadFile(filepath);
@@ -1214,12 +1225,14 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					if (/[\x00-\x08\x10-\x1B]/.test(text)) {
 						text = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - нечитабельное содержимое (возможно зашифровано) - - -</span>';
 					} else
-					if (/\.xml$/i.test(filepath)) {
+					if (/(\.xml$|\.xml\.\d{6}$)/i.test(filepath)) {
 						if (/^\<\?xml/i.test(text)) {
 							if (/\\VBK.+?\.xml$/i.test(filepath)) { // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
 								text = text.replace(/<.+?>/g,'');
 							} else { // обработка XML
 								if (/^\<\?xml.* encoding=["']utf-8["']*/i.test(text)) text = utf2win(text);
+								text = text.replace(/>[0-9A-Za-z+\/]+<\/КА>/g,'><\/КА>');
+								text = text.replace(/>[0-9A-Za-z+\/]+<\/ЭС>/g,'><\/ЭС>');
 								var aText = [];
 								var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
 								while (re.exec(text)) {
@@ -1234,7 +1247,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 						// если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
 						//if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
 						// только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-						if ((/(\\BOS1_RPO.+?\.txt$|\\KWTFCB_PB.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
+						if ((/(\\BOS1_RPO.+?\.txt$|\\KWTFCB_.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB2_R.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i).test(filepath)) text = dos2win(text);
 						line_count = 0;
 						text = text.replace(/[\r\n]+/g, function() {line_count++; return '<br>'});
 					}
@@ -1248,7 +1261,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 		}
 
 		if (FSO.FileExists(tmp_dir + "\\*.*")) FSO.DeleteFile(tmp_dir + "\\*.*", true);
-		UnpackArchive(filepath);
+		UnpackArchive(filepath, 0);
 	}
 
 	Preview.document.body.innerHTML = 'Загрузка ' + filepath + '<br>' + Preview.document.body.innerHTML;
@@ -1342,7 +1355,6 @@ function CreatePostsList() {
 			var post_content = Cache[arrDB[i].filename]; // вначале пробуем получить info и preview из кеша
 			if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
 				if ((cache_filepath) && (FSO.FileExists(cache_filepath)) && (cache_DateLastModified != FSO.GetFile(cache_filepath).DateLastModified)) { // если кеш на диске был кем то изменен
-					Preview.document.body.innerHTML = 'Загрузка кеша<br>' + Preview.document.body.innerHTML;
 					LoadCache(); // грузим кеш по-новой
 					post_content = Cache[arrDB[i].filename]; // и вновь пробуем получить info и preview из кеша
 				}
