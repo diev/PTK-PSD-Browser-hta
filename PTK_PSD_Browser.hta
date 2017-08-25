@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.5"
+	version="6.1.6"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -497,7 +497,7 @@ function OpenExplorer() {
 	WshShell.Run('explorer /e, /select, ' + select_filePathNameTime);
 }
 
-// Сохранение файла отчетности (как есть целиком, одно из вложенний, или все вложения)
+// Сохранение файла отчетности (как есть целиком, одно из вложений, или все вложения)
 function SaveRace(save_filename) {
 	// Удаление ЭЦП у сохраняемого файла
 	function DeleteSignature (filepath) {
@@ -939,6 +939,7 @@ function SaveCache() {
 	var XMLDoc = new ActiveXObject("Msxml2.DOMDocument");
 	XMLDoc.appendChild(XMLDoc.createProcessingInstruction("xml", "version='1.0' encoding='windows-1251'"));
 	var rootNode = XMLDoc.appendChild(XMLDoc.createElement("ROOT"));
+	rootNode.setAttribute("version", hta_App.version);
 	for (var fname in Cache) {
 		var nFile = rootNode.appendChild(XMLDoc.createElement("FILE"));
 		nFile.setAttribute ("name", fname);
@@ -958,6 +959,12 @@ function LoadCache() {
 	XMLDoc.async = false;
 	XMLDoc.load(cache_filepath);
 	var root = XMLDoc.documentElement;
+	var ver = root.getAttribute("version");
+	if (ver && (ver != hta_App.version)) {
+		alert("Ваша версия " + hta_App.version + " отличается от версии кеша " + ver);
+		//cache_filepath = '';
+		//return;
+	}
 	for (var i=0; i<root.childNodes.length; i++) {
 		var file = root.childNodes[i];
 		var fname = file.attributes.getNamedItem("name").nodeValue;
