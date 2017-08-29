@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.6"
+	version="6.1.7"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -24,6 +24,7 @@ var arrDB = [];                         // массив, хранящий тек
 var Cache = {};                         // объект, хранящий результаты обработки содержимого файлов
 var cache_contains_unique_data;         // признак того, что наш объект содержит данные, отсутствующие в кеше загруженном с диска
 var cache_DateLastModified;             // хранит время последнего изменения кеша на диске
+var cache_alert = false;                // было ли уже предупреждение о другой версии кеша
 var ContextMenu;                        // объект контекстное меню
 var WshShell, FSO;                      // ActiveX объекты
 
@@ -960,8 +961,9 @@ function LoadCache() {
 	XMLDoc.load(cache_filepath);
 	var root = XMLDoc.documentElement;
 	var ver = root.getAttribute("version");
-	if (ver && (ver != hta_App.version)) {
+	if (!cache_alert && ver && (ver != hta_App.version)) {
 		alert("Ваша версия " + hta_App.version + " отличается от версии кеша " + ver);
+		cache_alert = true;
 		//cache_filepath = '';
 		//return;
 	}
@@ -1063,36 +1065,71 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				}
 				break;
 			case '5z': // 322П
-			case 'mz': // 365П
-				var rpo = files_list.match(/^RPO\w+\.(txt|vrb)$/igm); // 1.1	Решение о приостановлении операций по счетам
-				var roo = files_list.match(/^ROO\w+\.(txt|vrb)$/igm); // 1.2	Решение об отмене приостановления операций по счетам
-				var pno = files_list.match(/^PNO\w+\.(txt|vrb)$/igm); // 1.3	Поручение налогового органа на списание и перечисление в бюджетную систему Российской Федерации денежных средств
-				var zno = files_list.match(/^ZNO\w+\.(txt|vrb)$/igm); // 1.4	Запрос налогового органа
-				var trb = files_list.match(/^TRB\w+\.(txt|vrb)$/igm); // 1.5	Требование о перечислении налога, сбора, пени, штрафа в бюджетную систему Российской Федерации
-				var trg = files_list.match(/^TRG\w+\.(txt|vrb)$/igm); // 1.6	Требование об уплате денежной суммы по банковской гарантии
-				var bos = files_list.match(/^BOS\w+\.(txt|vrb)$/igm); // 1.7	Сведения об остатках денежных средств на счете (счетах)
-				var bns = files_list.match(/^BNS\w+\.(txt|vrb)$/igm); // 1.8	Справка о наличии счетов
-				var bv  = files_list.match(/^BV\w+\.(txt|vrb)$/igm);  // 1.9	Выписка по операциям на счете (счетах)
-				var izv = files_list.match(/^IZV\w+\.txt$/igm);           // п.1	Извещение, формируемое подразделениями Банка России
-				var pb1 = files_list.match(/^PB1\w+\.txt$/igm);           // п.2	Подтверждение (для кодов проверки 10 - 15)
-				var pb2 = files_list.match(/^PB2\w+\.txt$/igm);           // п.2	Подтверждение (для кодов проверки 31 - 35)
-				var kwt = files_list.match(/^KWT\w+\.txt$/igm);           // п.3	Извещение, формируемое МИ ФНС России по ЦОД
-				var dsb_buv = files_list.match(/^(DSB|BUV)\w+\.txt$/igm); // п.4	Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
+			case 'mz': // 365П + 440П // info by Pavel Dvornikov
+				var rpo = files_list.match(/^RPO\w+\.vrb$/igm); // 2.1	Решение о приостановлении операций
+				var roo = files_list.match(/^ROO\w+\.vrb$/igm); // 2.2	Решение об отмене приостановления операций
+				var pno = files_list.match(/^PNO\w+\.vrb$/igm); // 2.3	Поручение на списание и перечисление денежных средств
 
-				if (rpo) info += '<font color="#990000">решение о приост.</font> <s>(' + rpo.length + ')</s> ';
-				if (roo) info += '<font color="#990000">отмена решения</font> <s>(' + roo.length + ')</s> ';
-				if (pno) info += '<font color="#990000">поручение</font> <s>(' + pno.length + ')</s> ';
-				if (zno) info += '<font color="#990000">запрос</font> <s>(' + zno.length + ')</s> ';
-				if (trb) info += '<font color="#990000">требование</font> <s>(' + trb.length + ')</s> ';
-				if (trg) info += '<font color="#990000">треб.гарант</font> <s>(' + trg.length + ')</s> ';
-				if (bos) info += 'свед. об остатках <s>(' + bos.length + ')</s> ';
-				if (bns) info += 'нал.счетов <s>(' + bns.length + ')</s> ';
-				if (bv)  info += 'выписка <s>(' + bv.length + ')</s> ';
-				if (izv) info += 'извещение <s>(' + izv.length + ')</s> ';
-				if (pb1) info += 'подтв.<font color="green">PB1</font> <s>(' + pb1.length + ')</s> ';
-				if (pb2) info += 'подтв.<font color="red">PB2</font> <s>(' + pb2.length + ')</s> ';
-				if (kwt) info += 'квит. <s>(' + kwt.length + ')</s> ';
-				if (dsb_buv) info += 'уведомление <s>(' + dsb_buv.length + ')</s> ';
+				var ppd = files_list.match(/^PPD\w+\.vrb$/igm); // 2.3.3	Поручение на перечисление денежных средств с депозитного счета налогоплательщика
+				var pko = files_list.match(/^PKO\w+\.vrb$/igm); // 2.4	Поручение на перевод электронных денежных средств налогоплательщика
+				var apn = files_list.match(/^APN\w+\.vrb$/igm); // 2.5	Решение о приостановлении действия поручений на списание и перечисление денежных средств со счетов налогоплательщика
+				var apo = files_list.match(/^APO\w+\.vrb$/igm); // 2.6	Решение об отмене приостановления действия поручений на списание и перечисление денежных средств со счетов налогоплательщиков
+				var apz = files_list.match(/^APZ\w+\.vrb$/igm); // 2.7	Решение об отзыве не исполненных поручений на списание и перечисление денежных средств со счетов налогоплательщиков
+				var zsn = files_list.match(/^ZSN\w+\.vrb$/igm); // 2.8	Запрос о предоставлении справки о наличии счетов
+				var zso = files_list.match(/^ZSO\w+\.vrb$/igm); // 2.9	Запрос о предоставлении справок об остатках денежных средств на счетах
+				var zsv = files_list.match(/^ZSV\w+\.vrb$/igm); // 2.10	Запрос о предоставлении выписок по операциям на счетах
+				var trb = files_list.match(/^TRB\w+\.vrb$/igm); // 2.11	Требование о перечислении налога, сбора, пени, штрафа в бюджетную систему РФ
+				var trg = files_list.match(/^TRG\w+\.vrb$/igm); // 2.12	Требование об уплате денежной суммы по банковской гарантии
+				var bns = files_list.match(/^BNS\w+\.vrb$/igm); // 2.13	Справка о наличии счетов
+				var zbn = files_list.match(/^ZBN\w+\.vrb$/igm); // 2.13	Справка о наличии счетов. Формируется если запрос поступил на бумажном носителе
+				var bos = files_list.match(/^BOS\w+\.vrb$/igm); // 2.14	Справка об остатках денежных средств на счетах
+				var zbo = files_list.match(/^ZBO\w+\.vrb$/igm); // 2.14	Справка об остатках денежных средств на счетах. Формируется если запрос поступил на бумажном носителе
+				var bv  = files_list.match(/^BV\w+\.vrb$/igm);  // 2.15	Выписка по операциям на счетах
+//				var bvs = files_list.match(/^BVS\w+\.vrb$/igm); // 2.15	Выписка по операциям на счетах
+				var zbv = files_list.match(/^ZBV\w+\.vrb$/igm); // 2.15	Выписка по операциям на счетах. Формируется если запрос поступил на бумажном носителе
+				var bnp = files_list.match(/^BNP\w+\.xml$/igm); // 2.16	Сообщение о неисполнении (частичном исполнении).если инк.пор помещено в картотеку 2
+
+				var zno = files_list.match(/^ZNO\w+\.vrb$/igm); // 1.4?	Запрос налогового органа
+
+				var izv = files_list.match(/^IZV\w+\.xml$/igm);           // п.1?	Извещение, формируемое подразделениями Банка России
+				var pb1 = files_list.match(/^PB1\w+\.(txt|xml)$/igm);     // п.3.2	Подтверждение о получении (для кодов проверки 10 - 15?)
+				var pb2 = files_list.match(/^PB2\w+\.(txt|xml)$/igm);     // п.3.2	Подтверждение о невозможности исполнения (для кодов проверки 31 - 35?)
+				var kwt = files_list.match(/^KWT\w+\.txt$/igm);           // п.3?	Извещение, формируемое МИ ФНС России по ЦОД
+				var dsb_buv = files_list.match(/^(DSB|BUV)\w+\.txt$/igm); // п.4?	Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
+
+				var Nrpo = 0; if (rpo) Nrpo += rpo.length; if (apn) Nrpo += apn.length;
+				var Nroo = 0; if (roo) Nroo += roo.length; if (apo) Nroo += apo.length;
+				var Npno = 0; if (pno) Npno += pno.length; if (ppd) Npno += pno.length; if (pko) Npno += pko.length;
+				var Napz = 0; if (apz) Napz += apz.length;
+				var Ntrb = 0; if (trb) Ntrb += trb.length;
+				var Ntrg = 0; if (trg) Ntrg += trg.length;
+				var Nzno = 0; if (zno) Nzno += zno.length; if (zsn) Nzno += zsn.length; if (zso) Nzno += zso.length; if (zsv) Nzno += zsv.length;
+				var Nbos = 0; if (bos) Nbos += bos.length; if (zbo) Nbos += zbo.length;
+				var Nbns = 0; if (bns) Nbns += bns.length; if (zbn) Nbos += zbn.length;
+				var Nbv  = 0; if (bv)  Nbv  += bv.length;  if (zbv) Nbv  += zbv.length;
+				var Nbnp = 0; if (bnp) Nbnp += bnp.length;
+				var Nizv = 0; if (izv) Nizv += izv.length;
+				var Npb1 = 0; if (pb1) Npb1 += pb1.length;
+				var Npb2 = 0; if (pb2) Npb2 += pb2.length;
+				var Nkwt = 0; if (kwt) Nkwt += kwt.length;
+				var Ndsb = 0; if (dsb_buv) Ndsb += dsb_buv.length;
+
+				if (Nrpo) info += '<font color="#990000">решение о приост.</font> <s>(' + Nrpo + ')</s> ';
+				if (Nroo) info += '<font color="#990000">отмена решения</font> <s>(' + Nroo + ')</s> ';
+				if (Npno) info += '<font color="#990000">поручение</font> <s>(' + Npno + ')</s> ';
+				if (Napz) info += '<font color="#990000">решение об отзыве</font> <s>(' + Napz + ')</s> ';
+				if (Ntrb) info += '<font color="#990000">требование</font> <s>(' + Ntrb + ')</s> ';
+				if (Ntrg) info += '<font color="#990000">треб.гарант</font> <s>(' + Ntrg + ')</s> ';
+				if (Nzno) info += '<font color="#990000">запрос</font> <s>(' + Nzno + ')</s> ';
+				if (Nbos) info += 'свед. об остатках <s>(' + Nbos + ')</s> ';
+				if (Nbns) info += 'нал.счетов <s>(' + Nbns + ')</s> ';
+				if (Nbv ) info += 'выписка <s>(' + Nbv + ')</s> ';
+				if (Nbnp) info += 'сообщ. о неисп. <s>(' + Nbnp + ')</s> ';
+				if (Nizv) info += 'извещение <s>(' + Nizv + ')</s> ';
+				if (Npb1) info += 'подтв.<font color="green">PB1</font> <s>(' + Npb1 + ')</s> ';
+				if (Npb2) info += 'подтв.<font color="red">PB2</font> <s>(' + Npb2 + ')</s> ';
+				if (Nkwt) info += 'квит. <s>(' + Nkwt + ')</s> ';
+				if (Ndsb) info += 'уведомление <s>(' + Ndsb + ')</s> ';
 				break;
 		}
 		return info;
@@ -1149,6 +1186,9 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = text.replace(/(<br>10@@@|<br>01@@@|<br>20@@@)/m, '$1 <q>(положительный результат проверки)</q>');
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 					text = text.replace(/<br>(\d\d);([^@]+)@@@/, '<br><q>$1</q>;<i>$2</i>@@@');
+				} else if (/^IZV\w+\.xml$/i.test(filename)) { // извещение 440П
+					text = text.replace(/(Положительный) /m, '<q>$1</q> ');
+					text = text.replace(/(Отрицательный) /m, '<i>$1</i> ');
 				}
 
 				if (RowOfDBTable.state_ == '7') { // подсветка только для полученных
@@ -1313,12 +1353,12 @@ function CreateDBSelect() {
 
 	arrDB = [];
 	arrDB = QueryDatabase(sql_string, [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
-	Preview.document.body.innerHTML = 'База посылок получена<br>' + Preview.document.body.innerHTML;
+	//Preview.document.body.innerHTML = 'База посылок получена<br>' + Preview.document.body.innerHTML;
 }
 
 // Составление списка рейсов
 function CreatePostsList() {
-	//Возвращает результат (отправлен/получен/не/принят)
+	// Возвращает результат (отправлен/получен/не/принят)
 	function postResult(i) {
 		if (arrDB[i].state_ == '6') return 'отправлен';
 		if (arrDB[i].state_ == '7') {
