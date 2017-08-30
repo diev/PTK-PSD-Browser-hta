@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.8"
+	version="6.1.9"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -1088,17 +1088,17 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				var bnp = files_list.match(/^BNP\w+\.(xml|vrb)$/igm);
 
 				// п.3.1.1 Извещение, формируемое подразделениями Банка России
-				var izv = files_list.match(/^IZV\w+\.(txt|xml)$/igm);
+				var izv = files_list.match(/^IZV\w+\.(txt|xml|vrb)$/igm);
 				// п.3.2.1 Подтверждение о получении
-				var pb1 = files_list.match(/^PB1\w+\.(txt|xml)$/igm);
+				var pb1 = files_list.match(/^PB1\w+\.(txt|xml|vrb)$/igm);
 				// п.3.2.1 Подтверждение о невозможности исполнения
-				var pb2 = files_list.match(/^PB2\w+\.(txt|xml)$/igm);
+				var pb2 = files_list.match(/^PB2\w+\.(txt|xml|vrb)$/igm);
 				// п.3.3.1 Извещение, формируемое МИ ФНС России по ЦОД
-				var kwt = files_list.match(/^KWT\w+\.(txt|xml)$/igm);
+				var kwt = files_list.match(/^KWT\w+\.(txt|xml|vrb)$/igm);
 				// п.3.4.1, 3.5.1 Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
-				var dsb = files_list.match(/^(DSB|BUV)\w+\.(txt|xml)$/igm);
+				var dsb = files_list.match(/^(DSB|BUV)\w+\.(txt|xml|vrb)$/igm);
 				// п.3.6.1 Запрос на повторное получение квитанции налогового органа
-				var bz1 = files_list.match(/^BZ1\w+\.xml$/igm);
+				var bz1 = files_list.match(/^BZ1\w+\.(xml|vrb)$/igm);
 
 				if (rpo) info += '<font color="#990000">решение о приост.</font> <s>(' + rpo.length + ')</s> ';
 				if (roo) info += '<font color="#990000">отмена решения</font> <s>(' + roo.length + ')</s> ';
@@ -1115,6 +1115,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 				if (pb2) info += 'подтв.<font color="red">PB2</font> <s>(' + pb2.length + ')</s> ';
 				if (kwt) info += 'квит. <s>(' + kwt.length + ')</s> ';
 				if (dsb) info += 'уведомление <s>(' + dsb.length + ')</s> ';
+				if (bz1) info += 'запрос повт.кв. <s>(' + bz1.length + ')</s> ';
 				break;
 		}
 		return info;
