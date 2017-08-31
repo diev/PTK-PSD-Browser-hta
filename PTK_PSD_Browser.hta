@@ -8,7 +8,7 @@
 	scroll="no"
 	contextMenu="no"
 	singleinstance="yes"
-	version="6.1.10"
+	version="6.2.0"
 	author="mozers™, mozers@mail.ru, icq#256106175"
 	coauthor="Dmitrii Evdokimov, diev@mail.ru"
 />
@@ -143,7 +143,7 @@ function QueryDatabase(sql_query, params) {
 		if (objRecordSet.Fields.Count > 0) {
 			while (!objRecordSet.EOF) {
 				var tmp = {};
-				for (var f=0; f<objRecordSet.Fields.Count; f++) {
+				for (var f = 0; f < objRecordSet.Fields.Count; f++) {
 					tmp[objRecordSet.Fields(f).Name.toLowerCase()] = objRecordSet(f).Value;
 				}
 				arrResult[arrResult.length] = tmp;
@@ -254,7 +254,7 @@ function UnpackArchiveCmd(filepath) {
 		out = dos2win(out.Output);
 		var re = /^Extracting  (.+)$/gm;
 		while (re.exec(out)) {
-			var filename = RegExp.lastParen.replace("\r", "");
+			var filename = RegExp.lastParen.replace('\r', '');
 			if (!/\.xml\.ka$/i.test(filename)) {
 				files_list[files_list.length] = filename;
 			}
@@ -391,7 +391,7 @@ function SelectRow(row_idx) {
 		return;
 	}
 	if (select_row_idx !== undefined) {
-		PostList.idRow[select_row_idx].style.backgroundColor = "";
+		PostList.idRow[select_row_idx].style.backgroundColor = '';
 	}
 	PostList.idRow[row_idx].style.backgroundColor = "inactivecaption";
 	select_row_idx = row_idx;
@@ -674,7 +674,7 @@ function ReReadRace() {
 	var current_filepath = GetCurrentFile(select_row_idx);
 	var fname = arrDB[select_row_idx].filename;
 	var post_content = GetObjPostContent(current_filepath, arrDB[select_row_idx]); // извлекаем данные самостоятельно
-	if (PostList.idInfo[select_row_idx].style.display == "") {
+	if (PostList.idInfo[select_row_idx].style.display == '') {
 		Cache[fname].info = post_content.info;
 		PostList.idInfo[select_row_idx].innerHTML = post_content.info;
 	}
@@ -757,7 +757,7 @@ function load_PostList() {
 		addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
 		addRule('tt','font: normal 8pt MS Sans Serif; color:#990000;');
 	}
-	PostList.document.onkeydown = function() {parent.OnKeydownFromPostList();};
+	PostList.document.onkeydown = function() { parent.OnKeydownFromPostList(); };
 	PostList.document.body.innerHTML = '<font color="red"><b>Начальная загрузка данных. Ждите...</b></font>';
 }
 
@@ -841,7 +841,7 @@ function FixedOrPeriod(fixed) {
 // Подсветка кнопки с выбранным интервалом
 function IntervalButtonSet(sel_btn) {
 	for (var i = 0; i < Toolbar.idIntervalButton.length; i++) {
-		Toolbar.idIntervalButton[i].style.color = (i == sel_btn) ? "activecaption" : "";
+		Toolbar.idIntervalButton[i].style.color = (i == sel_btn) ? "activecaption" : '';
 	}
 }
 
@@ -895,7 +895,7 @@ function CorrectDate(InputBox) {
 	function format(x) {
 		return (x < 10) ? ('0' + x) : String(x);
 	}
-	InputBox.style.color = "";
+	InputBox.style.color = '';
 	if (InputBox.disabled) {
 		return true;
 	}
@@ -970,8 +970,8 @@ function ShowCalendarDialog(inputbox_idx) {
 	var html = '\
 	<head><title>Выбор даты</title></head>\
 	<body onload=\'window.dialogArguments.InitCalendar(self, 0)\'>\
-	<object id=\'idCalendar\'></object>\
-	<script for=\'idCalendar\' event=\'OnDateChanged()\'>window.dialogArguments.ReturnDate(idCalendar.Date, ?); self.close();<\/script>\
+	<object id=idCalendar></object>\
+	<script for=idCalendar event=\'OnDateChanged()\'>window.dialogArguments.ReturnDate(idCalendar.Date, ?); self.close();<\/script>\
 	</body>';
 	showModelessDialog('javascript:"' + html.replace('?', inputbox_idx) + '"', self, 'status:no; help:no; dialogWidth:200px; dialogHeight:200px; dialogLeft:'+Toolbar.event.screenX+'px; dialogTop:'+Toolbar.event.screenY+'px;');
 }
@@ -1048,7 +1048,7 @@ function LoadCache() {
 	var root = XMLDoc.documentElement;
 	var ver = root.getAttribute("version");
 	if (!cache_alert && ver && (ver != hta_App.version)) {
-		alert("Ваша версия " + hta_App.version + " отличается от версии кеша " + ver);
+		alert("Ваша версия программы " + hta_App.version + " отличается от версии кеша " + ver);
 		cache_alert = true;
 		//cache_filepath = '';
 		//return;
@@ -1105,25 +1105,25 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 			if (/^[ep]nu\d{6}\.cry$/im.test(files_list)) {
 				return 'Перечень ДФМиВК'; // Н.Новгород
 			}
-			if ((new RegExp('^MN\\d{3}'+bank_code+'\\.xls$', 'im')).test(files_list)) {
+			if ((new RegExp('^MN\\d{3}' + bank_code + '\\.xls$', 'im')).test(files_list)) {
 				return 'Сведения о работе с монетой БР'; // Н.Новгород
 			}
-			if ((new RegExp('^IA\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) {
+			if ((new RegExp('^IA\\w{3}' + bank_code + '\\.', 'im')).test(files_list)) {
 				return '601'; // С.Петербург
 			}
-			if ((new RegExp('^IN\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) {
+			if ((new RegExp('^IN\\w{3}' + bank_code + '\\.', 'im')).test(files_list)) {
 				return '652'; // С.Петербург
 			}
-			if ((new RegExp('^SK\\w{3}'+bank_code+'\\.', 'im')).test(files_list)) {
+			if ((new RegExp('^SK\\w{3}' + bank_code + '\\.', 'im')).test(files_list)) {
 				return 'KAS'; // С.Петербург
 			}
 
 			// В одной посылке м.б. несколько различных форм:
-			var formnames = GetFormNames(files_list, new RegExp('^F(\\w{3})'+bank_code+'[1-C]\\.', 'gim')); // С.Петербург (664, 665, KRK, PSV, VBK)
+			var formnames = GetFormNames(files_list, new RegExp('^F(\\w{3})' + bank_code + '[1-C]\\.', 'gim')); // С.Петербург (664, 665, KRK, PSV, VBK)
 			if (formnames != '') {
 				return formnames;
 			}
-			formnames = GetFormNames(files_list, new RegExp('^F'+bank_code+'(\\w{2,5})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
+			formnames = GetFormNames(files_list, new RegExp('^F' + bank_code + '(\\w{2,5})\\.(ZIP|DOC)$', 'gim')); // Н.Новгород (308P, 652, 601, 664, 665, KR, PS, VBK)
 			return formnames;
 		}
 		// Преобразует символ из имени файла в читабельный тип посылки 311-П
@@ -1261,25 +1261,34 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 
 	// Извлечение информации о посылке из ее текста
 	function GetContentInfoFromFileText(text, post_type) {
-		switch(post_type) {
-			case 'sa':
-				if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
+		if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
+			switch (post_type) {
+				case 'sa':
 					var tmp = [];
-					var re = new RegExp('F'+bank_code+'(\\w{2,5})\.zip', 'gi');
+					var re = new RegExp('F' + bank_code + '(\\w{2,5})\.zip', 'gi');
 					while (re.exec(text)) {
 						tmp[tmp.length] = 'на ' + RegExp.$1;
 					}
 					if (tmp.length) {
 						return tmp.join(', ');
 					}
-				}
-				if (((RowOfDBTable.filetype=='ОЭС') || (RowOfDBTable.filetype=='ИЭС1')) && (/[ep]nu\d{6}\.cry/im.test(text))) {
-					return 'Подтв. о получении Перечня'; // Н.Новгород
-				}
-			break;
-			case '2z': // 311П
-				return ((RowOfDBTable.filetype == 'ИЭС1') && (/nRec="(\d+)"/.test(text))) ? '<s> ('+RegExp.$1+')</s>' : '';
-			break;
+					break;
+				case '2z': // 311П
+					return (/nRec="(\d+)"/.test(text)) ? '<s> (' + RegExp.$1 + ')</s>' : '';
+					break;
+			}
+		} else if (RowOfDBTable.filetype == 'ИЭС2') { // находим, на какую форму пришел ответ 
+			switch (post_type) {
+				case '0z': // 321П
+					if (/Отвергнутых: 0/.test(text)) {
+						content_ok = true;
+						return '<s>отвергнутых нет</s>';
+					} else {
+						content_bad = true;
+						return 'отвергнутые! ';
+					}
+					break;
+			}
 		}
 		return '';
 	}
@@ -1315,16 +1324,34 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 					text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
 					text = text.replace(/<br>(\d\d);([^@]+)@@@/, '<br><q>$1</q>;<i>$2</i>@@@');
 				} else if (/^IZV\w+\.xml$/i.test(filename)) { // извещение 440П
-					text = text.replace(/(Положительный) /m, '<q>$1</q> ');
-					text = text.replace(/(Отрицательный) /m, '<i>$1</i> ');
+					text = text.replace(/Положительный /, function(s) { content_ok = true;  return '<q>' + s + '</q>'; });
+					text = text.replace(/Отрицательный /, function(s) { content_bad = true; return '<i>' + s + '</i>'; });
 				}
 
 				if (RowOfDBTable.state_ == '7') { // подсветка только для полученных
-					text = text.replace(/(не\s+)?(принята|принято|принят)/g, function(str, s1) {return s1 ? ('<i>'+str+'</i>') : ('<q>'+str+'</q>')});
+					if (!text.match(/Принятых: \d+/)) { // 0z
+						text = text.replace(/(не\s+)?(принята|принято|принят)/ig, function(s, s1) {
+							if (s1) {
+								content_bad = true;
+								return '<i>' + s + '</i>'
+							} else {
+								content_ok = true ;
+								return '<q>' + s + '</q>'
+							}
+						});
+					}
+					if (/\.xml$/i.test(filename)) {
+						text = text.replace(/ не содержит ошибок/,     function(s) { content_ok = true;  return '<q>' + s + '</q>'; });
+						text = text.replace(/ имеются предупреждения/, function(s) { content_bad = true; return '<i>' + s + '</i>'; });
+						text = text.replace(/ содержит ошибки/,        function(s) { content_bad = true; return '<i>' + s + '</i>'; });
+					}
 					if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
 						if (/<br>КодОшибки:(\d{3})/.test(text)) {
 							if (RegExp.lastParen != '000') text = text.replace(/<br>НаимОшибки:([^<]+)/gm, '<br>НаимОшибки:<i>$1</i>');
 						}
+					}
+					if (RowOfDBTable.error_ > '0') {
+						content_bad = true;
 					}
 				}
 				return text;
@@ -1451,25 +1478,36 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 	// ---------------------------------------------------
 	if (FSO.FileExists(filepath)) {
 		var arrFilesList = [];
-		var html_text = "<table>";
+		var content_ok = false;
+		var content_bad = false;
+		var html_text = '<table>';
 		GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
 		html_text += '</table>';
 
 	// ---- добавление в строку со списком дополнительной информации о посылке ----
 		var content_info = '';
 		if (arrFilesList.length) {
-			content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype); // инфа извлекается из списка файлов, содержащихся в посылке
+			// инфа извлекается из списка файлов, содержащихся в посылке
+			content_info = GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
 		}
 		if ((content_info == '') || (RowOfDBTable.posttype != 'sa')) {
-			content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype); // инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
+			// инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
+			content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype);
 		}
 		if ((RowOfDBTable.posttype == 'mz') && (RowOfDBTable.filetype == 'ИЭС3')) {
 			content_info = '<s>подтв. о получении</s>';
 		}
+
+		if (content_bad) {
+			content_info += ' не принят!'.fontcolor('red');
+		} else if (content_ok) {
+			content_info += ' ok'.fontcolor('green');
+		}
 	// ---------------------------------------------------
 
 		html_text = HighlightTextWithHeaders(html_text);
-		cache_contains_unique_data = true; // устанавливаем флаг того, что у нас в кеше имеются уникальные данные
+		// устанавливаем флаг того, что у нас в кеше имеются уникальные данные
+		cache_contains_unique_data = true;
 		return { info:content_info, preview:html_text };
 	} else {
 		return { preview:'<table><tr><td><i>Запись о файле "' + filepath + '" имеется в базе данных,<br> но файл отсутствует на диске!</i></table>' };
@@ -1528,17 +1566,17 @@ function CreatePostsList() {
 	if (arrDB.length > 0) {
 		var HTMLtable = '\
 		<table frame="void">\
-		<tr id="idRow" style="display:none"><td id="idInfo"><td id="idPreviewHide">'; // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
+		<tr id=idRow style="display:none"><td id=idInfo><td id=idPreviewHide>'; // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
 		arrDB.unshift({}); // добавляем пустышку в начало массива, чтобы индекс его элементов соответствовал индексу узлов
 		var form_name_prev = '';
 		var idRow_idx = 1;
 		for (var i = 1; i < arrDB.length; i++) {
 			// ------ Построение списка посылок -----------------------------------------------------------
 			if (arrDB[i].posttype != form_name_prev) {
-				HTMLtable += '<tr><th colspan=7>'+GetFormName(arrDB[i].posttype);
+				HTMLtable += '<tr><th colspan=7>' + GetFormName(arrDB[i].posttype);
 				form_name_prev = arrDB[i].posttype;
 			}
-			HTMLtable += '<tr id="idRow" onmouseover="parent.cursor_row_idx='+idRow_idx+'; parent.PostList.idCursor.style.top=this.offsetTop-1;">';
+			HTMLtable += '<tr id=idRow onmouseover="parent.cursor_row_idx='+idRow_idx+'; parent.PostList.idCursor.style.top=this.offsetTop-1;">';
 			idRow_idx++;
 
 			HTMLtable += '<td width=14pt><font style="font-family:Wingdings; font-size:12pt; ';
@@ -1554,29 +1592,19 @@ function CreatePostsList() {
 			if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
 				post_content = GetObjPostContent(GetCurrentFile(i), arrDB[i]); // извлекаем данные самостоятельно
 			}
-			switch (arrDB[i].posttype) {
-				case 'sa': // у перечисленных типов будет показана дополнительная колонка с внутренним содержанием
-				case '2z':
-				case '5z':
-				case 'mz':
-					HTMLtable += '<td>' + arrDB[i].filetype;
-					HTMLtable += '<td id="idInfo">' + post_content.info;
-					break;
-				default:
-					HTMLtable += '<td colspan=2>' + arrDB[i].filetype;
-					HTMLtable += '<td id="idInfo" style="display:none">';
-			}
+			HTMLtable += '<td>' + arrDB[i].filetype;
+			HTMLtable += '<td id=idInfo>' + post_content.info;
 
 			var dt = Date2Obj(new Date(arrDB[i].dt));
-			HTMLtable += '\<td>' + dt.day + '.' + dt.month + '.' + dt.year + ' ' + dt.hours + ':' + dt.min;
+			HTMLtable += '<td>' + dt.day + '.' + dt.month + '.' + dt.year + ' ' + dt.hours + ':' + dt.min;
 			HTMLtable += '<td>' + arrDB[i].filename.replace(/\.[^.]+$/,'');
 			HTMLtable += '<td>' + postResult(i);
-			HTMLtable += '<td id="idPreviewHide" style="display:none">' + post_content.preview;
+			HTMLtable += '<td id=idPreviewHide style="display:none">' + post_content.preview;
 			// -----------------------------------------------------------------------------------------
 		}
 		PostList.document.body.innerHTML = HTMLtable + '\
 		</table>\
-		<table id="idCursor" style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px">\
+		<table id=idCursor style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px">\
 		<tr><td>&nbsp;</td></tr>\
 		</table>';
 
