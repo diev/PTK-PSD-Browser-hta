@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.2.1"
+    version="6.2.2"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -385,6 +385,9 @@ function PassDecrypt(str) {
 
 // Показ содержимого рейса в нижнем фрейме
 function ShowPreview() {
+    if (top.document.getElementById('frameSet').rows == '52px,*,30px') { // first time
+        top.document.getElementById('frameSet').rows = '52px,*,265px';
+    }
     Preview.document.body.innerHTML = PostList.idPreviewHide[select_row_idx].innerHTML;
     // добавляем возможность копировать имена файлов по клику на заголовке
     if (Preview.idFname) {
@@ -1300,14 +1303,14 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     var tmp = [];
                     var re = new RegExp('F' + bank_code + '(\\w{2,5})\.zip', 'gi');
                     while (re.exec(text)) {
-                        tmp[tmp.length] = 'на ' + RegExp.$1;
+                        tmp[tmp.length] = 'на {0}'.format(RegExp.$1);
                     }
                     if (tmp.length) {
                         return tmp.join(', ');
                     }
                     break;
                 case '2z': // 311П
-                    return (/nRec="(\d+)"/.test(text)) ? '<s> (' + RegExp.$1 + ')</s>' : '';
+                    return (/nRec="(\d+)"/.test(text)) ? '<s> ({0})</s>'.format(RegExp.$1) : '';
                     break;
             }
         } else if (RowOfDBTable.filetype == 'ИЭС2') { // находим, на какую форму пришел ответ 
@@ -1772,7 +1775,7 @@ function Start() {
 
 </script>
 </head>
-<FRAMESET rows="52px, *, 265px" onLoad="setTimeout(Start, 0);" onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
+<FRAMESET id=frameSet rows="52px,*,30px" onLoad="setTimeout(Start, 0);" onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
     <FRAME src="about:blank" onLoad="load_Toolbar();" name="Toolbar" application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
     <FRAME src="about:blank" onLoad="load_PostList();" name="PostList" application="yes" marginwidth="0" marginheight="0" scrolling="yes">
     <FRAME src="about:blank" onLoad="load_Preview();" name="Preview" application="yes" marginwidth="4" marginheight="4">
