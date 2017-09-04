@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.2.2"
+    version="6.2.3"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -53,16 +53,17 @@ var find_text = '';                     // строка, содержащая ч
 
 // Возвращает строку, объединяющую в путь сколько-то директорий и файл на конце
 function pathcombine() {
-    var result = '';
-    for (var i = 0; i < arguments.length - 1; i++) {
-        result += arguments[i];
-        if (result.substring(result.length - 1) != '\\') {
-            result += '\\';
-        }
+    var n = arguments.length - 1;
+    var result = [];
+    for (var i = 0; i < n; i++) {
+        var arg = arguments[i];
+        result[i] = (arg.substring(arg.length - 1) == '\\')
+            ? arg
+            : arg + '\\';
     }
-    result += arguments[arguments.length - 1];
-    return result;
-};
+    result[n] = arguments[n];
+    return result.join('');
+}
 
 // Возвращает строку с подставленными параметрами типа 'Hello, {0}!'.format('World')
 String.prototype.format = function() {
@@ -181,17 +182,17 @@ function QueryDatabase(sql_query, params) {
 
 // Чтение файла
 // Если кол-во байт (byte_read) не указано, то читается весь файл
-function ReadFile(filename, byte_read) {
+function ReadFile(filename, byte_read, file_charset) {
     var content = '';
     if (FSO.FileExists(filename)) {
         if (FSO.GetFile(filename).Size > 0) {
             with (new ActiveXObject('ADODB.Stream')) {
-                type = 2; // adTypeText
-                charset = 'windows-1251';
-                open();
-                loadFromFile(filename);
+                Type = 2; // adTypeText
+                Charset = file_charset || 'windows-1251';
+                Open();
+                LoadFromFile(filename);
                 content = (byte_read) ? readText(byte_read) : readText();
-                close();
+                Close();
             }
         }
     }
@@ -199,13 +200,13 @@ function ReadFile(filename, byte_read) {
 }
 
 // Сохранение текста в файле
-function SaveFile(filename, text) {
+function SaveFile(filename, text, file_charset) {
     with (new ActiveXObject('ADODB.Stream')) {
         Type = 2; // adTypeText
-        charset = 'windows-1251';
+        Charset = file_charset || 'windows-1251';
         Open();
-        WriteText (text);
-        SaveToFile (filename, 2);
+        WriteText(text);
+        SaveToFile(filename, 2);
         Close();
     }
 }
@@ -383,11 +384,27 @@ function PassDecrypt(str) {
 //  ОБРАБОТКА ПЕРЕМЕЩЕНИЯ МЫШИ И НАЖАТИЙ НА КЛАВИАТУРУ
 //=====================================================
 
+// Разворачивание нижнего фрейма (файл для просмотра выбран в верхнем фрейме)
+function OpenPreview() {
+    if (/(\d+)px,\s*\*\s*,(\d+)px/.test(top.document.getElementById('frameSet').rows)) {
+        if (RegExp.$2 <= 30) {
+            top.document.getElementById('frameSet').rows = '{0}px,*,{1}px'.format(RegExp.$1, 265);
+        }
+    }
+}
+
+// Сворачивание нижнего фрейма (при старте и смене даты/периода)
+function HidePreview() {
+    if (/(\d+)px,\s*\*\s*,(\d+)px/.test(top.document.getElementById('frameSet').rows)) {
+        if (RegExp.$2 > 30) {
+            top.document.getElementById('frameSet').rows = '{0}px,*,{1}px'.format(RegExp.$1, 30);
+        }
+    }
+}
+
 // Показ содержимого рейса в нижнем фрейме
 function ShowPreview() {
-    if (top.document.getElementById('frameSet').rows == '52px,*,30px') { // first time
-        top.document.getElementById('frameSet').rows = '52px,*,265px';
-    }
+    OpenPreview()
     Preview.document.body.innerHTML = PostList.idPreviewHide[select_row_idx].innerHTML;
     // добавляем возможность копировать имена файлов по клику на заголовке
     if (Preview.idFname) {
@@ -644,7 +661,8 @@ function Answer365P(ans_file, ans_text) {
     }
 
     var dt = Date2Obj(new Date());
-    var pb_text = '{0}###\r\n'.format(ans_file) +
+    var pb_text = 
+        '{0}###\r\n'.format(ans_file) +
         ans_text || '10@@@\r\n' +
         '{0}-{1}-{2}@@@\r\n'.format(dt.year, dt.month, dt.day) +
         '{0}:{1}:{2}@@@\r\n'.format(dt.hours, dt.min, dt.sec) +
@@ -805,14 +823,14 @@ function load_Preview() {
         addRule('u','font: normal 8pt MS Sans Serif;');
         addRule('table','font: normal 10pt Courier New; width:100%;');
         addRule('.tbl','border: 1px solid buttonshadow; border-collapse:collapse; page-break-inside:avoid;');
-        addRule('th','color:threeddarkshadow; filter:progid:DXImageTransform.Microsoft.Gradient('+gradient+');');
+        addRule('th','color:threeddarkshadow; filter:progid:DXImageTransform.Microsoft.Gradient({0});'.format(gradient));
         addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
         addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:green; background-color:infobackground; display:block;');
         addRule('span','font: normal 8pt MS Sans Serif;');
         addRule('.tag','color:threeddarkshadow;');
     }
     Preview.document.onmouseup = function() {
-        if (Preview.event.button==2) {
+        if (Preview.event.button == 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
         }
     };
@@ -838,7 +856,7 @@ function CreateFormList() {
         if (!usrname) {
             usrname = WshShell.ExpandEnvironmentStrings('%username%');
         }
-        document.title += ' [' + usrname + ']';
+        document.title += ' [{0}]'.format(usrname);
         CheckUsers(usrname);
         var userid = QueryDatabase('SELECT usrid FROM elo_users WHERE usrname = ?', usrname)[0].usrid;
         var available_forms_arr = QueryDatabase('SELECT DISTINCT SP.POSTTYPE ' +
@@ -891,7 +909,7 @@ function GetDate(days, startDate) {
         : new Date();
     datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
     var dt = Date2Obj(datetime);
-    return dt.day + sd + dt.month + sd + dt.year;
+    return [dt.day, dt.month, dt.year].join(sd);
 }
 
 // Задает интервал дат для выборки
@@ -962,7 +980,7 @@ function EnterDate(inp_idx) {
                     StartCreatePostsList();
                 }
             } else { // Tab
-                Toolbar.idDateInput[1^inp_idx].focus();
+                Toolbar.idDateInput[1 ^ inp_idx].focus();
             }
         }
     }
@@ -974,7 +992,7 @@ function EnterDate(inp_idx) {
 // Вставляет дату, выбранную в календаре, в InputBox
 function ReturnDate(cdate, inputbox_idx) {
     var dt = Date2Obj(new Date(cdate));
-    Toolbar.idDateInput[inputbox_idx].value = dt.day + sd + dt.month + sd + dt.year;
+    Toolbar.idDateInput[inputbox_idx].value = [dt.day, dt.month, dt.year].join(sd);
     Toolbar.idDateInput[inputbox_idx].focus();
     // иммитируем нажатие Enter в поле ручного ввода даты
     var evn = Toolbar.document.createEventObject();
@@ -1199,11 +1217,11 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     count = files_list.match(/^(S\w\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
                     var count_bad = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
                     if (count) {
-                        info += adr + ' <s>(' + count.length + (count_bad ? '/' + count_bad.length.fontcolor('red') : '') + ')</s>';
+                        info += '{0} <s>({1}{2})</s>'.format(adr, count.length, (count_bad ? '/{0}'.format(count_bad.length.fontcolor('red')) : ''));
                     }
                 } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
                     var uvtype = Get311Type(RegExp.$1);
-                    info += '<s>уведом. ЦБ на ' + uvtype + '</s>';
+                    info += '<s>уведом. ЦБ на {0}</s>'.format(uvtype);
                 }
                 break;
             case '5z': // 322П
@@ -1243,52 +1261,52 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                 var bz1 = files_list.match(/^BZ1\w+\.(xml|vrb)$/igm);
 
                 if (rpo) {
-                    info += 'решение о приост.'.fontcolor('#990000') + ' <s>(' + rpo.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('решение о приост.'.fontcolor('#990000'), rpo.length);
                 }
                 if (roo) {
-                    info += 'отмена решения'.fontcolor('#990000') + ' <s>(' + roo.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('отмена решения'.fontcolor('#990000'), roo.length);
                 }
                 if (pno) {
-                    info += 'поручение'.fontcolor('#990000') + ' <s>(' + pno.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('поручение'.fontcolor('#990000'), pno.length);
                 }
                 if (apz) {
-                    info += 'решение об отзыве'.fontcolor('#990000') + ' <s>(' + apz.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('решение об отзыве'.fontcolor('#990000'), apz.length);
                 }
                 if (zno) {
-                    info += 'запрос'.fontcolor('#990000') + ' <s>(' + zno.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('запрос'.fontcolor('#990000'), zno.length);
                 }
                 if (trb) {
-                    info += 'требование'.fontcolor('#990000') + ' <s>(' + trb.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('требование'.fontcolor('#990000'), trb.length);
                 }
                 if (bns) {
-                    info += 'нал.счетов <s>(' + bns.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('нал.счетов', bns.length);
                 }
                 if (bos) {
-                    info += 'свед. об остатках <s>(' + bos.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('свед. об остатках', bos.length);
                 }
                 if (bvs) {
-                    info += 'выписка <s>(' + bvs.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('выписка', bvs.length);
                 }
                 if (bnp) {
-                    info += 'сообщ. о неисп. <s>(' + bnp.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('сообщ. о неисп.', bnp.length);
                 }
                 if (izv) {
-                    info += 'извещение <s>(' + izv.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('извещение', izv.length);
                 }
                 if (pb1) {
-                    info += 'подтв. ' + 'PB1'.fontcolor('green') + ' <s>(' + pb1.length + ')</s> ';
+                    info += '{0} {1} <s>({2})</s> '.format('подтв.', 'PB1'.fontcolor('green'), pb1.length);
                 }
                 if (pb2) {
-                    info += 'подтв. ' + 'PB2'.fontcolor('red') + ' <s>(' + pb2.length + ')</s> ';
+                    info += '{0} {1} <s>({2})</s> '.format('подтв.', 'PB2'.fontcolor('red'), pb2.length);
                 }
                 if (kwt) {
-                    info += 'квит. <s>(' + kwt.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('квит.', kwt.length);
                 }
                 if (dsb) {
-                    info += 'уведомление <s>(' + dsb.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('уведомление', dsb.length);
                 }
                 if (bz1) {
-                    info += 'запрос повт.кв. <s>(' + bz1.length + ')</s> ';
+                    info += '{0} <s>({1})</s> '.format('запрос повт.кв. ', bz1.length);
                 }
                 break;
         }
@@ -1431,8 +1449,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList[arrFilesList.length] = filename;
-                    html_text += '<tr><td><table class="tbl">';
-                    html_text += '<tr><th id=idFname>{0}</th></tr>'.format(filename);
+                    html_text += '<tr><td><table class="tbl">' +
+                                 '<tr><th id=idFname>{0}</th></tr>'.format(filename);
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
                         html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое зашифровано - - - </span></td></tr>';
                     } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
@@ -1450,8 +1468,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                 html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
             } else if (level == 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text += '<tr><td><table class="tbl">';
-                html_text += '<tr><th id=idFname>{0}</th></tr>'.format(filename);
+                html_text += '<tr><td><table class="tbl">' +
+                             '<tr><th id=idFname>{0}</th></tr>'.format(filename);
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
                     html_text += '<tr><td>&nbsp;&nbsp;&nbsp;<span disabled=1>- - - содержимое скрыто - - - </span></td></tr>';
                 } else {
@@ -1476,10 +1494,12 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                                 if (/^\<\?xml.* encoding=["']utf-8["']*/i.test(text)) {
                                     text = utf2win(text);
                                 }
-                                text = text.replace(/>([A-Za-z0-9+\/]{4})*([A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)<\/КА>/g,'></КА>');
-                                text = text.replace(/>([A-Za-z0-9+\/]{4})*([A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)<\/ЭС>/g,'></ЭС>');
+                                //Base64
+                                //text = text.replace(/>([A-Za-z0-9+\/]{4})*([A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)<\/>/g,'>...</>');
+                                text = text.replace(/>MIIB[A-Za-z0-9+\/=]+<\//g,'></'); //Сигнатура encoded
                                 var aText = [];
-                                var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
+                                //var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
+                                var re = /<([А-я\w]+ *)([^>]*)>([^<]*)/ig;
                                 while (re.exec(text)) {
                                     aText.push('<font class="tag"><b>{0}</b>{1}</font> {2}'.format(RegExp.$1, (RegExp.$2 || ''), (RegExp.$3 || '')));
                                 }
@@ -1527,7 +1547,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
         var content_info = '';
         if (arrFilesList.length) {
             if ((RowOfDBTable.filetype == 'ОЭС') || (RowOfDBTable.filetype == 'ИЭС1')) {
-                content_info += '<s>' + arrFilesList[0] + '</s> ';
+                content_info += '<s>{0}</s> '.format(arrFilesList[0]);
 
             }
             // инфа извлекается из списка файлов, содержащихся в посылке
@@ -1603,8 +1623,8 @@ function CreatePostsList() {
                 HTMLtable += '<tr><th colspan=6>{0}'.format(GetFormName(arrDB[i].posttype));
                 form_name_prev = arrDB[i].posttype;
             }
-            HTMLtable += '<tr id=idRow onmouseover="parent.cursor_row_idx={0}; parent.PostList.idCursor.style.top=this.offsetTop-1;">'.format(idRow_idx++);
-            HTMLtable += '<td class="icon">{0}'.format((arrDB[i].state_ == '6') ? '&#xDB;'.fontcolor('blue') : '&#xDC;'.fontcolor('green'));
+            HTMLtable += '<tr id=idRow onmouseover="parent.cursor_row_idx={0}; parent.PostList.idCursor.style.top=this.offsetTop-1;">'.format(idRow_idx++) +
+                         '<td class="icon">{0}'.format((arrDB[i].state_ == '6') ? '&#xDB;'.fontcolor('blue') : '&#xDC;'.fontcolor('green'));
 
             var post_content = Cache[arrDB[i].filename]; // вначале пробуем получить info и preview из кеша
             if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
@@ -1621,9 +1641,10 @@ function CreatePostsList() {
             HTMLtable += '<td>{0}<td id=idInfo>{1}'.format(arrDB[i].filetype, (post_content.info || ''));
 
             var dt = Date2Obj(new Date(arrDB[i].dt));
-            HTMLtable += '<td><s>{0}.{1}.{2} {3}:{4}</s>'.format(dt.day, dt.month, dt.year, dt.hours, dt.min);
-            HTMLtable += '<td>{0}'.format(arrDB[i].filename.replace(/\.[^.]+$/,''));
-            HTMLtable += '<td id=idPreviewHide style="display:none">{0}'.format(post_content.preview);
+            HTMLtable += 
+                '<td><s>{0} {1}</s>'.format([dt.day, dt.month, dt.year].join('.'), [dt.hours, dt.min].join(':')) +
+                '<td>{0}'.format(arrDB[i].filename.replace(/\.[^.]+$/,'')) +
+                '<td id=idPreviewHide style="display:none">{0}'.format(post_content.preview);
             // -----------------------------------------------------------------------------------------
         }
         PostList.document.body.innerHTML = HTMLtable + '\
@@ -1647,7 +1668,7 @@ function CreatePostsList() {
     setTimeout(SaveCache, 0);
     Toolbar.idToolbar.disabled = false;
     select_row_idx = undefined;
-    Preview.document.body.innerHTML = 'Выберите посылку в верхнем окне'.fontcolor('green');
+    Preview.document.body.innerHTML = 'Выберите посылку для просмотра'.fontcolor('green');
 }
 
 // Запуск ф-ции CreatePostsList отдельным процессом
@@ -1658,6 +1679,7 @@ function StartCreatePostsList(shiftKey) {
     find_text = '';
     PostList.document.body.innerHTML = '<b>Выполняю загрузку. Ждите...</b>'.fontcolor('red');
     Preview.document.body.innerHTML = '';
+    HidePreview();
     Toolbar.idToolbar.disabled = true;
     setTimeout(function() { CreateDBSelect(); CreatePostsList(); }, 0);
 }
@@ -1700,6 +1722,39 @@ function Start() {
         WshShell.Popup('Каталог установки ПТК ПСД\n{0}\nне существует!\nОтредактируйте ini-файл'.format(ptk_psd_dir), 6, 'Ошибка', 48);
         self.close();
     }
+
+    // Централизованное обновление версий с эталона на сервере
+    var distr = pathcombine(ptk_psd_dir, 'PTK_PSD_Browser', 'PTK_PSD_Browser.hta');
+    if (FSO.FileExists(distr)) {
+        var distr_header = ReadFile(distr, 512, 'utf-8');
+        if (/version=\"(\d*\.\d*\.\d*)\"/i.test(distr_header)) {
+            var distr_version = RegExp.$1;
+            if (hta_App.version != distr_version) {
+                WshShell.Popup('Ваша версия ({0}) не соответствует той, что на сервере ({1}).\nСейчас она будет обновлена и перезапущена.'.format(hta_App.version, distr_version), 6, 'Внимание', 48);
+                var this_script = unescape(document.URL).replace(/^file:\/\//, '');
+
+                // Возвращает ProcessId нашего приложения
+                var pid = new ActiveXObject('WScript.Shell').Exec('rundll32 kernel32,Sleep').ProcessID;
+                var oProc = new Enumerator(GetObject('winmgmts:\\\\.\\root\\cimv2').ExecQuery('select * from Win32_Process where ProcessId={0}'.format(pid))).item();
+                var parent_id = oProc.ParentProcessId;
+                oProc.Terminate();
+
+                // Перезапуск приложения с загруженной новой версией с сервера
+                var rst_file = pathcombine(WshShell.ExpandEnvironmentStrings('%temp%'), 'ptk_restart.cmd');
+                var rst_text =
+                    '@echo off\nCHCP 1251>nul\n' +
+                    'ping -n 3 -w 1000 127.0.0.1 > nul\n' +
+                    'taskkill /f /pid {0}\n'.format(parent_id) +
+                    'ping -n 2 -w 1000 127.0.0.1 > nul\n' +
+                    'del "{0}" > nul\n'.format(this_script) +
+                    'copy "{0}" "{1}" > nul\n'.format(distr, this_script) +
+                    'start "" "{0}"'.format(this_script);
+                SaveFile(rst_file, rst_text);
+                WshShell.Run(rst_file, 0, true);
+            }
+        }
+    }
+
     store_dir = pathcombine(ptk_psd_dir, 'POST', 'Store');
     cache_filepath = INI.BrowserSettings.cache;
     if (cache_filepath) {
@@ -1775,7 +1830,7 @@ function Start() {
 
 </script>
 </head>
-<FRAMESET id=frameSet rows="52px,*,30px" onLoad="setTimeout(Start, 0);" onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
+<FRAMESET id=frameSet rows="52px,*,265px" onLoad="setTimeout(Start, 0);" onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
     <FRAME src="about:blank" onLoad="load_Toolbar();" name="Toolbar" application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
     <FRAME src="about:blank" onLoad="load_PostList();" name="PostList" application="yes" marginwidth="0" marginheight="0" scrolling="yes">
     <FRAME src="about:blank" onLoad="load_Preview();" name="Preview" application="yes" marginwidth="4" marginheight="4">
