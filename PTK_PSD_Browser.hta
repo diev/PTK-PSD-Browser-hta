@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.2.5"
+    version="6.2.6"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1297,7 +1297,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         info += '{0} <s>({1}{2})</s>'
                             .format(adr, count.length, 
                                 count_bad
-                                    ? '/{0}'.format(count_bad.length.fontcolor('red'))
+                                    ? '/{0}'.format(count_bad.fontcolor('red'))
                                     : '');
                     }
                 } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
@@ -1396,7 +1396,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
         return info;
     }
 
-    // Извлечение информации о посылке из ее текста
+    // Извлечение информации о посылке из ее текста (если она - один файл)
     function GetContentInfoFromFileText(text, post_type) {
         if (RowOfDBTable.filetype == 'ИЭС1') { // находим, на какую форму пришел ответ 
             switch (post_type) {
@@ -1418,10 +1418,10 @@ function GetObjPostContent(filepath, RowOfDBTable) {
             switch (post_type) {
                 case '0z': // 321П
                     if (/Отвергнутых: 0/.test(text)) {
-                        content_ok = true;
+                        content_ok++;
                         return '<s>отвергнутых нет</s>';
                     } else {
-                        content_bad = true;
+                        content_bad++;
                         return 'отвергнутые! ';
                     }
                     break;
@@ -1465,32 +1465,39 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     text = text.replace(/(<br>10@@@|<br>01@@@|<br>20@@@)/m, '$1 <q>(положительный результат проверки)</q>');
                     text = text.replace(/<br>(\d\d)@@@/g, '<br><q>$1</q>@@@');
                     text = text.replace(/<br>(\d\d);([^@]+)@@@/, '<br><q>$1</q>;<i>$2</i>@@@');
-                } else if (/^IZV\w+\.xml$/i.test(filename)) { // извещение 440П
-                    text = text.replace(/Положительный /,
-                        function(s) { content_ok = true;  return '<q>{0}</q>'.format(s); });
-                    text = text.replace(/Отрицательный /,
-                        function(s) { content_bad = true; return '<i>{0}</i>'.format(s); });
+                } else if (/^(IZV|KWT)\w+\.xml$/i.test(filename)) { // извещение или квитанция 440П
+                    if (/КодРезПроверки="(\d{2})"/.test(text)) {
+                        if (RegExp.lastParen == '01') {
+                            content_ok++;
+                            text = text.replace(/КодРезПроверки="(\d{2})"/, 'КодРезПроверки="<q>$1</q>"');
+                            text = text.replace(/Пояснение="([^"]+)"/m, 'Пояснение="<q>$1</q>"');
+                        } else {
+                            content_bad++;
+                            text = text.replace(/КодРезПроверки="(\d{2})"/, 'КодРезПроверки="<i>$1</i>"');
+                            text = text.replace(/Пояснение="([^"]+)"/m, 'Пояснение="<i>$1</i>"');
+                        }
+                    }
                 }
 
                 if (RowOfDBTable.state_ == '7') { // подсветка только для полученных
                     if (!text.match(/Принятых: \d+/)) { // 0z
                         text = text.replace(/(не\s+)?(принята|принято|принят)/ig, function(s, s1) {
                             if (s1) {
-                                content_bad = true;
+                                content_bad++;
                                 return '<i>{0}</i>'.format(s);
                             } else {
-                                content_ok = true ;
+                                content_ok++ ;
                                 return '<q>{0}</q>'.format(s);
                             }
                         });
                     }
                     if (/\.xml$/i.test(filename)) {
                         text = text.replace(/ не содержит ошибок/,
-                            function(s) { content_ok = true;  return '<q>{0}</q>'.format(s); });
+                            function(s) { content_ok++;  return '<q>{0}</q>'.format(s); });
                         text = text.replace(/ имеются предупреждения/,
-                            function(s) { content_bad = true; return '<i>{0}</i>'.format(s); });
+                            function(s) { content_bad++; return '<i>{0}</i>'.format(s); });
                         text = text.replace(/ содержит ошибки/,
-                            function(s) { content_bad = true; return '<i>{0}</i>'.format(s); });
+                            function(s) { content_bad++; return '<i>{0}</i>'.format(s); });
                     }
                     if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
                         if (/<br>КодОшибки:(\d{3})/.test(text)) {
@@ -1500,7 +1507,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         }
                     }
                     if (RowOfDBTable.error_ > '0') {
-                        content_bad = true;
+                        content_bad++;
                     }
                 }
                 return text;
@@ -1634,8 +1641,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     // ---------------------------------------------------
     if (FSO.FileExists(filepath)) {
         var arrFilesList = [];
-        var content_ok = false;
-        var content_bad = false;
+        var content_ok = 0;
+        var content_bad = 0;
         var html_text = '<table>';
         GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
         html_text += '</table>';
@@ -1651,14 +1658,22 @@ function GetObjPostContent(filepath, RowOfDBTable) {
             // инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
             content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype);
         }
-        if ((RowOfDBTable.posttype == 'mz') && (RowOfDBTable.filetype == 'ИЭС3')) {
-            content_info += '<s>подтв. о получении</s>';
-        }
-
-        if (content_bad) {
-            content_info += ' не принят!'.fontcolor('red');
-        } else if (content_ok) {
-            content_info += ' ok'.fontcolor('green');
+        if (RowOfDBTable.posttype == 'mz') {
+            if (RowOfDBTable.filetype == 'ИЭС2') {
+                if (content_bad) {
+                    content_info += ' не принято {0}!'.format(content_bad).fontcolor('red');
+                } else if (content_ok) {
+                    content_info += ' ok'.fontcolor('green');
+                }
+            } else if (RowOfDBTable.filetype == 'ИЭС3') {
+                content_info += '<s>подтв. о получении</s>';
+            }
+        } else {
+            if (content_bad) {
+                content_info += ' не принят!'.fontcolor('red');
+            } else if (content_ok) {
+                content_info += ' ok'.fontcolor('green');
+            }
         }
     // ---------------------------------------------------
 
