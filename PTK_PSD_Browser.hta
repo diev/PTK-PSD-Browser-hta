@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.2.7"
+    version="6.2.8"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1427,7 +1427,14 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     break;
             }
         }
-        return '';
+
+        if (/ИмяФайлаЭС="([^"]*)"/.test(text)) {
+            return '<s> {0}</s>'.format(RegExp.$1);
+        } else if (/BGM\+(\w\w:\d{7})'/.test(text)) {
+            return '<s> {0}</s>'.format(RegExp.$1);
+        } else {
+            return '';
+        }
     }
 
     // Подсветка всего текста (включая заголовки с именами файлов)
