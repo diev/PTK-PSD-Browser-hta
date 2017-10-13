@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.2.6"
+    version="6.2.7"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1292,13 +1292,13 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                 if (/^([ABCDOPSZYN])N?\d{13,15}\.ARJ$/im.test(files_list)) {
                     adr = Get311Type(RegExp.$1);
                     count = files_list.match(/^(S\w\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
-                    var count_bad = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
                     if (count) {
-                        info += '{0} <s>({1}{2})</s>'
-                            .format(adr, count.length, 
-                                count_bad
-                                    ? '/{0}'.format(count_bad.fontcolor('red'))
-                                    : '');
+                        var value = count.length;
+                        var count_bad = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
+                        if (count_bad) {
+                            value += '/{0}'.format(count_bad.length).fontcolor('red');
+                        }
+                        info += '{0} <s>({1})</s>'.format(adr, value);
                     }
                 } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
                     var uvtype = Get311Type(RegExp.$1);
