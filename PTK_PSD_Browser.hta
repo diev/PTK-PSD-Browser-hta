@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.3.1"
+    version="6.3.2"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1752,7 +1752,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         // если в тексте найден один из перечисленных символов, то считаем, что это - текст в кодировке dos866
                         //if (/[ЂЃ‚ѓ„…†‡€‰Љ‹ЊЌЋЏђ‘’“”•–—™љ›њќћџ ЎўЈ¤Ґ¦Є¬­®Ї°±Ііґµ¶·єјЅѕї]/.test(text)) text = dos2win(text);
                         // только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-                        if ((/(\\BV\d{3}_.+?\.txt$|\\BOS\d_.+?\.txt$|\\KWTFCB_.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB\d_.+?\.txt$|\\UVKESDT.+?\.txt$|\.0[1-9][0-9]$)/i)
+                        if ((/(\\BV\d{3}_.+?\.txt$|\\BOS\d_.+?\.txt$|\\KWTFCB_.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB\d_.+?\.txt$|\\UVKESDT.+?\.txt$|\\ZAS1.+?\.txt$|\.0[1-9][0-9]$)/i)
                             .test(filepath)) {
                             text = dos2win(text);
                         }
