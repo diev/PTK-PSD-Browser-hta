@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.3.2"
+    version="6.3.3"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -436,7 +436,7 @@ function CreateShortcut() {
         case 1: //hta elo.ini
             if (!YesNoBox('Вы используете ярлык с настройкой на\n' +
                 '{0}\n'.format(args[1]) +
-                'и {0} по умолчанию\n\n'.format('PTK_PSD_Browser.ini') +
+                'и {0} по умолчанию\n\n'.format(PathCombine(script_path, 'PTK_PSD_Browser.ini')) +
                 'Вы действительно хотите сбросить ее?')) {
                 return;
             }
@@ -466,7 +466,7 @@ function CreateShortcut() {
         'установлен на Вашем Рабочем столе!\n\n' +
         'По умолчанию настройки на:\n' +
         '{0}\n'.format('%WINDIR%\\elo.ini') +
-        '{0}\n\n'.format('PTK_PSD_Browser.ini') +
+        '{0}\n\n'.format(PathCombine(script_path, 'PTK_PSD_Browser.ini')) +
         'Вы можете указать другие в свойствах ярлыка.');
 }
 
@@ -648,6 +648,10 @@ function ShowContextMenu(pane) {
         }
 
         html_menu += '\
+<tr id=menuitem onClick="parent.PrintForm();">\
+<td class="icon" style="font:12pt Wingdings 2;">&#x36;\
+<td>Печать\
+\
 <tr id=menuitem onClick="parent.SaveRace(parent.select_filePathNameTime);">\
 <td class="icon">&#x3C;\
 <td>Сохранить всю посылку в...';
@@ -1282,25 +1286,31 @@ function LoadCache() {
     cache_DateLastModified = FSO.GetFile(cache_filepath).DateLastModified;
     var XMLDoc = new ActiveXObject('Msxml2.DOMDocument');
     XMLDoc.async = false;
-    XMLDoc.load(cache_filepath);
-    var root = XMLDoc.documentElement;
-    var ver = root.getAttribute('version');
-    if (ver && cmpVersions(ver, hta_App.version) < 0) {
+    try { // На случай, если кеш содержит результаты старой версии
+        XMLDoc.load(cache_filepath);
+        var root = XMLDoc.documentElement;
+        var ver = root.getAttribute('version');
+        if (ver && cmpVersions(ver, hta_App.version) < 0) {
+            DeleteCache();
+            return;
+        }
+        for (var i = 0; i < root.childNodes.length; i++) {
+            var file = root.childNodes[i];
+            var fname = file.attributes.getNamedItem('name').nodeValue;
+            var fstate = file.attributes.getNamedItem('state').nodeValue;
+            var tag_info = file.getElementsByTagName('INFO')[0];
+            Cache[fname] = {
+                state: fstate,
+                info: tag_info
+                    ? tag_info.childNodes[0].nodeValue
+                    : '',
+                preview: file.getElementsByTagName('PREVIEW')[0].childNodes[0].nodeValue
+            };
+        }
+    }
+    catch(err) {
         DeleteCache();
         return;
-    }
-    for (var i = 0; i < root.childNodes.length; i++) {
-        var file = root.childNodes[i];
-        var fname = file.attributes.getNamedItem('name').nodeValue;
-        var fstate = file.attributes.getNamedItem('state').nodeValue;
-        var tag_info = file.getElementsByTagName('INFO')[0];
-        Cache[fname] = {
-            state: fstate,
-            info: tag_info
-                ? tag_info.childNodes[0].nodeValue
-                : '',
-            preview: file.getElementsByTagName('PREVIEW')[0].childNodes[0].nodeValue
-        };
     }
 }
 
@@ -1314,8 +1324,8 @@ function DeleteCache() {
     }
     FSO.DeleteFile(cache_filepath, true);
     Cache = {}; // объект, хранящий результаты обработки содержимого файлов
-    MsgBox('Кеш просмотра очищен\n' +
-        'и будет пересоздан.');
+    //MsgBox('Кеш просмотра очищен\n' +
+    //    'и будет пересоздан.');
 }
 
 //=====================================================
@@ -1633,7 +1643,13 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                                 return '<i>{0}</i>'.format(s);
                             });
                     }
-                    if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
+                    if (/^NS1\w+\.xml$/i.test(filename)) {
+                        text = text.replace(/ ЭС получено/,
+                            function(s) {
+                                count_ok++;
+                                return '<q>{0}</q>'.format(s);
+                            });
+                    } else if (/^SB\w+\.txt$/i.test(filename)) { // ответы на 311П
                         if (/<br>КодОшибки:(\d{3})/.test(text)) {
                             if (RegExp.lastParen != '000') {
                                 text = text.replace(/<br>НаимОшибки:([^<]+)/gm, '<br>НаимОшибки:<i>$1</i>');
@@ -1974,13 +1990,16 @@ function StartCreatePostsList(shiftKey) {
 // Централизованное обновление версий с эталона на сервере
 function CheckUpdate() {
     var distr = PathCombine(ptk_psd_dir, 'PTK_PSD_Browser', 'PTK_PSD_Browser.hta');
+    if (distr == PathCombine(script_path, 'PTK_PSD_Browser.hta')) {
+        return;
+    }
     if (FSO.FileExists(distr)) {
         var distr_header = ReadFile(distr, 512, 'utf-8');
         if (/version=\"(\d*\.\d*\.\d*)\"/i.test(distr_header)) {
             var distr_version = RegExp.$1;
             if (cmpVersions(hta_App.version, distr_version) < 0) {
-                MsgBox('Ваша версия {0} устарела и сейчас будет обновлена до {1}'
-                    .format(hta_App.version, distr_version));
+                //MsgBox('Ваша версия {0} устарела и сейчас будет обновлена до {1}'
+                //    .format(hta_App.version, distr_version));
                 var this_script = unescape(document.URL).replace(/^file:\/\//, '');
 
                 // Возвращает ProcessId нашего приложения
@@ -2164,7 +2183,7 @@ function Start() {
 }
 </script>
 </head>
-<FRAMESET id=frameSet rows="52px,*,265px" onLoad="Start();"
+<FRAMESET id=frameSet rows="52px,*,265px" onLoad="setTimeout(Start, 0);"
     onbeforeunload="if (FSO.FolderExists(tmp_dir)) FSO.DeleteFolder(tmp_dir, true);">
     <FRAME name="Toolbar"  src="about:blank" onLoad="load_Toolbar();"
         application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
