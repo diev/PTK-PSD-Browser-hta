@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.4.0"
+    version="6.4.1"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -925,15 +925,15 @@ td#refresh {font:14pt Wingdings; text-valign:middle;}\
 td#link {font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; text-valign:middle;}\
 </style><tr>\
 <td><fieldset><legend>&nbsp;Отчетность:&nbsp;</legend>\
-<input type="checkbox" id=idByPostType title="Сортировать по коду формы" onClick="parent.CreateFormList()";>Кф</input>\
+<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList()";>Кф</input>\
 &nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
 <td id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>\
 <td><fieldset><legend>&nbsp;Интервал:&nbsp;</legend>\
-<input type="button" id=idIntervalButton value="сегодня" title="{0}" hidefocus onClick="parent.SetInterval(0);">\
-<input type="button" id=idIntervalButton value="вчера" title="{1}" hidefocus onClick="parent.SetInterval(1);">\
+<input type="button" id=idIntervalButton value="сегодня" title="За {0}" hidefocus onClick="parent.SetInterval(0);">\
+<input type="button" id=idIntervalButton value="вчера" title="За {1}" hidefocus onClick="parent.SetInterval(1);">\
 <input type="button" id=idIntervalButton value="за 4 дня" title="С {2}" hidefocus onClick="parent.SetInterval(2);">\
 <input type="button" id=idIntervalButton value="за неделю" title="С понедельника" hidefocus onClick="parent.SetInterval(3);">\
-<input type="button" id=idIntervalButton value="за:" title="За фиксированный день | За период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value!=\'за:\');">\
+<input type="button" id=idIntervalButton value="за:" title="Диапазон\nза день | за период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value!=\'за:\');">\
 <input hidefocus id=idDateInput type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(0);" onfocus="parent.IntervalButtonSet(4);">\
 <a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>&#xA6;<\/a>\
 <span id=idEndDateHide style="display:none">\
@@ -1022,7 +1022,7 @@ function CreateFormList() {
     var by_posttype = Toolbar.idByPostType.checked;
     var forms = GetForms(by_posttype ? 'posttype' : 'postname');
     Toolbar.idPostType.innerHTML = '';
-    post_name = 'Все формы';
+    post_name = by_posttype ? '*: Все формы' : 'Все формы';
     var option = Toolbar.document.createElement('option');
     option.value = '*';
     option.text = post_name;
