@@ -45,7 +45,11 @@ build_script:
 
     echo http://%APPVEYOR_ACCOUNT_NAME%.github.io/%APPVEYOR_PROJECT_NAME% >>readme.txt
 
-    7z a PTK-PSD-Browser-v%VERSION%.zip @Package readme.txt
+    echo [InternetShortcut] >readme.url
+
+    echo URL=http://%APPVEYOR_ACCOUNT_NAME%.github.io/%APPVEYOR_PROJECT_NAME% >>readme.url
+
+    7z a PTK-PSD-Browser-v%VERSION%.zip @Package readme.txt readme.url
 artifacts:
 - path: PTK-PSD-Browser-v$(version).zip
   name: AppZip

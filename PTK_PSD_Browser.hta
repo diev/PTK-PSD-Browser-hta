@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.3.4"
+    version="6.4.0"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -925,7 +925,8 @@ td#refresh {font:14pt Wingdings; text-valign:middle;}\
 td#link {font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; text-valign:middle;}\
 </style><tr>\
 <td><fieldset><legend>&nbsp;Отчетность:&nbsp;</legend>\
-&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все формы</option></select>&nbsp;</fieldset>\
+<input type="checkbox" id=idByPostType title="Сортировать по коду формы" onClick="parent.CreateFormList()";>Кф</input>\
+&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
 <td id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>\
 <td><fieldset><legend>&nbsp;Интервал:&nbsp;</legend>\
 <input type="button" id=idIntervalButton value="сегодня" title="{0}" hidefocus onClick="parent.SetInterval(0);">\
@@ -998,26 +999,9 @@ function load_Preview() {
 
 // Загружает в раскрывающийся список <SELECT> имена обрабатываемых форм
 function CreateFormList() {
-    // Проверка зарегистрирован ли пользователь?
-    function CheckUsers(usrname) {
-        var all_users = QueryDatabase('SELECT usrname FROM elo_users');
-        for (var i = 0; i < all_users.length; i++) {
-            if (usrname.toLowerCase() == all_users[i].usrname.toString().toLowerCase()) {
-                return;
-            }
-        }
-        ErrBox('Пользователь {0}\n'.format(usrname) +
-            'не зарегистрирован в ПТК ПСД!');
-        self.close();
-    }
     // Извлекает список форм, разрешенных текущему пользователю
-    function GetForms() {
+    function GetForms(by_order) {
         var usrname = INI.User.CurUser;
-        if (!usrname) {
-            usrname = WshShell.ExpandEnvironmentStrings('%username%');
-        }
-        document.title += ' [{0}]'.format(usrname);
-        CheckUsers(usrname);
         var userid = QueryDatabase('SELECT usrid FROM elo_users WHERE usrname = ?', usrname)[0].usrid;
         var available_forms_arr = QueryDatabase('SELECT DISTINCT SP.POSTTYPE ' +
             'FROM ELO_USERS_ACCESS UA LEFT JOIN ELO_SPR_POST_SUB SP ON UA.FORMNAME = SP.CODE ' +
@@ -1028,17 +1012,32 @@ function CreateFormList() {
         }
         available_forms = "'{0}'".format(tmp.join("','")); // сохраним в глобальной переменной (еще понадобится);
         var posttype_name_list = QueryDatabase('SELECT posttype, postname FROM elo_spr_post ' +
-            'WHERE posttype IN ({0}) ORDER BY postname'.format(available_forms));
+            'WHERE posttype IN ({0}) ORDER BY {1}'.format(available_forms, by_order));
         return posttype_name_list;
     }
 
+    var old_value = Toolbar.idPostType.value;
+
     // Заполняем комбобокс
-    var forms = GetForms();
+    var by_posttype = Toolbar.idByPostType.checked;
+    var forms = GetForms(by_posttype ? 'posttype' : 'postname');
+    Toolbar.idPostType.innerHTML = '';
+    post_name = 'Все формы';
+    var option = Toolbar.document.createElement('option');
+    option.value = '*';
+    option.text = post_name;
+    option.title = post_name;
+    Toolbar.idPostType.add(option);
+
     for (var i = 0; i < forms.length; i++) {
+        var post_type = forms[i].posttype;
         var post_name = forms[i].postname.replace(/ПТК ПСД\.\s+/,'').replace(/\.$/,'');
-        var option = Toolbar.document.createElement('option');
-        option.value = forms[i].posttype;
-        option.text = post_name;
+        option = Toolbar.document.createElement('option');
+        option.value = post_type;
+        option.selected = post_type == old_value;
+        option.text = by_posttype ?
+            post_type + ': ' + post_name :
+            post_name;
         option.title = post_name;
         Toolbar.idPostType.add(option);
     }
@@ -2125,6 +2124,26 @@ function CheckDB() {
     }
 }
 
+// Проверка зарегистрирован ли пользователь?
+function CheckUser() {
+    var usrname = INI.User.CurUser;
+    if (!usrname) {
+        usrname = WshShell.ExpandEnvironmentStrings('%username%');
+    }
+    document.title += ' [{0}]'.format(usrname);
+
+    var all_users = QueryDatabase('SELECT usrname FROM elo_users');
+    for (var i = 0; i < all_users.length; i++) {
+        if (usrname.toLowerCase() == all_users[i].usrname.toString().toLowerCase()) {
+            INI.User.CurUser = usrname;
+            return;
+        }
+    }
+    ErrBox('Пользователь {0}\n'.format(usrname) +
+        'не зарегистрирован в ПТК ПСД!');
+    self.close();
+}
+
 function CheckPaths() {
     store_dir = PathCombine(ptk_psd_dir, 'POST', 'Store');
     cache_filepath = INI.BrowserSettings.cache;
@@ -2164,8 +2183,8 @@ function Start() {
     CheckINIs();
     CheckUpdate();
     CheckPaths();
-
     CheckDB();              // Присвоение значения глобальной переменной db_connect_string
+    CheckUser();            // Проверка указанного (или по умолчанию) пользователя
     LoadCache();            // Загружаем кеш с сохраненными ранее данными
     load_RCMenu();          // Подготавливем контестное меню
     CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
