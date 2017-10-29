@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.4.1"
+    version="6.4.2"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1838,7 +1838,7 @@ function CreateDBSelect() {
     posttype = posttype == '*' ?
         ' IN ({0})'.format(available_forms) : "='{0}'".format(posttype);
     var sql_string = 'SELECT * FROM elo_arh_post WHERE posttype{0} '.format(posttype) +
-        'and dt between ? and ? ORDER BY posttype, dt, filetype';
+        'and dt between convert(datetime,?,104) and convert(datetime,?,104) ORDER BY posttype, dt, filetype';
 
     arrDB = [];
     arrDB = QueryDatabase(sql_string,
