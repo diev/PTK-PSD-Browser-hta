@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.4.2"
+    version="6.4.3"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -1893,7 +1893,11 @@ function CreatePostsList() {
 <td>{3}\
 <td id=idPreviewHide style="display:none">'
                     .format(
-                        arrDB[i].state_ == '6' ? '&#xDB;' : '&#xDC;',
+                        arrDB[i].state_ == '6' ?
+                            '&#xDB;' :
+                            arrDB[i].state_ == '7' ?
+                                '&#xDC;' :
+                                '',
                         arrDB[i].filetype,
                         Date2Log(new Date(arrDB[i].dt)),
                         arrDB[i].filename.replace(/\.[^.]+$/,''));
