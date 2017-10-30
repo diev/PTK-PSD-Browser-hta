@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.4.3"
+    version="6.4.4"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -403,16 +403,22 @@ function Date2Obj(date) {
     };
 }
 
-// Преобразовывает заданную дату в строку для логирования
+// Преобразовывает заданную дату в строку для логирования ('dd.mm.yyyy hh:mm')
 function Date2Log(date) {
     var dt = Date2Obj(date);
     return [dt.day, dt.month, dt.year].join('.') + ' ' + [dt.hour, dt.minu].join(':');
 }
 
-// Преобразовывает заданную дату в строку для календаря
+// Преобразовывает заданную дату в строку для календаря ('dd.mm.yyyy')
 function Date2Cal(date) {
     var dt = Date2Obj(date);
     return [dt.day, dt.month, dt.year].join(sd);
+}
+
+// Преобразовывает заданную дату в строку для SQL ('yyyymmdd')
+function Date2SQL(date) {
+    var dt = Date2Obj(date);
+    return dt.year + dt.month + dt.day;
 }
 
 // Создание ярлыка на Рабочем столе
@@ -925,7 +931,7 @@ td#refresh {font:14pt Wingdings; text-valign:middle;}\
 td#link {font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; text-valign:middle;}\
 </style><tr>\
 <td><fieldset><legend>&nbsp;Отчетность:&nbsp;</legend>\
-<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList()";>Кф</input>\
+<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList();">Кф</input>\
 &nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
 <td id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>\
 <td><fieldset><legend>&nbsp;Интервал:&nbsp;</legend>\
@@ -1041,6 +1047,7 @@ function CreateFormList() {
         option.title = post_name;
         Toolbar.idPostType.add(option);
     }
+    StartCreatePostsList();
 }
 
 // Переключатель отображения ручного задания периода дат (за фиксированную дату - за период)
@@ -1068,6 +1075,15 @@ function GetDate(days, startDate) {
         new Date(startDate.replace(re, '$2-$1-$3')) : new Date();
     datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
     return Date2Cal(datetime);
+}
+
+// Возвращает строку даты 'yyyymmdd', отстоящую от заданной (если не задано, то от текущей) на days дней
+function GetDateSQL(days, startDate) {
+    var re = new RegExp(['^(\\d\\d)', '(\\d\\d)', '(\\d\\d\\d\\d)$'].join(sd), '');
+    var datetime = startDate ?
+        new Date(startDate.replace(re, '$2-$1-$3')) : new Date();
+    datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
+    return Date2SQL(datetime);
 }
 
 // Задает интервал дат для выборки
@@ -1838,11 +1854,12 @@ function CreateDBSelect() {
     posttype = posttype == '*' ?
         ' IN ({0})'.format(available_forms) : "='{0}'".format(posttype);
     var sql_string = 'SELECT * FROM elo_arh_post WHERE posttype{0} '.format(posttype) +
-        'and dt between convert(datetime,?,104) and convert(datetime,?,104) ORDER BY posttype, dt, filetype';
+        'and dt between ? and ? ORDER BY posttype, dt, filetype';
 
     arrDB = [];
     arrDB = QueryDatabase(sql_string,
-        [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
+        [GetDateSQL(0, Toolbar.idDateInput[0].value),
+         GetDateSQL(1, Toolbar.idDateInput[1].value)]);
 }
 
 // Создание обработчика для каждой отдельной строки
