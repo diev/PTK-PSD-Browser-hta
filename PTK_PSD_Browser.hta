@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.4.4"
+    version="6.5.0"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -932,7 +932,7 @@ td#link {font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; 
 </style><tr>\
 <td><fieldset><legend>&nbsp;Отчетность:&nbsp;</legend>\
 <input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList();">Кф</input>\
-&nbsp;<select name=idPostType onChange="parent.StartCreatePostsList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
+&nbsp;<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
 <td id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>\
 <td><fieldset><legend>&nbsp;Интервал:&nbsp;</legend>\
 <input type="button" id=idIntervalButton value="сегодня" title="За {0}" hidefocus onClick="parent.SetInterval(0);">\
@@ -1047,7 +1047,7 @@ function CreateFormList() {
         option.title = post_name;
         Toolbar.idPostType.add(option);
     }
-    StartCreatePostsList();
+    //StartCreatePostsList(); // Принудительно перерисовать фрейм
 }
 
 // Переключатель отображения ручного задания периода дат (за фиксированную дату - за период)
@@ -1857,9 +1857,14 @@ function CreateDBSelect() {
         'and dt between ? and ? ORDER BY posttype, dt, filetype';
 
     arrDB = [];
-    arrDB = QueryDatabase(sql_string,
-        [GetDateSQL(0, Toolbar.idDateInput[0].value),
-         GetDateSQL(1, Toolbar.idDateInput[1].value)]);
+    if (/Microsoft Access Driver/.test(db_connect_string)) {
+        arrDB = QueryDatabase(sql_string,
+            [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
+    } else {
+        arrDB = QueryDatabase(sql_string,
+            [GetDateSQL(0, Toolbar.idDateInput[0].value),
+             GetDateSQL(1, Toolbar.idDateInput[1].value)]);
+    }
 }
 
 // Создание обработчика для каждой отдельной строки
@@ -2090,20 +2095,25 @@ function CheckINIs() {
             'Отредактируйте ini-файл');
         self.close();
     }
+
+    Toolbar.idByPostType.checked = INI.BrowserSettings.by_posttype_checked == '1';
 }
 
 function CheckDB() {
     var ODBC = INI.DataBase.ODBC;
+    var FDSN = INI.DataBase.FILEDSN;
     db_connect_string = INI.DataBase.db_connect_string;
 
-    if (ODBC || db_connect_string) {
+    if (ODBC || FDSN || db_connect_string) {
         if (ODBC) {
             db_connect_string = 'DSN={0};'.format(ODBC);
+        } else if (FDSN) {
+            db_connect_string = 'FILEDSN={0};'.format(FDSN);
         }
 
         var user = INI.DataBase.user;
         if (user) {
-            if (ODBC) {
+            if (ODBC || FDSN) {
                 db_connect_string += 'UID={0};'.format(user);
             } else {
                 db_connect_string = db_connect_string.replace(/%user%/, user);
@@ -2127,7 +2137,7 @@ function CheckDB() {
             }
         }
         if (password) {
-            if (ODBC) {
+            if (ODBC || FDSN) {
                 db_connect_string += 'PWD={0};'.format(password);
             } else {
                 db_connect_string = db_connect_string.replace(/%password%/, password);
