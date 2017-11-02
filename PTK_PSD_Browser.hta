@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.1"
+    version="6.5.2"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -707,8 +707,8 @@ function PreviewMouseRightClick(event_srcElement) {
     function GetFileOnClicked(obj) {
         if (!obj) { // white space
             return '';
-        } else if (obj.tagName == 'TBODY') {
-            var th = obj.getElementsByTagName('TH')[0];
+        } else if (obj.tagName == 'DIV') {
+            var th = obj.getElementsByTagName('P')[0];
             return th ? th.innerText : '';
         } else {
             return GetFileOnClicked(obj.parentNode);
@@ -899,10 +899,11 @@ function ReReadRace() {
 //  ЗАПОЛНЯЕМ ЭЛЕМЕНТАМИ ОКНО ПРИЛОЖЕНИЯ
 //=====================================================
 
-// Извлечение значений системных цветов в строку для задания градиента
+// Извлечение значений системных цветов в строку для задания градиента (строка готового стиля)
 function GetGradientColors() {
     Toolbar.document.body.style.color = 'threedface';
-    gradient = 'StartColorStr={0}, EndColorStr={1}'.format(Toolbar.document.fgColor, Toolbar.document.bgColor);
+    gradient = 'zoom:1; filter:progid:DXImageTransform.Microsoft.Gradient(' +
+        'StartColorStr={0}, EndColorStr={1});'.format(Toolbar.document.fgColor, Toolbar.document.bgColor);
     Toolbar.document.body.style.color = '';
 }
 
@@ -914,17 +915,17 @@ function load_Toolbar() {
     meta.content = 'yes';
     Toolbar.document.getElementsByTagName('HEAD')[0].appendChild(meta);
     var css = Toolbar.document.createStyleSheet();
-    css.addRule('body','margin:0; background-color:threedface; font:normal 10pt Verdana;');
-    css.addRule('div','padding:2px 5px;');
-    css.addRule('span','white-space: nowrap; color:activecaption;');
-    css.addRule('a','text-decoration:none;');
-    css.addRule('a:visited','color:activecaption;');
-    css.addRule('a:hover','color:red;');
-    css.addRule('select','width:auto;');
-    css.addRule('#refresh','font:14pt Wingdings;');
-    css.addRule('#link','float:right; font:14pt Wingdings; padding-right:10px;');
-    css.addRule('#idDateInput','width:70px; text-align:center;');
-    css.addRule('#idCalendarButton','vertical-align:top; font:12pt Webdings;');
+    css.addRule('body', 'margin:0; background-color:threedface; font:normal 10pt Verdana;');
+    css.addRule('div', 'padding:2px 5px;');
+    css.addRule('span', 'white-space: nowrap; color:activecaption;');
+    css.addRule('a', 'text-decoration:none;');
+    css.addRule('a:visited', 'color:activecaption;');
+    css.addRule('a:hover', 'color:red;');
+    css.addRule('select', 'width:auto;');
+    css.addRule('#refresh', 'font:14pt Wingdings;');
+    css.addRule('#link', 'float:right; font:14pt Wingdings; padding-right:10px;');
+    css.addRule('#idDateInput', 'width:70px; text-align:center;');
+    css.addRule('#idCalendarButton', 'vertical-align:top; font:12pt Webdings;');
     Toolbar.document.body.innerHTML = '\
 <div id=idToolbar>\
 <div id=link><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;"> &#x4F; </a></div> \
@@ -956,21 +957,20 @@ function load_RCMenu() {
     };
     ContextMenu.document.body.style.border = '2px outset';
     var css = ContextMenu.document.createStyleSheet();
-    css.addRule('body','background-color:buttonface;cursor:default;');
-    css.addRule('table','background-color:buttonface; font:menu; margin:0px; width:100%;');
-    css.addRule('td','white-space:nowrap; width:100%;');
+    css.addRule('body', 'background-color:buttonface;cursor:default;');
+    css.addRule('table', 'background-color:buttonface; font:menu; margin:0px; width:100%;');
+    css.addRule('td', 'white-space:nowrap; width:100%;');
 }
 
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList() {
     var css = PostList.document.createStyleSheet();
-    css.addRule('table','font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
-    css.addRule('th','color:threeddarkshadow; cursor:default; filter:progid:DXImageTransform.Microsoft.Gradient({0});'
-        .format(gradient));
-    css.addRule('td','border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
-    css.addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
-    css.addRule('tt','font: normal 8pt MS Sans Serif; color:#990000;');
-    css.addRule('td.icon','width:14pt; font-family:Wingdings; font-size:12pt;');
+    css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
+    css.addRule('th', 'color:threeddarkshadow; cursor:default;' + gradient);
+    css.addRule('td', 'border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
+    css.addRule('s', 'text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
+    css.addRule('tt', 'font: normal 8pt MS Sans Serif; color:#990000;');
+    css.addRule('td.icon', 'width:14pt; font-family:Wingdings; font-size:12pt;');
     PostList.document.onkeydown = function() {
         parent.OnKeydownFromPostList();
     };
@@ -979,19 +979,18 @@ function load_PostList() {
 // Подготовка фрейма Preview (просмотр содержимого сообщения)
 function load_Preview() {
     var css = Preview.document.createStyleSheet();
-    css.addRule('q','color:blue; font-weight:bold;');
-    css.addRule('tt','color:blue;');
-    css.addRule('i','color:red; font-weight:bold; font-style:normal;');
-    css.addRule('u','font: normal 8pt MS Sans Serif;');
-    css.addRule('table','font: normal 10pt Verdana; width:100%; border-collapse:collapse;');
-    css.addRule('.f','margin:0 0 5px 0; padding:3px; border: 1px solid buttonshadow; font: normal 10pt Courier New;');
-    css.addRule('p#id','margin:0 0 1em 0; text-align:center; color:threeddarkshadow; ' +
-        'zoom:1; filter:progid:DXImageTransform.Microsoft.Gradient({0});'.format(gradient));
-    css.addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
-    css.addRule('s','text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;');
-    css.addRule('span','font: normal 8pt MS Sans Serif;');
-    css.addRule('.t','color:threeddarkshadow;');
-    css.addRule('#idProgress','height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
+    css.addRule('q', 'color:blue; font-weight:bold;');
+    css.addRule('tt', 'color:blue;');
+    css.addRule('i', 'color:red; font-weight:bold; font-style:normal;');
+    css.addRule('u', 'font: normal 8pt MS Sans Serif;');
+    css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse;');
+    css.addRule('div', 'margin:0; padding:0 3px 3px 8px; border: 1px solid buttonshadow; font: normal 10pt Courier New;');
+    css.addRule('p#id', 'margin:0 -3px 0 -8px; padding:0 3px 1em 8px; text-align:center; color:threeddarkshadow;' + gradient);
+    css.addRule('input', 'font: bold 8pt MS Sans Serif; display: inline;');
+    css.addRule('s', 'text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;');
+    css.addRule('span', 'font: normal 8pt MS Sans Serif;');
+    css.addRule('.t', 'color:threeddarkshadow;');
+    css.addRule('#idProgress', 'margin:0; padding:0; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
     Preview.document.onmouseup = function() {
         if (Preview.event.button == 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
@@ -1691,7 +1690,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     }
                     arrFilesList[arrFilesList.length] = filename;
                     //html_text += '<div class="f"><p id=id class="l{0}">{1}</p>'.format(level, filename);
-                    html_text += '<div class="f"><p id=id>{0}</p>'.format(filename);
+                    html_text += '<div><p id=id>{0}</p>'.format(filename);
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
                         html_text += span.format('содержимое зашифровано');
                     } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
@@ -1710,7 +1709,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                 //html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text += '<div class="f"><p id=id>&nbsp;</p>';
+                html_text += '<div><p id=id>&nbsp;</p>';
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
                     html_text += span.format('содержимое скрыто');
                 } else {
@@ -1746,7 +1745,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                                 var re = /<([А-я\w]+ *)([^>]*)>([^<]*)/ig;
                                 while (re.exec(text)) {
                                     aText.push('<font class="t"><b>{0}</b>{1}</font> {2}'
-                                        .format(RegExp.$1, (RegExp.$2 || ''), (RegExp.$3 || '')));
+                                        .format(RegExp.$1, (RegExp.$2 || '').replace(/\/+$/, ''), (RegExp.$3 || '')));
                                 }
                                 text = aText.join('<br>');
                             }
@@ -1950,10 +1949,14 @@ function CreatePostsList() {
             PostList.idInfo[j].innerHTML = post_content.info || '';
             PostList.idPreviewHide[j].innerHTML = post_content.preview;
             var percent = Math.round(j / arrDB.length * 100);
-            if (percent > percent_prev && Preview.idProgress !== null) {
-                Preview.idProgress.style.width = percent + '%';
-                Preview.idProgress.innerHTML = percent + '%';
-                percent_prev = percent;
+            if (percent > percent_prev) {
+                try {
+                    Preview.idProgress.style.width = percent + '%';
+                    Preview.idProgress.innerHTML = percent + '%';
+                    percent_prev = percent;
+                }
+                catch (e) {
+                }
             }
         }
 
