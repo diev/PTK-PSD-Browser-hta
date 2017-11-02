@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.0"
+    version="6.5.1"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -549,9 +549,9 @@ function ShowPreview() {
     OpenPreview();
     Preview.document.body.innerHTML = PostList.idPreviewHide[select_row_idx].innerHTML;
     // добавляем возможность копировать имена файлов по клику на заголовке
-    if (Preview.idFname) {
-        for (var i = 0; i < Preview.idFname.length; i++) {
-            var frame = Preview.idFname[i];
+    if (Preview.id) {
+        for (var i = 0; i < Preview.id.length; i++) {
+            var frame = Preview.id[i];
             frame.title = 'Щелкните для копирования в буфер обмена';
             frame.onclick = function() {
                 clipboardData.setData('Text', this.innerText.replace(/\.\w+?$/,''));
@@ -828,7 +828,7 @@ function Answer365P(ans_file, ans_text) {
 
 // Формирование подтверждений PB1 на сообщение 365-П
 function Answer365PB1() {
-    var arr_fnames = Preview.idFname;
+    var arr_fnames = Preview.id;
     var count = 0;
     for (var i = 0; i < arr_fnames.length; i++) {
         var r_name = arr_fnames[i].innerText;
@@ -914,41 +914,37 @@ function load_Toolbar() {
     meta.content = 'yes';
     Toolbar.document.getElementsByTagName('HEAD')[0].appendChild(meta);
     var css = Toolbar.document.createStyleSheet();
-    css.addRule('body','margin:0px;');
-    css.addRule('table','font: normal 10pt Verdana; background-color:threedface; width:100%;');
-    css.addRule('td','white-space: nowrap;');
-    css.addRule('legend','color:activecaption;');
-    css.addRule('fieldset','margin:5px;');
+    css.addRule('body','margin:0; background-color:threedface; font:normal 10pt Verdana;');
+    css.addRule('div','padding:2px 5px;');
+    css.addRule('span','white-space: nowrap; color:activecaption;');
     css.addRule('a','text-decoration:none;');
     css.addRule('a:visited','color:activecaption;');
     css.addRule('a:hover','color:red;');
-    css.addRule('select','width:130px;');
+    css.addRule('select','width:auto;');
+    css.addRule('#refresh','font:14pt Wingdings;');
+    css.addRule('#link','float:right; font:14pt Wingdings; padding-right:10px;');
+    css.addRule('#idDateInput','width:70px; text-align:center;');
     css.addRule('#idCalendarButton','vertical-align:top; font:12pt Webdings;');
     Toolbar.document.body.innerHTML = '\
-<table id=idToolbar cellpadding="0" cellspacing="0">\
-<style>\
-td#refresh {font:14pt Wingdings; text-valign:middle;}\
-td#link {font:14pt Wingdings; width:100%; text-align:right; padding-right:10px; text-valign:middle;}\
-</style><tr>\
-<td><fieldset><legend>&nbsp;Отчетность:&nbsp;</legend>\
-<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList();">Кф</input>\
-&nbsp;<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select>&nbsp;</fieldset>\
-<td id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a>\
-<td><fieldset><legend>&nbsp;Интервал:&nbsp;</legend>\
+<div id=idToolbar>\
+<div id=link><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;"> &#x4F; </a></div> \
+<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList();">Кф</input> \
+<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select> \
+<span id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" onClick="parent.StartCreatePostsList(event.shiftKey); return false;"> &#x5B; </a></span> \
 <input type="button" id=idIntervalButton value="сегодня" title="За {0}" hidefocus onClick="parent.SetInterval(0);">\
 <input type="button" id=idIntervalButton value="вчера" title="За {1}" hidefocus onClick="parent.SetInterval(1);">\
 <input type="button" id=idIntervalButton value="за 4 дня" title="С {2}" hidefocus onClick="parent.SetInterval(2);">\
-<input type="button" id=idIntervalButton value="за неделю" title="С понедельника" hidefocus onClick="parent.SetInterval(3);">\
-<input type="button" id=idIntervalButton value="за:" title="Диапазон\nза день | за период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value!=\'за:\');">\
-<input hidefocus id=idDateInput type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(0);" onfocus="parent.IntervalButtonSet(4);">\
-<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>&#xA6;<\/a>\
-<span id=idEndDateHide style="display:none">\
-по: <input hidefocus id=idDateInput type=text maxlength="10" style="width:70px; text-align:center;" onkeydown="parent.EnterDate(1);" onfocus="parent.IntervalButtonSet(4);">\
+<input type="button" id=idIntervalButton value="за неделю" title="С понедельника" hidefocus onClick="parent.SetInterval(3);"></span>\
+<span>\
+<input type="button" id=idIntervalButton value="за:" title="Диапазон\nза день | за период" hidefocus onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value != \'за:\');">\
+<input hidefocus id=idDateInput type=text maxlength="10" onkeydown="parent.EnterDate(0);" onfocus="parent.IntervalButtonSet(4);">\
+<a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>&#xA6;<\/a> \
+<span id=idEndDateHide style="display:none"> по:\
+<input hidefocus id=idDateInput type=text maxlength="10" onkeydown="parent.EnterDate(1);" onfocus="parent.IntervalButtonSet(4);">\
 <a href="#" id=idCalendarButton style="display:none" onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(1); return false;" hidefocus>&#xA6;<\/a>\
-</span><span style="width:0;"></span></fieldset>\
-<td id=link><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;">&#x4F;</a>\
-</table>\
-<object id=idAxCalendar classid="clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a" style="display:none;"></object>'
+</span></span>\
+<object id=idAxCalendar classid="clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a" style="display:none;"></object>\
+</div>'
     .format(parent.GetDate(0), parent.GetDate(-1), parent.GetDate(-3));
 }
 
@@ -974,6 +970,7 @@ function load_PostList() {
     css.addRule('td','border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
     css.addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
     css.addRule('tt','font: normal 8pt MS Sans Serif; color:#990000;');
+    css.addRule('td.icon','width:14pt; font-family:Wingdings; font-size:12pt;');
     PostList.document.onkeydown = function() {
         parent.OnKeydownFromPostList();
     };
@@ -982,25 +979,26 @@ function load_PostList() {
 // Подготовка фрейма Preview (просмотр содержимого сообщения)
 function load_Preview() {
     var css = Preview.document.createStyleSheet();
-    css.addRule('body','font: normal 10pt Courier New;');
     css.addRule('q','color:blue; font-weight:bold;');
     css.addRule('tt','color:blue;');
     css.addRule('i','color:red; font-weight:bold; font-style:normal;');
     css.addRule('u','font: normal 8pt MS Sans Serif;');
-    css.addRule('table','font: normal 10pt Courier New; width:100%;');
-    css.addRule('.tbl','border: 1px solid buttonshadow; border-collapse:collapse; page-break-inside:avoid;');
-    css.addRule('th','color:threeddarkshadow; filter:progid:DXImageTransform.Microsoft.Gradient({0});'
-        .format(gradient));
+    css.addRule('table','font: normal 10pt Verdana; width:100%; border-collapse:collapse;');
+    css.addRule('.f','margin:0 0 5px 0; padding:3px; border: 1px solid buttonshadow; font: normal 10pt Courier New;');
+    css.addRule('p#id','margin:0 0 1em 0; text-align:center; color:threeddarkshadow; ' +
+        'zoom:1; filter:progid:DXImageTransform.Microsoft.Gradient({0});'.format(gradient));
     css.addRule('input','font: bold 8pt MS Sans Serif; display: inline;');
-    css.addRule('s','text-decoration:none; font: normal 8pt MS Sans Serif; color:green; background-color:infobackground; display:block;');
+    css.addRule('s','text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;');
     css.addRule('span','font: normal 8pt MS Sans Serif;');
-    css.addRule('.tag','color:threeddarkshadow;');
+    css.addRule('.t','color:threeddarkshadow;');
+    css.addRule('#idProgress','height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
     Preview.document.onmouseup = function() {
         if (Preview.event.button == 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
         }
     };
     Preview.document.title = parent.document.title;
+    Preview.document.body.innerHTML = 'Загрузка программы...';
 }
 
 // Загружает в раскрывающийся список <SELECT> имена обрабатываемых форм
@@ -1008,7 +1006,9 @@ function CreateFormList() {
     // Извлекает список форм, разрешенных текущему пользователю
     function GetForms(by_order) {
         var usrname = INI.User.CurUser;
+        Preview.document.body.innerHTML = 'Загрузка пользователя...';
         var userid = QueryDatabase('SELECT usrid FROM elo_users WHERE usrname = ?', usrname)[0].usrid;
+        Preview.document.body.innerHTML = 'Загрузка прав пользователя...';
         var available_forms_arr = QueryDatabase('SELECT DISTINCT SP.POSTTYPE ' +
             'FROM ELO_USERS_ACCESS UA LEFT JOIN ELO_SPR_POST_SUB SP ON UA.FORMNAME = SP.CODE ' +
             'WHERE UA.USERID = ?', userid);
@@ -1017,6 +1017,7 @@ function CreateFormList() {
             tmp[tmp.length] = available_forms_arr[i].posttype;
         }
         available_forms = "'{0}'".format(tmp.join("','")); // сохраним в глобальной переменной (еще понадобится);
+        Preview.document.body.innerHTML = 'Загрузка форм пользователя...';
         var posttype_name_list = QueryDatabase('SELECT posttype, postname FROM elo_spr_post ' +
             'WHERE posttype IN ({0}) ORDER BY {1}'.format(available_forms, by_order));
         return posttype_name_list;
@@ -1047,7 +1048,7 @@ function CreateFormList() {
         option.title = post_name;
         Toolbar.idPostType.add(option);
     }
-    //StartCreatePostsList(); // Принудительно перерисовать фрейм
+    StartCreatePostsList(); // Принудительно перерисовать фрейм с новыми параметрами
 }
 
 // Переключатель отображения ручного задания периода дат (за фиксированную дату - за период)
@@ -1574,9 +1575,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     // Извлекает содержимое одной посылки в массив arrFilesList и стринг html_text
     function GetPostContent(filepath) {
         function UnpackArchive(filepath, level) {
-            var span = '&nbsp;&nbsp;&nbsp;<span disabled=1>- - - {0} - - - </span>';
-            var trspan = '<tr><td>' + span + '</td></tr>';
-
+            var span = '<span disabled>- - - {0} - - -</span>';
             // Обработка содержимого сообщения (подсветка, подсказки, удаление лишнего)
             function HighlightText(text, filename) {
                 if (/^BV\d{3}_ZNO\w+\.(txt|vrb)$/i.test(filename)) { // выписка на запрос 365П
@@ -1691,33 +1690,33 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList[arrFilesList.length] = filename;
-                    html_text += '<tr><td><table class="tbl">' +
-                                 '<tr><th id=idFname>{0}</th></tr>'.format(filename);
+                    //html_text += '<div class="f"><p id=id class="l{0}">{1}</p>'.format(level, filename);
+                    html_text += '<div class="f"><p id=id>{0}</p>'.format(filename);
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
-                        html_text += trspan.format('содержимое зашифровано');
+                        html_text += span.format('содержимое зашифровано');
                     } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
-                        html_text += trspan.format('содержимое скрыто');
+                        html_text += span.format('содержимое скрыто');
                     } else {
                         line_count = UnpackArchive(PathCombine(tmp_dir, filename), level + 1);
                     }
-                    if ((files_list.length > 1) && (line_count > 18)) {
-                        // если в посылке более 1 файла и кол-во строк в тексте превышает указанное значение, то
-                        html_text += '</table><br style="page-break-after:always">'; // вставляем разделитель страниц для печати
-                    } else {
-                        html_text += '</table><br>';
-                    }
+                    //if ((files_list.length > 1) && (line_count > 18)) {
+                    //    // если в посылке более 1 файла и кол-во строк в тексте превышает указанное значение, то
+                    //    html_text += '</div><br style="page-break-after:always">'; // вставляем разделитель страниц для печати
+                    //} else {
+                    //    html_text += '</div><br>';
+                    //}
+                    html_text += '</div>';
                 }
-                html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
+                //html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text += '<tr><td><table class="tbl">' +
-                             '<tr><th id=idFname>{0}</th></tr>'.format(filename);
+                html_text += '<div class="f"><p id=id>&nbsp;</p>';
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
-                    html_text += trspan.format('содержимое скрыто');
+                    html_text += span.format('содержимое скрыто');
                 } else {
                     UnpackArchive(filepath, level + 1);
                 }
-                html_text += '</table><br>';
+                html_text += '</div>';
             } else {
                 // ------- содержимое файла ------------------
                 var text = ReadFile(filepath);
@@ -1746,7 +1745,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                                 //var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
                                 var re = /<([А-я\w]+ *)([^>]*)>([^<]*)/ig;
                                 while (re.exec(text)) {
-                                    aText.push('<font class="tag"><b>{0}</b>{1}</font> {2}'
+                                    aText.push('<font class="t"><b>{0}</b>{1}</font> {2}'
                                         .format(RegExp.$1, (RegExp.$2 || ''), (RegExp.$3 || '')));
                                 }
                                 text = aText.join('<br>');
@@ -1770,7 +1769,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     }
                     filename = FSO.GetFileName(filepath);
                     text = HighlightText(text, filename);
-                    html_text += '<tr><td>{0}{1}</td></tr>'.format(text, content.sign);
+                    html_text += text + content.sign;
                 }
             }
             return line_count;
@@ -1786,9 +1785,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     // ---------------------------------------------------
     if (FSO.FileExists(filepath)) {
         var arrFilesList = [];
-        var html_text = '<table>';
+        var html_text = '';
         GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
-        html_text += '</table>';
 
     // ---- добавление в строку со списком дополнительной информации о посылке ----
         var content_info = '';
@@ -1833,8 +1831,8 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     } else {
         return {
             state: 'red',
-            preview: '<table><tr><td><i>Запись "{0}" имеется в базе данных,<br>\
-но такой файл не найден на диске!</i></table>'.format(filepath)
+            preview: '<i>Запись "{0}" имеется в базе данных, \
+но такой файл не найден на диске!</i>'.format(filepath)
         };
     }
 }
@@ -1849,7 +1847,6 @@ function CreateDBSelect() {
         return;
     }
 
-    Preview.document.body.innerHTML = 'Загрузка базы данных...';
     var posttype = Toolbar.idPostType.options[Toolbar.idPostType.selectedIndex].value;
     posttype = posttype == '*' ?
         ' IN ({0})'.format(available_forms) : "='{0}'".format(posttype);
@@ -1857,7 +1854,8 @@ function CreateDBSelect() {
         'and dt between ? and ? ORDER BY posttype, dt, filetype';
 
     arrDB = [];
-    if (/Microsoft Access Driver/.test(db_connect_string)) {
+    Preview.document.body.innerHTML = 'Загрузка посылок...';
+    if (/^DSN=/.test(db_connect_string)) {
         arrDB = QueryDatabase(sql_string,
             [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
     } else {
@@ -1889,7 +1887,6 @@ function CreatePostsList() {
     if (arrDB.length > 0) {
         var HTMLtable = '\
 <table frame="void">\
-<style>td.icon {width:14pt; font-family:Wingdings; font-size:12pt;}</style>\
 <tr id=idRow style="display:none">\
 <td id=idIcon>\
 <td id=idES>\
@@ -1927,15 +1924,11 @@ function CreatePostsList() {
         }
         PostList.document.body.innerHTML = HTMLtable + '\
 </table>\
-<table id=idCursor \
-style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px">\
-<tr><td>&nbsp;</td></tr>\
-</table>';
+<table id=idCursor style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px;"><tr><td>&nbsp;</td></tr></table>';
 
         Preview.document.body.innerHTML = '\
 <table height=100%><tr><td>Загрузка содержимого файлов...</td><td width=50%">\
-<div id=idProgress style="\
-width:0%; height:100%; background-color:green; text-align:center; line-height:100%; color:white;"></div>\
+<div id=idProgress style="width:0;"></div>\
 </td></tr></table>';
         var percent_prev = 0;
         for (var j = 1; j < arrDB.length; j++) {
@@ -1957,7 +1950,7 @@ width:0%; height:100%; background-color:green; text-align:center; line-height:10
             PostList.idInfo[j].innerHTML = post_content.info || '';
             PostList.idPreviewHide[j].innerHTML = post_content.preview;
             var percent = Math.round(j / arrDB.length * 100);
-            if (percent > percent_prev) {
+            if (percent > percent_prev && Preview.idProgress !== null) {
                 Preview.idProgress.style.width = percent + '%';
                 Preview.idProgress.innerHTML = percent + '%';
                 percent_prev = percent;
@@ -2163,6 +2156,7 @@ function CheckUser() {
     }
     document.title += ' [{0}]'.format(usrname);
 
+    Preview.document.body.innerHTML = 'Проверка пользователя...';
     var all_users = QueryDatabase('SELECT usrname FROM elo_users');
     for (var i = 0; i < all_users.length; i++) {
         if (usrname.toLowerCase() == all_users[i].usrname.toString().toLowerCase()) {
@@ -2229,7 +2223,7 @@ function Start() {
     <FRAME name="Toolbar"  src="about:blank" onLoad="load_Toolbar();"
         application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize>
     <FRAME name="PostList" src="about:blank" onLoad="load_PostList();"
-        application="yes" marginwidth="0" marginheight="0" scrolling="yes">
+        application="yes" marginwidth="0" marginheight="0">
     <FRAME name="Preview"  src="about:blank" onLoad="load_Preview();"
         application="yes" marginwidth="4" marginheight="4">
 </FRAMESET>
