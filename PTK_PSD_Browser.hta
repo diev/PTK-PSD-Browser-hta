@@ -8,15 +8,15 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.2"
+    version="6.5.3"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
 <script language="JavaScript">
 // jshint multistr:true
-//window.resizeTo(800, 550); // первоначальные размеры окна приложения
-window.moveTo(50, 20);
-window.resizeTo(screen.width - 100, screen.height - 70);
+// первоначальные размеры окна приложения
+window.moveTo(screen.width / 2 - 300, screen.height / 2 - 200);
+window.resizeTo(600, 400);
 //=====================================================
 //  ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 //=====================================================
@@ -964,6 +964,13 @@ function load_RCMenu() {
 
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList() {
+    PostList.document.body.innerHTML = '<pre><br>\
+  ___ _____ _  __  ___  ___ ___    ___                            <br>\
+ | _ \\_   _| |/ / | _ \\/ __|   \\  | _ )_ _ _____ __ _____ ___ _ _ <br>\
+ |  _/ | | | \' &lt;  |  _/\\__ \\ |) | | _ \\ \'_/ _ \\ V  V (_-&lt;/ -_) \'_|<br>\
+ |_|   |_| |_|\\_\\ |_|  |___/___/  |___/_| \\___/\\_/\\_//__/\\___|_|  <br>\
+                                                    версия {0}</pre>'.format(hta_App.version);
+
     var css = PostList.document.createStyleSheet();
     css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
     css.addRule('th', 'color:threeddarkshadow; cursor:default;' + gradient);
@@ -978,6 +985,10 @@ function load_PostList() {
 
 // Подготовка фрейма Preview (просмотр содержимого сообщения)
 function load_Preview() {
+    HidePreview();
+    Preview.document.title = parent.document.title;
+    Preview.document.body.innerHTML = 'Загрузка программы...';
+
     var css = Preview.document.createStyleSheet();
     css.addRule('q', 'color:blue; font-weight:bold;');
     css.addRule('tt', 'color:blue;');
@@ -996,8 +1007,6 @@ function load_Preview() {
             PreviewMouseRightClick(Preview.event.srcElement);
         }
     };
-    Preview.document.title = parent.document.title;
-    Preview.document.body.innerHTML = 'Загрузка программы...';
 }
 
 // Загружает в раскрывающийся список <SELECT> имена обрабатываемых форм
@@ -1094,19 +1103,16 @@ function SetInterval(i) {
         FixedOrPeriod(true);
         Toolbar.idDateInput[0].value = GetDate(0);
         Toolbar.idDateInput[1].value = GetDate(0);
-        StartCreatePostsList();
         break;
     case 1: // вчера
         FixedOrPeriod(true);
         Toolbar.idDateInput[0].value = GetDate(-1);
         Toolbar.idDateInput[1].value = GetDate(-1);
-        StartCreatePostsList();
         break;
     case 2: // за 4 дня
         FixedOrPeriod(false);
         Toolbar.idDateInput[0].value = GetDate(-3);
         Toolbar.idDateInput[1].value = GetDate(0);
-        StartCreatePostsList();
         break;
     case 3: // за неделю с понедельника
         FixedOrPeriod(false);
@@ -1114,8 +1120,8 @@ function SetInterval(i) {
         day = day === 0 ? 6 : day - 1;
         Toolbar.idDateInput[0].value = GetDate(-day);
         Toolbar.idDateInput[1].value = GetDate(0);
-        StartCreatePostsList();
     }
+    StartCreatePostsList();
 }
 
 // Проверка правильности задания даты в InputBox (и, если возможно, корректировка)
@@ -1921,8 +1927,7 @@ function CreatePostsList() {
                         arrDB[i].filename.replace(/\.[^.]+$/,''));
             // -----------------------------------------------------------------------------------------
         }
-        PostList.document.body.innerHTML = HTMLtable + '\
-</table>\
+        PostList.document.body.innerHTML = HTMLtable + '</table>\
 <table id=idCursor style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px;"><tr><td>&nbsp;</td></tr></table>';
 
         Preview.document.body.innerHTML = '\
@@ -1967,26 +1972,24 @@ function CreatePostsList() {
                 parent.ShowContextMenu(parent.PostList);
             }
         };
-
-    } else {
-        PostList.document.body.innerHTML = '';
     }
     KeepInfoToCache();
     setTimeout(SaveCache, 0);
     Toolbar.idToolbar.disabled = false;
     select_row_idx = undefined;
-    Preview.document.body.innerHTML = 'Выберите посылку для просмотра'.fontcolor('green');
+    Preview.document.body.innerHTML = 'Выберите {0} для просмотра'
+        .format(arrDB.length === 0 ? 'дату' : 'посылку').fontcolor('green');
+
 }
 
 // Запуск ф-ции CreatePostsList отдельным процессом
 function StartCreatePostsList(shiftKey) {
+    HidePreview();
     if (shiftKey) {
         DeleteCache();
     }
     find_text = '';
-    PostList.document.body.innerHTML = 'Выполняю загрузку - подождите...';
-    Preview.document.body.innerHTML = '';
-    HidePreview();
+    Preview.document.body.innerHTML = 'Загрузка таблицы...';
     Toolbar.idToolbar.disabled = true;
     setTimeout(function() {
         CreateDBSelect();
@@ -2218,6 +2221,10 @@ function Start() {
     CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
     CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
     SetInterval(0);         // Задаем интервал для выборки - текущий день
+
+    // Рабочие размеры окна приложения
+    window.moveTo(50, 20);
+    window.resizeTo(screen.width - 100, screen.height - 70);
 }
 </script>
 </head>
