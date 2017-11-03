@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.3"
+    version="6.5.4"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -223,7 +223,18 @@ function AddTimeForScript() {
 // Входные данные: текст SQL запроса, массив с параметрами
 // Возвращает: возвращает массив из объектов. Имена каждого свойства объекта идентичны именам полей.
 function QueryDatabase(sql_query, params) {
+    var q = TryQueryDatabase(sql_query, params);
+    if (q.Error) {
+        ErrBox('{0}\n\n{1}\n\n{2}'.format(q.Description, sql_query, params || ''), 'Ошибка запроса к базе данных');
+        Halt();
+    }
+    return q.Result;
+}
+
+function TryQueryDatabase(sql_query, params) {
     var arrResult = [];
+    var error = false;
+    var err_description;
     try {
         var ADODBConnection = new ActiveXObject('ADODB.Connection');
         ADODBConnection.Open(db_connect_string);
@@ -244,10 +255,14 @@ function QueryDatabase(sql_query, params) {
         }
         ADODBConnection.Close();
     } catch(err) {
-        ErrBox('{0}\n\n{1}\n\n{2}'.format(err.description, sql_query, params), 'Ошибка запроса к базе данных');
-        self.close();
+        error = true;
+        err_description = err.description;
     }
-    return arrResult;
+    return {
+        Result: arrResult,
+        Error: error,
+        Description: err_description
+    };
 }
 
 // Чтение файла
@@ -270,12 +285,13 @@ function ReadFile(filename, byte_read, file_charset) {
                 ErrBox('Не удается прочитать файл {0}.\n\n'.format(filename) +
                     'Возможно, это из-за сетевых настроек безопасности Internet Explorer. ' +
                     'Установка локально могла бы решить эту проблему:\n\n' +
-                    err.description);
+                    err.description,
+                    'Чтение файла');
                 error = true;
             }
             stream.Close();
             if (error) {
-                self.close();
+                Halt();
             }
         }
     }
@@ -801,8 +817,8 @@ function Answer365P(ans_file, ans_text) {
     // ---------------------------------------------------------------
     var outbox_dir_365P = INI.BrowserSettings.outbox_dir_365P;
     if (!outbox_dir_365P) {
-        ErrBox('Не задан каталог для выгрузки квитанций!\n' +
-            'Отредактируйте {0}'.format('PTK_PSD_Browser.ini'));
+        ErrBox('Не задан каталог для выгрузки квитанций',
+            'Чтение INI-файла');
         return;
     }
     if (!FSO.FolderExists(outbox_dir_365P)) {
@@ -927,7 +943,7 @@ function load_Toolbar() {
     css.addRule('#idDateInput', 'width:70px; text-align:center;');
     css.addRule('#idCalendarButton', 'vertical-align:top; font:12pt Webdings;');
     Toolbar.document.body.innerHTML = '\
-<div id=idToolbar>\
+<div id=idToolbar disabled>\
 <div id=link><a href="#" hidefocus title="Создать на Рабочем столе\nярлык для запуска программы" onClick="parent.CreateShortcut(); return false;"> &#x4F; </a></div> \
 <input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" onClick="parent.CreateFormList();">Кф</input> \
 <select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select> \
@@ -964,12 +980,13 @@ function load_RCMenu() {
 
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList() {
+    var ver = 'версия {0}'.format(hta_App.version);
     PostList.document.body.innerHTML = '<pre><br>\
-  ___ _____ _  __  ___  ___ ___    ___                            <br>\
- | _ \\_   _| |/ / | _ \\/ __|   \\  | _ )_ _ _____ __ _____ ___ _ _ <br>\
+  ___ _____ _  __  ___  ___ ___    ___<br>\
+ | _ \\_   _| |/ / | _ \\/ __|   \\  | _ )_ _ _____ __ _____ ___ _ _<br>\
  |  _/ | | | \' &lt;  |  _/\\__ \\ |) | | _ \\ \'_/ _ \\ V  V (_-&lt;/ -_) \'_|<br>\
- |_|   |_| |_|\\_\\ |_|  |___/___/  |___/_| \\___/\\_/\\_//__/\\___|_|  <br>\
-                                                    версия {0}</pre>'.format(hta_App.version);
+ |_|   |_| |_|\\_\\ |_|  |___/___/  |___/_| \\___/\\_/\\_//__/\\___|_|<br>' +
+    Array(66 - ver.length).join(' ') + ver + '</pre>';
 
     var css = PostList.document.createStyleSheet();
     css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
@@ -1133,7 +1150,7 @@ function CorrectDate(InputBox) {
     if (InputBox.disabled) {
         return true;
     }
-    var arr = InputBox.value.match(/^(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{2}|\d{4})$/);
+    var arr = InputBox.value.match(/^(\d{1,2})\D(\d{1,2})\D(\d{2}|\d{4})$/);
     if (arr) {
         var dd = Number(arr[1]);
         var mm = Number(arr[2]);
@@ -1997,31 +2014,48 @@ function StartCreatePostsList(shiftKey) {
     }, 0);
 }
 
+//=====================================================
+//  ФУНКЦИИ СТАРТА
+//=====================================================
+
+function LoadActiveX() {
+    var caption = 'Создание объектов ActiveX';
+    try { // Инициализация объектов ActiveX
+        WshShell = new ActiveXObject('WScript.Shell');
+        FSO = new ActiveXObject('Scripting.FileSystemObject');
+    } catch(e) {
+        ErrBox('Установите Windows Script Host', caption);
+        return false;
+    }
+    return true;
+}
+
 // Централизованное обновление версий с эталона на сервере
 function CheckUpdate() {
+    var caption = 'Проверка обновлений';
     var distr = PathCombine(ptk_psd_dir, 'PTK_PSD_Browser', 'PTK_PSD_Browser.hta');
     if (distr == PathCombine(script_path, 'PTK_PSD_Browser.hta')) {
-        return;
+        return; // same file
     }
+
     if (FSO.FileExists(distr)) {
         var distr_header = ReadFile(distr, 512, 'utf-8');
         if (/version=\"(\d*\.\d*\.\d*)\"/i.test(distr_header)) {
             var distr_version = RegExp.$1;
             if (cmpVersions(hta_App.version, distr_version) < 0) {
                 //MsgBox('Ваша версия {0} устарела и сейчас будет обновлена до {1}'
-                //    .format(hta_App.version, distr_version));
+                //    .format(hta_App.version, distr_version), caption);
                 var this_script = unescape(document.URL).replace(/^file:\/\//, '');
 
                 // Возвращает ProcessId нашего приложения
-                var pid = new ActiveXObject('WScript.Shell')
-                    .Exec('rundll32 kernel32,Sleep').ProcessID;
+                var pid = WshShell.Exec('rundll32 kernel32,Sleep').ProcessID;
                 var oProc = new Enumerator(GetObject('winmgmts:\\\\.\\root\\cimv2')
                     .ExecQuery('select * from Win32_Process where ProcessId={0}'.format(pid))).item();
                 var parent_id = oProc.ParentProcessId;
                 oProc.Terminate();
 
                 // Перезапуск приложения с загруженной новой версией с сервера
-                var rst_file = PathCombine(WshShell.ExpandEnvironmentStrings('%temp%'), 'ptk_restart.cmd');
+                var cmd = PathCombine(WshShell.ExpandEnvironmentStrings('%temp%'), 'ptk_restart.cmd');
                 var rst_text =
                     '@echo off\n' +
                     'chcp 1251 > nul\n' +
@@ -2032,25 +2066,15 @@ function CheckUpdate() {
                     //'copy "{0}" "{1}" > nul\n'.format(distr, this_script) +
                     'copy/y "{0}" "{1}" > nul\n'.format(distr, script_path) +
                     'start "" "{0}"'.format(this_script); //'PTK_PSD_Browser.hta'
-                SaveFile(rst_file, rst_text);
-                WshShell.Run(rst_file, 0, true);
+                SaveFile(cmd, rst_text);
+                WshShell.Run(cmd, 0, true);
             }
         }
     }
 }
 
-function CheckActiveX() {
-    try { // Инициализация объектов ActiveX
-        WshShell = new ActiveXObject('WScript.Shell');
-        FSO = new ActiveXObject('Scripting.FileSystemObject');
-    } catch(e) {
-        ErrBox('Продолжение работы невозможно!\n' +
-            'Установите Windows Script Host.');
-        self.close();
-    }
-}
-
-function ReadINIs() {
+function CheckINIs() {
+    var caption = 'Чтение INI-файлов';
     var args = ReadArgs();
     var ini1, ini2;
     switch (args.length - 1) {
@@ -2066,39 +2090,49 @@ function ReadINIs() {
         ini1 = PathCombine(WshShell.ExpandEnvironmentStrings('%WINDIR%'), 'elo.ini');
         ini2 = PathCombine(script_path, 'PTK_PSD_Browser.ini');
     }
+
+    var ini1ok = FSO.FileExists(ini1);
+    var ini2ok = FSO.FileExists(ini2);
+
+    if (!ini2ok) { // Нет browser.ini
+        ErrBox(
+            'Файл настроек ПТК ПСД\n{0}{1}\n\n'.format(ini1, (ini1ok ? '' : '\nне найден')) +
+            'Файл настроек Обозревателя\n{0}{1}\n\n'.format(ini2, (ini2ok ? '' : '\nне найден')) +
+            'Если используются другие - укажите их в ярлыке',
+            caption);
+        return false;
+    }
+
     ReadINIFile(ini1);
     ReadINIFile(ini2);
+
     INI.Path.elo_ini = ini1;
     INI.Path.browser_ini = ini2;
-}
 
-function CheckINIs() {
     if (!INI.User.CurBik) {
-        ErrBox('Не задан БИК!\n' +
-            'Задайте параметр CurBik в ini-файле');
-        self.close();
+        ErrBox('Не задан БИК (User.CurBik)', caption);
+        return false;
     }
     bank_code = INI.User.CurBik.replace(/.*(\d{3})$/, '$1');
-    if ((!INI.Path.PTKPSD) && (!INI.Path.HOME)) {
-        ErrBox('Каталог установки ПТК ПСД не задан\n' +
-            'ни в elo.ini,\n' +
-            'ни в PTK_PSD_Browser.ini');
-        self.close();
+
+    if (!INI.Path.PTKPSD && !INI.Path.HOME) {
+        ErrBox('Не задан каталог установки ПТК ПСД\n(Path.PTKPSD или Path.HOME)', caption);
+        return false;
     }
+
     ptk_psd_dir = INI.Path.PTKPSD ?
         INI.Path.PTKPSD + '\\' : INI.Path.HOME.replace(/[^\\]*$/, '');
     if (!FSO.FolderExists(ptk_psd_dir)) {
-        ErrBox('Каталог установки ПТК ПСД\n' +
-            '{0}\n'.format(ptk_psd_dir) +
-            'не существует!\n' +
-            'Отредактируйте ini-файл');
-        self.close();
+        ErrBox('Не найден каталог установки ПТК ПСД\n{0}'.format(ptk_psd_dir), caption);
+        return false;
     }
 
     Toolbar.idByPostType.checked = INI.BrowserSettings.by_posttype_checked == '1';
+    return true;
 }
 
 function CheckDB() {
+    var caption = 'Подключение к базе';
     var ODBC = INI.DataBase.ODBC;
     var FDSN = INI.DataBase.FILEDSN;
     db_connect_string = INI.DataBase.db_connect_string;
@@ -2107,6 +2141,10 @@ function CheckDB() {
         if (ODBC) {
             db_connect_string = 'DSN={0};'.format(ODBC);
         } else if (FDSN) {
+            if (!FSO.FileExists(FDSN)) {
+                ErrBox('Не найден файловый DSN\n{0}'.format(FDSN), caption);
+                return false;
+            }
             db_connect_string = 'FILEDSN={0};'.format(FDSN);
         }
 
@@ -2119,64 +2157,69 @@ function CheckDB() {
             }
         }
 
-        var password = INI.DataBase.password;
-        if (password !== undefined) {
-            var m = password.match(/(\d{4})/g);
-            if (m && (m.join('') == password)) {
-                password = PassDecrypt(password);
-            } else {
-                password = prompt('Введите пароль доступа к базе данных:\n' +
-                    '(он будет сохранен и, в дальнейшем, запрашиваться не будет)', password);
+        var ini_text = ReadFile(INI.Path.browser_ini);
+        if (/^[ \t]*password[ \t]*=/im.test(ini_text)) {
+            var password = INI.DataBase.password;
+            if (password === undefined) {
+                password = prompt('Введите пароль доступа к базе данных:', '');
                 if (!password) {
-                    self.close();
+                    ErrBox('Не задан пароль доступа', caption);
+                    return false;
                 }
-                var ini_text = ReadFile(INI.Path.browser_ini);
-                ini_text = ini_text.replace(/^(password=).*$/m, '$1' + PassEncrypt(password));
+                ini_text = ini_text.replace(/^([ \t]*password[ \t]*=).*$/im,
+                    '$1' + PassEncrypt(password));
                 SaveFile(INI.Path.browser_ini, ini_text);
             }
-        }
-        if (password) {
-            if (ODBC || FDSN) {
-                db_connect_string += 'PWD={0};'.format(password);
-            } else {
-                db_connect_string = db_connect_string.replace(/%password%/, password);
+            var m = password.match(/(\d{4})/g);
+            if (m && m.join('') == password) {
+                password = PassDecrypt(password);
+            }
+            if (password) {
+                if (ODBC || FDSN) {
+                    db_connect_string += 'PWD={0};'.format(password);
+                } else {
+                    db_connect_string = db_connect_string.replace(/%password%/, password);
+                }
             }
         }
     } else {
         var database = PathCombine(ptk_psd_dir, 'Database', 'etalon97.mdb');
         if (!FSO.FileExists(database)) {
-            PostList.document.body.innerHTML = 'Файл базы данных {0} не найден!'
-                .format(database).fontcolor('red');
-            return;
+            ErrBox('Не найден файл базы данных\n{0}'.format(database), caption);
+            return false;
         }
         db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
             .format(database);
     }
-}
 
-// Проверка зарегистрирован ли пользователь?
-function CheckUser() {
+    // Проверка зарегистрирован ли пользователь?
     var usrname = INI.User.CurUser;
     if (!usrname) {
         usrname = WshShell.ExpandEnvironmentStrings('%username%');
     }
     document.title += ' [{0}]'.format(usrname);
 
-    Preview.document.body.innerHTML = 'Проверка пользователя...';
-    var all_users = QueryDatabase('SELECT usrname FROM elo_users');
+    var q = TryQueryDatabase('SELECT usrname FROM elo_users');
+    if (q.Error) {
+        ErrBox('Нет связи с базой данных\n\n{0}'.format(q.Description), caption);
+        return false;
+    }
+
+    var all_users = q.Result;
     for (var i = 0; i < all_users.length; i++) {
         if (usrname.toLowerCase() == all_users[i].usrname.toString().toLowerCase()) {
             INI.User.CurUser = usrname;
-            return;
+            return true;
         }
     }
-    ErrBox('Пользователь {0}\n'.format(usrname) +
-        'не зарегистрирован в ПТК ПСД!');
-    self.close();
+    ErrBox('В ПТК ПСД не зарегистрирован\n{0}'.format(usrname), caption);
+    return false;
 }
 
 function CheckPaths() {
+    var caption = 'Проверка путей и файлов';
     store_dir = PathCombine(ptk_psd_dir, 'POST', 'Store');
+
     cache_filepath = INI.BrowserSettings.cache;
     if (cache_filepath) {
         if (/^(%|[A-Z]:\\|\\\\)/i.test(cache_filepath)) {
@@ -2185,46 +2228,72 @@ function CheckPaths() {
             cache_filepath = PathCombine(script_path, cache_filepath);
         }
     }
+
     unpacker = PathCombine(script_path, 'bin', '7z.exe');
+    if (!FSO.FileExists(unpacker)) {
+        ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
+        return false;
+    }
+
     // Задание временного каталога
     tmp_dir = PathCombine(WshShell.ExpandEnvironmentStrings('%temp%'), '$ptk$');
     if (!FSO.FolderExists(tmp_dir)) {
         FSO.CreateFolder(tmp_dir);
     }
+    return true;
 }
 
 // Действия при старте приложения
 function Start() {
     document.title = '{0} - {1}'.format(hta_App.applicationName, hta_App.version);
 
-    CheckActiveX();
+    if (!LoadActiveX()) {
+        Halt();
+        return;
+    }
 
     // Вычисляем путь к данному скрипту
     script_path = unescape(document.URL).replace(/^file:\/\/(.+?)[^\\]+$/, '$1');
+    CheckUpdate();
+
     AddTrustedSites(); // Если скрипт расположен на сетевом диске, то добавляем хост в список доверенных сайтов
     AddTimeForScript();
 
     // Узнаем, какой символ используется в качестве разделителя в дате
     sd = WshShell.RegRead('HKCU\\Control Panel\\International\\sDate');
 
-    // Чтение elo.ini и PTK_PSD_Browser.ini в объект INI
-    ReadINIs();
+    // Присвоение значений глобальным переменным и подключение к БД
+    if (!(CheckINIs() && CheckPaths() && CheckDB())) {
+        Halt();
+        return;
+    }
 
-    // Присвоение значений глобальным переменным bank_code, ptk_psd_dir, store_dir, cache_filepath, unpacker, tmp_dir
-    CheckINIs();
-    CheckUpdate();
-    CheckPaths();
-    CheckDB();              // Присвоение значения глобальной переменной db_connect_string
-    CheckUser();            // Проверка указанного (или по умолчанию) пользователя
     LoadCache();            // Загружаем кеш с сохраненными ранее данными
     load_RCMenu();          // Подготавливем контестное меню
     CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
     CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
-    SetInterval(0);         // Задаем интервал для выборки - текущий день
+    SetInterval(0); // Задаем интервал для выборки - текущий день
 
     // Рабочие размеры окна приложения
     window.moveTo(50, 20);
     window.resizeTo(screen.width - 100, screen.height - 70);
+
+    Toolbar.idToolbar.disabled = false;
+}
+
+// Функция закрытия приложения
+function Halt() {
+     var ie7 = (document.all && !window.opera && window.XMLHttpRequest) ? true : false;  
+     if (ie7) {
+         // This method is required to close a window without any prompt for IE7 & greater versions.
+         window.open('', '_parent', '');
+         window.close();
+     } else {
+         // This method is required to close a window without any prompt for IE6
+         this.focus();
+         self.opener = this;
+         self.close();
+     }
 }
 </script>
 </head>
