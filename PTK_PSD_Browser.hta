@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.4"
+    version="6.5.5"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -30,12 +30,12 @@ var ContextMenu;                        // объект контекстное �
 var WshShell, FSO;                      // ActiveX объекты
 
 var script_path = '';                   // путь к данному скрипту
-var ptk_psd_dir = '';                   // путь к каталогу ПТК ПСД
-var store_dir = '';                     // путь к архивному каталогу ПТК ПСД Store
-var tmp_dir = '';                       // путь к временному каталогу (в нем происходит распаковка архивов)
+var ptk_psd_dir = '\\PTK PSD';          // путь к каталогу ПТК ПСД
+var store_dir = 'POST\\Store';          // путь к архивному каталогу ПТК ПСД Store
+var tmp_dir = '%temp%';                 // путь к временному каталогу (в нем происходит распаковка архивов)
 var cache_filepath = '';                // путь к кешу данных
-var unpacker = '';                      // путь к распаковщику (используется 7-Zip <www.7-zip.org>)
-var bank_code = '';                     // строка с кодом банка
+var unpacker = 'bin\\7z.exe';           // путь к распаковщику (используется 7-Zip <www.7-zip.org>)
+var bank_code = '000';                  // строка с кодом банка
 var db_connect_string = '';             // строка подключения к БД
 var available_forms = '';               // строка со списком кодов всех доступных пользователю форм
 
@@ -81,15 +81,11 @@ function cmpVersions(a, b) {
 
 // Возвращает строку, объединяющую в путь сколько-то директорий и файл на конце
 function PathCombine() {
-    var n = arguments.length - 1;
     var result = [];
-    for (var i = 0; i < n; i++) {
-        var arg = arguments[i];
-        result[i] = arg.substring(arg.length - 1) == '\\' ?
-            arg : arg + '\\';
+    for (var i = 0; i < arguments.length; i++) {
+        result[i] = arguments[i].replace(/\\*$/, '');
     }
-    result[n] = arguments[n];
-    return result.join('');
+    return result.join('\\');
 }
 
 // Возвращает строку с подставленными параметрами типа 'Hello, {0}!'.format('World')
@@ -223,10 +219,14 @@ function AddTimeForScript() {
 // Входные данные: текст SQL запроса, массив с параметрами
 // Возвращает: возвращает массив из объектов. Имена каждого свойства объекта идентичны именам полей.
 function QueryDatabase(sql_query, params) {
+    if (!db_connect_string) {
+        return [];
+    }
+
     var q = TryQueryDatabase(sql_query, params);
     if (q.Error) {
         ErrBox('{0}\n\n{1}\n\n{2}'.format(q.Description, sql_query, params || ''), 'Ошибка запроса к базе данных');
-        Halt();
+        return [];
     }
     return q.Result;
 }
@@ -254,10 +254,11 @@ function TryQueryDatabase(sql_query, params) {
             }
         }
         ADODBConnection.Close();
-    } catch(err) {
+    } catch (err) {
         error = true;
         err_description = err.description;
     }
+
     return {
         Result: arrResult,
         Error: error,
@@ -269,7 +270,6 @@ function TryQueryDatabase(sql_query, params) {
 // Если кол-во байт (byte_read) не указано, то читается весь файл
 function ReadFile(filename, byte_read, file_charset) {
     var content = '';
-    var error = false;
     if (FSO.FileExists(filename)) {
         if (FSO.GetFile(filename).Size > 0) {
             var stream = new ActiveXObject('ADODB.Stream');
@@ -280,19 +280,14 @@ function ReadFile(filename, byte_read, file_charset) {
                 stream.LoadFromFile(filename);
                 content = byte_read ?
                     stream.readText(byte_read) : stream.readText();
-            }
-            catch(err) {
+            } catch (err) {
                 ErrBox('Не удается прочитать файл {0}.\n\n'.format(filename) +
                     'Возможно, это из-за сетевых настроек безопасности Internet Explorer. ' +
                     'Установка локально могла бы решить эту проблему:\n\n' +
                     err.description,
                     'Чтение файла');
-                error = true;
             }
             stream.Close();
-            if (error) {
-                Halt();
-            }
         }
     }
     return content;
@@ -344,7 +339,7 @@ function utf2win(text_in) {
 // obj.Output   содержит текст вывода
 function ExecHide(command, work_dir) {
     var cur_dir;
-    var file_output = PathCombine(WshShell.ExpandEnvironmentStrings('%temp%'), FSO.GetTempName());
+    var file_output = PathCombine(tmp_dir, FSO.GetTempName());
     if (work_dir && FSO.FolderExists(work_dir)) {
         cur_dir = WshShell.CurrentDirectory;
         WshShell.CurrentDirectory = work_dir;
@@ -414,8 +409,8 @@ function Date2Obj(date) {
         month: format(date.getMonth() + 1), // mm
         day:   format(date.getDate()),      // dd
         hour:  format(date.getHours()),     // hh
-        minu:  format(date.getMinutes()),   // mm
-        sec:   format(date.getSeconds())    // ss
+        minu:  format(date.getMinutes())    // mm
+//        sec:   format(date.getSeconds())    // ss
     };
 }
 
@@ -434,7 +429,7 @@ function Date2Cal(date) {
 // Преобразовывает заданную дату в строку для SQL ('yyyymmdd')
 function Date2SQL(date) {
     var dt = Date2Obj(date);
-    return dt.year + dt.month + dt.day;
+    return [dt.year, dt.month, dt.day].join('');
 }
 
 // Создание ярлыка на Рабочем столе
@@ -522,20 +517,20 @@ function GetCurrentFile(ind) {
 
 // Шифрование пароля
 function PassEncrypt(str) {
-    var s = '';
+    var s = [];
     for (var i = 0; i < str.length; i++) {
-        s += ('000' + (6 ^ str.charCodeAt(i))).replace(/.*(.{4})$/, '$1');
+        s.push(('000' + (6 ^ str.charCodeAt(i))).replace(/.*(.{4})$/, '$1'));
     }
-    return s;
+    return s.join('');
 }
 
 // Дешифрование пароля
 function PassDecrypt(str) {
-    var s = '';
+    var s = [];
     for (var i = 0; i < str.length; i += 4) {
-        s += String.fromCharCode(6 ^ Number(str.slice(i, i + 4)));
+        s.push(String.fromCharCode(6 ^ Number(str.slice(i, i + 4))));
     }
-    return s;
+    return s.join('');
 }
 
 //=====================================================
@@ -619,80 +614,63 @@ function OnKeydownFromPostList() {
 // Показывает контекстное меню по правой кнопке мыши
 function ShowContextMenu(pane) {
     // вставляем html содержимое меню
-    var html_menu = '\
-<table width=100% cellpadding=4 cellspacing=0>\
-<style>td.icon {font:12pt Wingdings;}</style>';
+    var html_menu = [];
+    html_menu.push(
+    '<table width=100% cellpadding=4 cellspacing=0>',
+    '<style>td.icon {font:12pt Wingdings;}</style>');
     switch (pane.name) {
     case 'PostList':
-        html_menu += '\
-<tr id=menuitem onClick="parent.PrintForm();">\
-<td class="icon" style="font:12pt Wingdings 2;">&#x36;\
-<td>Печать\
-\
-<tr id=menuitem onClick="parent.OpenExplorer();">\
-<td class="icon" style="font:10pt;">&#x31;\
-<td>Открыть каталог\
-\
-<tr id=menuitem onClick="parent.SaveRace(parent.select_filePathNameTime);">\
-<td class="icon">&#x3C;\
-<td>Сохранить посылку в...\
-\
-<tr id=menuitem onClick="parent.SaveRace();">\
-<td class="icon">&#x34;\
-<td>Распаковать все файлы в...';
+        html_menu.push(
+        '<tr id=menuitem onClick="parent.PrintForm();">',
+        '<td class="icon" style="font:12pt Wingdings 2;">&#x36;<td>Печать',
+        '<tr id=menuitem onClick="parent.OpenExplorer();">',
+        '<td class="icon" style="font:10pt;">&#x31;<td>Открыть каталог',
+        '<tr id=menuitem onClick="parent.SaveRace(parent.select_filePathNameTime);">',
+        '<td class="icon">&#x3C;<td>Сохранить посылку в...',
+        '<tr id=menuitem onClick="parent.SaveRace();">',
+        '<td class="icon">&#x34;<td>Распаковать все файлы в...');
 
-        if (/требование|решени|запрос|поручение/i.test(PostList.idRow[select_row_idx].cells[2].innerText)) {
+        if (/треб.|приост.|отмена|запрос|поруч./i.test(PostList.idRow[select_row_idx].cells[2].innerText)) {
             // пункт "Сформировать подтверждения" отображается только на запросах 365П
-            html_menu += '\
-<tr id=menuitem onClick="parent.Answer365PB1();">\
-<td class="icon">&#x2B;\
-<td>Сформировать подтверждения PB1';
+            html_menu.push(
+            '<tr id=menuitem onClick="parent.Answer365PB1();">',
+            '<td class="icon">&#x2B;<td>Сформировать подтверждения PB1');
         }
 
-        html_menu += '\
-<tr id=menuitem onClick="parent.ReReadRace();">\
-<td class="icon">&#x5B;\
-<td>Перечитать содержимое посылки';
+        html_menu.push(
+        '<tr id=menuitem onClick="parent.ReReadRace();">',
+        '<td class="icon">&#x5B;<td>Перечитать содержимое посылки');
         break;
 
     case 'Preview':
         if (/\.VRB$/i.test(file_on_clicked_in_preview)) {
-            html_menu += '\
-<tr id=menuitem onClick="parent.DialogAnswer365P(\'{0}\');">\
-<td class="icon">&#x2B;\
-<td>Сформировать подтверждение PB...';
+            html_menu.push(
+            '<tr id=menuitem onClick="parent.DialogAnswer365P(\'{0}\');">',
+            '<td class="icon">&#x2B;<td>Сформировать подтверждение PB...');
         }
 
-        html_menu += '\
-<tr id=menuitem onClick="parent.PrintForm();">\
-<td class="icon" style="font:12pt Wingdings 2;">&#x36;\
-<td>Печать\
-\
-<tr id=menuitem onClick="parent.SaveRace(parent.select_filePathNameTime);">\
-<td class="icon">&#x3C;\
-<td>Сохранить всю посылку в...';
+        html_menu.push(
+        '<tr id=menuitem onClick="parent.PrintForm();">',
+        '<td class="icon" style="font:12pt Wingdings 2;">&#x36;<td>Печать',
+        '<tr id=menuitem onClick="parent.SaveRace(parent.select_filePathNameTime);">',
+        '<td class="icon">&#x3C;<td>Сохранить всю посылку в...');
 
         if (file_on_clicked_in_preview) {
-            html_menu += '\
-<tr id=menuitem onClick="parent.SaveRace(\'{0}\');">\
-<td class="icon">&#x3D;\
-<td>Сохранить файл под курсором в...\
-\
-<tr id=menuitem onClick="parent.SaveRace();">\
-<td class="icon">&#x34;\
-<td>Распаковать все файлы в...\
-\
-<tr id=menuitem onClick="parent.FindRelatedDocs(\'{0}\');">\
-<td class="icon">&#x61;\
-<td>Найти связанные документы';
+            html_menu.push(
+            '<tr id=menuitem onClick="parent.SaveRace(\'{0}\');">',
+            '<td class="icon">&#x3D;<td>Сохранить файл под курсором в...',
+            '<tr id=menuitem onClick="parent.SaveRace();">',
+            '<td class="icon">&#x34;<td>Распаковать все файлы в...',
+            '<tr id=menuitem onClick="parent.FindRelatedDocs(\'{0}\');">',
+            '<td class="icon">&#x61;<td>Найти связанные документы');
         }
         break;
 
     default:
         return;
     }
-    html_menu += '</table>';
-    ContextMenu.document.body.innerHTML = html_menu.format(file_on_clicked_in_preview);
+    html_menu.push('</table>');
+    ContextMenu.document.body.innerHTML = html_menu.join('').format(file_on_clicked_in_preview);
 
     // добавляем эвенты для подсветки текущего пункта меню
     for (var i = 0; i < ContextMenu.document.all.menuitem.length; i++) {
@@ -827,10 +805,10 @@ function Answer365P(ans_file, ans_text) {
 
     var dt = Date2Obj(new Date());
     var pb_text = 
-        '{0}###\r\n'.format(ans_file) +
+        ans_file + '###\r\n' +
         ans_text || '10@@@\r\n' +
-        '{0}-{1}-{2}@@@\r\n'.format(dt.year, dt.month, dt.day) +
-        '{0}:{1}:{2}@@@\r\n'.format(dt.hour, dt.minu, dt.sec) +
+        [dt.year, dt.month, dt.day].join('-') + '@@@\r\n' +
+        [dt.hour, dt.minu, dt.sec].join(':') + '@@@\r\n' +
         '===\r\n';
     var pb2 = ans_text && (ans_text != '10@@@\r\n');
     WriteFile(PathCombine(outbox_dir_365P, 'PB{0}_{1}.txt'.format((pb2 ? '2' : '1'), ans_file)), pb_text);
@@ -1048,6 +1026,9 @@ function CreateFormList() {
         return posttype_name_list;
     }
 
+    if (!db_connect_string) {
+        return;
+    }
     var old_value = Toolbar.idPostType.value;
 
     // Заполняем комбобокс
@@ -1096,19 +1077,17 @@ function IntervalButtonSet(sel_btn) {
 
 // Возвращает строку даты 'dd.mm.yyyy', отстоящую от заданной (если не задано, то от текущей) на days дней
 function GetDate(days, startDate) {
-    var re = new RegExp(['^(\\d\\d)', '(\\d\\d)', '(\\d\\d\\d\\d)$'].join(sd), '');
     var datetime = startDate ?
-        new Date(startDate.replace(re, '$2-$1-$3')) : new Date();
-    datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
+        new Date(startDate.replace(/(\d+)\.(\d+)\.(\d+)/, '$2-$1-$3')) : new Date();
+    datetime.setDate(datetime.getDate() + days);
     return Date2Cal(datetime);
 }
 
 // Возвращает строку даты 'yyyymmdd', отстоящую от заданной (если не задано, то от текущей) на days дней
 function GetDateSQL(days, startDate) {
-    var re = new RegExp(['^(\\d\\d)', '(\\d\\d)', '(\\d\\d\\d\\d)$'].join(sd), '');
     var datetime = startDate ?
-        new Date(startDate.replace(re, '$2-$1-$3')) : new Date();
-    datetime.setTime(days * 24*60*60*1000 + datetime.getTime());
+        new Date(startDate.replace(/(\d+)\.(\d+)\.(\d+)/, '$2-$1-$3')) : new Date();
+    datetime.setDate(datetime.getDate() + days);
     return Date2SQL(datetime);
 }
 
@@ -1212,9 +1191,8 @@ function InitCalendar(DialogWin, inputbox_idx) {
     cal.Date    = Toolbar.idDateInput[inputbox_idx].value;
     // Корректировка размера диалогового окна (т.к. в старых версиях IE эти параметры задают размер диалогового окна целиком, а не размер клиентской области)
     var Body = DialogWin.document.body;
-    var px = '{0}px';
-    DialogWin.dialogWidth  = px.format(px2number(DialogWin.dialogWidth)  + Body.scrollWidth  - Body.offsetWidth);
-    DialogWin.dialogHeight = px.format(px2number(DialogWin.dialogHeight) + Body.scrollHeight - Body.offsetHeight);
+    DialogWin.dialogWidth  = px2number(DialogWin.dialogWidth)  + Body.scrollWidth  - Body.offsetWidth  + 'px';
+    DialogWin.dialogHeight = px2number(DialogWin.dialogHeight) + Body.scrollHeight - Body.offsetHeight + 'px';
 }
 
 // Показывает диалоговое окно с календарем
@@ -1255,12 +1233,12 @@ function CheckCalendarActiveX() {
 //  РАБОТА С КЕШЕМ ДАННЫХ
 //=====================================================
 
-// Сохранение данных (info и preview) в массиве Cache
+// Сохранение данных (state, info и preview) в массиве Cache
 function KeepInfoToCache() {
     for (var i = 1; i < arrDB.length; i++) {
         Cache[arrDB[i].filename] = {
-            state: PostList.idIcon[i].style.color,
-            info: PostList.idInfo[i].innerHTML,
+            state:   PostList.idIcon[i].style.color,
+            info:    PostList.idInfo[i].innerHTML,
             preview: PostList.idPreviewHide[i].innerHTML
         };
     }
@@ -1325,8 +1303,7 @@ function LoadCache() {
                 preview: file.getElementsByTagName('PREVIEW')[0].childNodes[0].nodeValue
             };
         }
-    }
-    catch(err) {
+    } catch (err) {
         DeleteCache();
         return;
     }
@@ -1424,11 +1401,11 @@ function GetObjPostContent(filepath, RowOfDBTable) {
             }
         }
         // -----------------------------------------------------------
-        var info = '';
+        var info = [];
         var count = 0;
         switch (post_type) {
         case 'sa':
-            info += GetSAForms(files_list);
+            info.push(GetSAForms(files_list));
             break;
         case '2z': // 311П
             if (/^([ABCDOPSZYN])N?\d{13,15}\.ARJ$/im.test(files_list)) {
@@ -1441,11 +1418,11 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         count_bad += errors;
                         total += '/{0}'.format(errors.length).fontcolor('red');
                     }
-                    info += '{0} <s>({1})</s>'.format(adr, total);
+                    info.push('{0} <s>({1})</s>'.format(adr, total));
                 }
             } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
                 var uvtype = Get311Type(RegExp.$1);
-                info += '<s>уведом. ЦБ на {0}</s>'.format(uvtype);
+                info.push('<s>уведом. ЦБ на {0}</s>'.format(uvtype));
             }
             break;
         case '5z': // 322П
@@ -1488,56 +1465,56 @@ function GetObjPostContent(filepath, RowOfDBTable) {
             var fmtPB = '{0} {1} <s>({2})</s> ';
             var fclr = '#990000';
             if (rpo) { //решение о приост.
-                info += fmt.format('приост.'.fontcolor(fclr), rpo.length);
+                info.push(fmt.format('приост.'.fontcolor(fclr), rpo.length));
             }
             if (roo) { //отмена решения
-                info += fmt.format('отмена'.fontcolor(fclr), roo.length);
+                info.push(fmt.format('отмена'.fontcolor(fclr), roo.length));
             }
             if (pno) { //поручение
-                info += fmt.format('поруч.'.fontcolor(fclr), pno.length);
+                info.push(fmt.format('поруч.'.fontcolor(fclr), pno.length));
             }
             if (apz) { //решение об отзыве
-                info += fmt.format('отзыв'.fontcolor(fclr), apz.length);
+                info.push(fmt.format('отзыв'.fontcolor(fclr), apz.length));
             }
             if (zno) { //запрос
-                info += fmt.format('запрос'.fontcolor(fclr), zno.length);
+                info.push(fmt.format('запрос'.fontcolor(fclr), zno.length));
             }
             if (trb) { //требование
-                info += fmt.format('треб.'.fontcolor(fclr), trb.length);
+                info.push(fmt.format('треб.'.fontcolor(fclr), trb.length));
             }
             if (bns) { //нал.счетов
-                info += fmt.format('счета', bns.length);
+                info.push(fmt.format('счета', bns.length));
             }
             if (bos) { //свед. об остатках
-                info += fmt.format('остатки', bos.length);
+                info.push(fmt.format('остатки', bos.length));
             }
             if (bvs) { //выписка
-                info += fmt.format('выписка', bvs.length);
+                info.push(fmt.format('выписка', bvs.length));
             }
             if (bnp) { //сообщ. о неисп.
-                info += fmt.format('неисп.', bnp.length);
+                info.push(fmt.format('неисп.', bnp.length));
             }
             if (izv) { //извещение
-                info += fmt.format('изв.', izv.length);
+                info.push(fmt.format('изв.', izv.length));
             }
             if (pb1) { //подтв.
-                info += fmtPB.format('подтв.', 'PB1'.fontcolor('green'), pb1.length);
+                info.push(fmtPB.format('подтв.', 'PB1'.fontcolor('green'), pb1.length));
             }
             if (pb2) { //подтв.
-                info += fmtPB.format('подтв.', 'PB2'.fontcolor('red'), pb2.length);
+                info.push(fmtPB.format('подтв.', 'PB2'.fontcolor('red'), pb2.length));
             }
             if (kwt) { //квит.
-                info += fmt.format('квит.', kwt.length);
+                info.push(fmt.format('квит.', kwt.length));
             }
             if (dsb) { //уведомление
-                info += fmt.format('увед.', dsb.length);
+                info.push(fmt.format('увед.', dsb.length));
             }
             if (bz1) { //запрос повт.кв.
-                info += fmt.format('повт.кв.', bz1.length);
+                info.push(fmt.format('повт.кв.', bz1.length));
             }
             break;
         }
-        return info;
+        return info.join('');
     }
 
     // Извлечение информации о посылке из ее текста (если она - один файл)
@@ -1712,33 +1689,33 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList[arrFilesList.length] = filename;
-                    //html_text += '<div class="f"><p id=id class="l{0}">{1}</p>'.format(level, filename);
-                    html_text += '<div><p id=id>{0}</p>'.format(filename);
+                    //html_text.push('<div class="f"><p id=id class="l{0}">{1}</p>'.format(level, filename));
+                    html_text.push('<div><p id=id>{0}</p>'.format(filename));
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
-                        html_text += span.format('содержимое зашифровано');
+                        html_text.push(span.format('содержимое зашифровано'));
                     } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
-                        html_text += span.format('содержимое скрыто');
+                        html_text.push(span.format('содержимое скрыто'));
                     } else {
                         line_count = UnpackArchive(PathCombine(tmp_dir, filename), level + 1);
                     }
                     //if ((files_list.length > 1) && (line_count > 18)) {
                     //    // если в посылке более 1 файла и кол-во строк в тексте превышает указанное значение, то
-                    //    html_text += '</div><br style="page-break-after:always">'; // вставляем разделитель страниц для печати
+                    //    html_text.push('</div><br style="page-break-after:always">'); // вставляем разделитель страниц для печати
                     //} else {
-                    //    html_text += '</div><br>';
+                    //    html_text.push('</div><br>');
                     //}
-                    html_text += '</div>';
+                    html_text.push('</div>');
                 }
-                //html_text = html_text.replace(/<br style=\"page\-break\-after:always\">$/, ''); // удаляем последний разделитель страницы
+                //html_text.push(html_text.replace(/<br style=\"page\-break\-after:always\">$/, '')); // удаляем последний разделитель страницы
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text += '<div><p id=id>&nbsp;</p>';
+                html_text.push('<div><p id=id>&nbsp;</p>');
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
-                    html_text += span.format('содержимое скрыто');
+                    html_text.push(span.format('содержимое скрыто'));
                 } else {
                     UnpackArchive(filepath, level + 1);
                 }
-                html_text += '</div>';
+                html_text.push('</div>');
             } else {
                 // ------- содержимое файла ------------------
                 var text = ReadFile(filepath);
@@ -1791,7 +1768,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
                     }
                     filename = FSO.GetFileName(filepath);
                     text = HighlightText(text, filename);
-                    html_text += text + content.sign;
+                    html_text.push(text, content.sign);
                 }
             }
             return line_count;
@@ -1807,26 +1784,29 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     // ---------------------------------------------------
     if (FSO.FileExists(filepath)) {
         var arrFilesList = [];
-        var html_text = '';
+        var html_text = [];
         GetPostContent(filepath); // Ф-ция заполняет переменные arrFilesList и html_text значениями
 
     // ---- добавление в строку со списком дополнительной информации о посылке ----
-        var content_info = '';
+        var content_info = [];
         if (arrFilesList.length) {
-            content_info += '<s>{0}'.format(arrFilesList[0]);
+            content_info.push('<s>', arrFilesList[0]);
             if (arrFilesList.length > 1) {
-                content_info += '+';
+                content_info.push('+');
             }
-            content_info += '</s> ';
+            content_info.push('</s> ');
             // инфа извлекается из списка файлов, содержащихся в посылке
-            content_info += GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype);
+            content_info.push(GetContentInfoFromFilesList(arrFilesList.join('\n'), RowOfDBTable.posttype));
         }
-        if ((content_info === '') || (RowOfDBTable.posttype != 'sa')) {
+
+        html_text = html_text.join(''); // IE6-7
+
+        if (content_info.length === 0 || RowOfDBTable.posttype != 'sa') {
             // инфа извлекается из текста распакованной посылки (того, что показывается в нижнем окне)
-            content_info += GetContentInfoFromFileText(html_text, RowOfDBTable.posttype);
+            content_info.push(GetContentInfoFromFileText(html_text, RowOfDBTable.posttype));
         }
         if (RowOfDBTable.filetype == 'ИЭС3') {
-            content_info += '<s>подтв. о получении</s>';
+            content_info.push('<s>подтв. о получении</s>');
         }
     // ---------------------------------------------------
 
@@ -1835,7 +1815,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
         cache_contains_unique_data = true;
 
         var content_state = 'gray';
-        if ((RowOfDBTable.filetype == 'ОЭС') || (RowOfDBTable.filetype == 'ИЭС3')) {
+        if (RowOfDBTable.filetype == 'ОЭС' || RowOfDBTable.filetype == 'ИЭС3') {
             content_state = 'blue';
         } else if (count_bad) {
             content_state = 'red';
@@ -1847,14 +1827,13 @@ function GetObjPostContent(filepath, RowOfDBTable) {
 
         return {
             state:   content_state,
-            info:    content_info,
+            info:    content_info.join(''),
             preview: html_text
         };
     } else {
         return {
-            state: 'red',
-            preview: '<i>Запись "{0}" имеется в базе данных, \
-но такой файл не найден на диске!</i>'.format(filepath)
+            state:   'red',
+            preview: '<i>Запись "{0}" имеется в базе данных, но такой файл не найден на диске!</i>'.format(filepath)
         };
     }
 }
@@ -1879,7 +1858,8 @@ function CreateDBSelect() {
     Preview.document.body.innerHTML = 'Загрузка посылок...';
     if (/^DSN=/.test(db_connect_string)) {
         arrDB = QueryDatabase(sql_string,
-            [Toolbar.idDateInput[0].value, GetDate(1, Toolbar.idDateInput[1].value)]);
+            [Toolbar.idDateInput[0].value,
+             GetDate(1, Toolbar.idDateInput[1].value)]);
     } else {
         arrDB = QueryDatabase(sql_string,
             [GetDateSQL(0, Toolbar.idDateInput[0].value),
@@ -1905,82 +1885,83 @@ function CreatePostsList() {
             }
         }
     }
-    // -----------------------------------------------
-    if (arrDB.length > 0) {
-        var HTMLtable = '\
-<table frame="void">\
-<tr id=idRow style="display:none">\
-<td id=idIcon>\
-<td id=idES>\
-<td id=idInfo>\
-<td id=idPreviewHide>\
-<td id=idState>';
-        // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
-        arrDB.unshift({}); // добавляем пустышку в начало массива, чтобы индекс его элементов соответствовал индексу узлов
-        Preview.document.body.innerHTML = 'Загрузка форм...';
+
+    function GetHTMLTablePass1() {
+        var HTMLtable = [];
+        HTMLtable.push('<table frame="void"><tr id=idRow style="display:none">',
+            '<td id=idIcon><td id=idES><td id=idInfo><td><td><td id=idPreviewHide>');
         var form_name_prev = '';
         for (var i = 1; i < arrDB.length; i++) {
             // ------ Построение списка посылок -----------------------------------------------------------
             if (arrDB[i].posttype != form_name_prev) {
-                HTMLtable += '<tr><th colspan=6>{0}'.format(GetFormName(arrDB[i].posttype));
+                HTMLtable.push('<tr><th colspan=6>', GetFormName(arrDB[i].posttype));
                 form_name_prev = arrDB[i].posttype;
             }
-            HTMLtable += '\
-<tr id=idRow>\
-<td id=idIcon class="icon">{0}\
-<td id=idES>{1}\
-<td id=idInfo>\
-<td><s>{2}</s>\
-<td>{3}\
-<td id=idPreviewHide style="display:none">'
-                    .format(
-                        arrDB[i].state_ == '6' ?
-                            '&#xDB;' :
-                            arrDB[i].state_ == '7' ?
-                                '&#xDC;' :
-                                '',
-                        arrDB[i].filetype,
-                        Date2Log(new Date(arrDB[i].dt)),
-                        arrDB[i].filename.replace(/\.[^.]+$/,''));
+            var fname = arrDB[i].filename.replace(/\.[^.]+$/,'');
+            HTMLtable.push('<tr id=idRow>',
+                '<td id=idIcon class="icon" style="color:black">',
+                    arrDB[i].state_ == '6' ? '&#xDB;' :
+                    arrDB[i].state_ == '7' ? '&#xDC;' : '',
+                '<td id=idES style="color:black">', arrDB[i].filetype,
+                '<td id=idInfo>',
+                '<td><s>', Date2Log(new Date(arrDB[i].dt)), '</s>',
+                '<td>', fname,
+                '<td id=idPreviewHide style="display:none">');
             // -----------------------------------------------------------------------------------------
         }
-        PostList.document.body.innerHTML = HTMLtable + '</table>\
-<table id=idCursor style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px;"><tr><td>&nbsp;</td></tr></table>';
+        HTMLtable.push('</table>\
+<table id=idCursor style="font-size:14px; border-collapse:collapse; border:1px dotted highlight; position:absolute; width:100%; top:-20px;">\
+<tr><td>&nbsp;</td></tr></table>');
+        return HTMLtable.join('');
+    }
 
-        Preview.document.body.innerHTML = '\
-<table height=100%><tr><td>Загрузка содержимого файлов...</td><td width=50%">\
-<div id=idProgress style="width:0;"></div>\
-</td></tr></table>';
-        var percent_prev = 0;
-        for (var j = 1; j < arrDB.length; j++) {
-            var post_content = Cache[arrDB[j].filename]; // вначале пробуем получить info и preview из кеша
+    function SetHTMLTablePass2() {
+        var percent, percent_prev = 0;
+        for (var i = 1; i < arrDB.length; i++) {
+            var post_content = Cache[arrDB[i].filename]; // вначале пробуем получить info и preview из кеша
             if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
                 if (cache_filepath && FSO.FileExists(cache_filepath) && 
-                    (cache_DateLastModified != FSO.GetFile(cache_filepath).DateLastModified)) {
+                    cache_DateLastModified != FSO.GetFile(cache_filepath).DateLastModified) {
                     // если кеш на диске был кем то изменен
                     LoadCache(); // грузим кеш по-новой
-                    post_content = Cache[arrDB[j].filename]; // и вновь пробуем получить info и preview из кеша
+                    post_content = Cache[arrDB[i].filename]; // и вновь пробуем получить info и preview из кеша
                 }
             }
             if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
-                post_content = GetObjPostContent(GetCurrentFile(j), arrDB[j]); // извлекаем данные самостоятельно
+                post_content = GetObjPostContent(GetCurrentFile(i), arrDB[i]); // извлекаем данные самостоятельно
             }
-            PostList.idRow[j].onmouseover = createOneHandler(j);
-            PostList.idIcon[j].style.color = post_content.state;
-            PostList.idES[j].style.color = post_content.state;
-            PostList.idInfo[j].innerHTML = post_content.info || '';
-            PostList.idPreviewHide[j].innerHTML = post_content.preview;
-            var percent = Math.round(j / arrDB.length * 100);
+
+            PostList.idRow[i].onmouseover = createOneHandler(i);
+            PostList.idIcon[i].style.color = post_content.state;
+            PostList.idES[i].style.color = post_content.state;
+            PostList.idInfo[i].innerHTML = post_content.info || '';
+            PostList.idPreviewHide[i].innerHTML = post_content.preview;
+            // -----------------------------------------------------------------------------------------
+            percent = Math.round(i / arrDB.length * 100);
             if (percent > percent_prev) {
-                try {
-                    Preview.idProgress.style.width = percent + '%';
-                    Preview.idProgress.innerHTML = percent + '%';
-                    percent_prev = percent;
-                }
-                catch (e) {
-                }
+                Preview.document.body.innerHTML = '\
+<table height=100%><tr><td>Загрузка содержимого файлов...</td><td width=50%">\
+<div id=idProgress style="width:{0}%;">{0}%</div>\
+</td></tr></table>'.format(percent);
+                percent_prev = percent;
             }
         }
+    }
+
+    if (!db_connect_string) {
+        Preview.document.body.innerHTML = 'Нет связи с базой данных ПТК ПСД'.fontcolor('red');
+        Toolbar.idToolbar.disabled = false;
+        return;
+    }
+    // -----------------------------------------------
+    if (arrDB.length > 0) {
+        // добавляем пустышку для того, чтобы к узлам idRow, idInfo, idPreviewHide всегда можно было обратиться по индексу
+        arrDB.unshift({}); // добавляем пустышку в начало массива, чтобы индекс его элементов соответствовал индексу узлов
+        Preview.document.body.innerHTML = 'Загрузка форм...';
+        PostList.document.body.innerHTML = GetHTMLTablePass1();
+
+        Preview.document.body.innerHTML = 'Загрузка содержимого файлов...';
+        SetHTMLTablePass2();
 
         // добавляем эвенты
         PostList.idCursor.onmouseup = function() { // клик мыши по курсорной строке
@@ -1996,7 +1977,6 @@ function CreatePostsList() {
     select_row_idx = undefined;
     Preview.document.body.innerHTML = 'Выберите {0} для просмотра'
         .format(arrDB.length === 0 ? 'дату' : 'посылку').fontcolor('green');
-
 }
 
 // Запуск ф-ции CreatePostsList отдельным процессом
@@ -2023,7 +2003,7 @@ function LoadActiveX() {
     try { // Инициализация объектов ActiveX
         WshShell = new ActiveXObject('WScript.Shell');
         FSO = new ActiveXObject('Scripting.FileSystemObject');
-    } catch(e) {
+    } catch (e) {
         ErrBox('Установите Windows Script Host', caption);
         return false;
     }
@@ -2109,23 +2089,24 @@ function CheckINIs() {
     INI.Path.elo_ini = ini1;
     INI.Path.browser_ini = ini2;
 
-    if (!INI.User.CurBik) {
-        ErrBox('Не задан БИК (User.CurBik)', caption);
-        return false;
-    }
-    bank_code = INI.User.CurBik.replace(/.*(\d{3})$/, '$1');
-
     if (!INI.Path.PTKPSD && !INI.Path.HOME) {
         ErrBox('Не задан каталог установки ПТК ПСД\n(Path.PTKPSD или Path.HOME)', caption);
         return false;
     }
 
     ptk_psd_dir = INI.Path.PTKPSD ?
-        INI.Path.PTKPSD + '\\' : INI.Path.HOME.replace(/[^\\]*$/, '');
+        INI.Path.PTKPSD :
+        INI.Path.HOME.replace(/[^\\]*$/, '');
     if (!FSO.FolderExists(ptk_psd_dir)) {
         ErrBox('Не найден каталог установки ПТК ПСД\n{0}'.format(ptk_psd_dir), caption);
         return false;
     }
+
+    if (!INI.User.CurBik) {
+        ErrBox('Не задан БИК (User.CurBik)', caption);
+        return false;
+    }
+    bank_code = INI.User.CurBik.replace(/.*(\d{3})$/, '$1');
 
     Toolbar.idByPostType.checked = INI.BrowserSettings.by_posttype_checked == '1';
     return true;
@@ -2185,7 +2166,7 @@ function CheckDB() {
     } else {
         var database = PathCombine(ptk_psd_dir, 'Database', 'etalon97.mdb');
         if (!FSO.FileExists(database)) {
-            ErrBox('Не найден файл базы данных\n{0}'.format(database), caption);
+            ErrBox('Не найден файл базы данных по умолчанию\n{0}'.format(database), caption);
             return false;
         }
         db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
@@ -2202,6 +2183,7 @@ function CheckDB() {
     var q = TryQueryDatabase('SELECT usrname FROM elo_users');
     if (q.Error) {
         ErrBox('Нет связи с базой данных\n\n{0}'.format(q.Description), caption);
+        db_connect_string = '';
         return false;
     }
 
@@ -2218,7 +2200,7 @@ function CheckDB() {
 
 function CheckPaths() {
     var caption = 'Проверка путей и файлов';
-    store_dir = PathCombine(ptk_psd_dir, 'POST', 'Store');
+    store_dir = PathCombine(ptk_psd_dir, store_dir);
 
     cache_filepath = INI.BrowserSettings.cache;
     if (cache_filepath) {
@@ -2229,14 +2211,14 @@ function CheckPaths() {
         }
     }
 
-    unpacker = PathCombine(script_path, 'bin', '7z.exe');
+    unpacker = PathCombine(script_path, unpacker);
     if (!FSO.FileExists(unpacker)) {
         ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
         return false;
     }
 
     // Задание временного каталога
-    tmp_dir = PathCombine(WshShell.ExpandEnvironmentStrings('%temp%'), '$ptk$');
+    tmp_dir = PathCombine(WshShell.ExpandEnvironmentStrings(tmp_dir), '$ptk$');
     if (!FSO.FolderExists(tmp_dir)) {
         FSO.CreateFolder(tmp_dir);
     }
@@ -2263,20 +2245,21 @@ function Start() {
     sd = WshShell.RegRead('HKCU\\Control Panel\\International\\sDate');
 
     // Присвоение значений глобальным переменным и подключение к БД
-    if (!(CheckINIs() && CheckPaths() && CheckDB())) {
-        Halt();
-        return;
-    }
+    CheckINIs();
+    CheckPaths();
+    CheckDB();
 
     LoadCache();            // Загружаем кеш с сохраненными ранее данными
     load_RCMenu();          // Подготавливем контестное меню
     CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
     CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
-    SetInterval(0); // Задаем интервал для выборки - текущий день
+    SetInterval(0);         // Задаем интервал для выборки - текущий день
 
-    // Рабочие размеры окна приложения
-    window.moveTo(50, 20);
-    window.resizeTo(screen.width - 100, screen.height - 70);
+    if (db_connect_string) {
+        // Рабочие размеры окна приложения
+        window.moveTo(50, 20);
+        window.resizeTo(screen.width - 100, screen.height - 70);
+    }
 
     Toolbar.idToolbar.disabled = false;
 }
