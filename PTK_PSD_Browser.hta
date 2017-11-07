@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.5"
+    version="6.5.6"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -958,14 +958,6 @@ function load_RCMenu() {
 
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList() {
-    var ver = 'версия {0}'.format(hta_App.version);
-    PostList.document.body.innerHTML = '<pre><br>\
-  ___ _____ _  __  ___  ___ ___    ___<br>\
- | _ \\_   _| |/ / | _ \\/ __|   \\  | _ )_ _ _____ __ _____ ___ _ _<br>\
- |  _/ | | | \' &lt;  |  _/\\__ \\ |) | | _ \\ \'_/ _ \\ V  V (_-&lt;/ -_) \'_|<br>\
- |_|   |_| |_|\\_\\ |_|  |___/___/  |___/_| \\___/\\_/\\_//__/\\___|_|<br>' +
-    Array(66 - ver.length).join(' ') + ver + '</pre>';
-
     var css = PostList.document.createStyleSheet();
     css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
     css.addRule('th', 'color:threeddarkshadow; cursor:default;' + gradient);
@@ -1833,7 +1825,7 @@ function GetObjPostContent(filepath, RowOfDBTable) {
     } else {
         return {
             state:   'red',
-            preview: '<i>Запись "{0}" имеется в базе данных, но такой файл не найден на диске!</i>'.format(filepath)
+            preview: 'Запись "{0}" имеется в базе данных, но такой файл не найден на диске!'.format(filepath).fontcolor(state);
         };
     }
 }
