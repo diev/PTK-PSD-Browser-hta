@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.9"
+    version="6.5.10"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -915,11 +915,11 @@ function ReReadRace() {
     fcache.state = post_content.state;
     fcache.info = post_content.info;
     fcache.preview = post_content.preview;
-    var Row = PostList.idRow[select_row_idx];
-    if (Row.cells[2].style.display === '') {
-        Row.cells[2].innerHTML = post_content.info;
+    var Row = PostList.idRow[select_row_idx].cells;
+    if (Row[2].style.display === '') {
+        Row[2].innerHTML = post_content.info;
     }
-    Row.cells[5].innerHTML = post_content.preview;
+    Row[5].innerHTML = post_content.preview;
     ShowPreview();
     ContextMenu.hide();
     setTimeout(SaveCache, 0);
@@ -1297,11 +1297,11 @@ function CheckCalendarActiveX() {
 // Сохранение данных (state, info и preview) в массиве Cache
 function KeepInfoToCache() {
     for (var i = 1, l = arrDB.length; i < l; i++) {
-        var Row = PostList.idRow[i];
+        var Row = PostList.idRow[i].cells;
         Cache[arrDB[i].filename] = {
-            state:   Row.cells[0].style.color,
-            info:    Row.cells[2].innerHTML,
-            preview: Row.cells[5].innerHTML
+            state:   Row[0].style.color,
+            info:    Row[2].innerHTML,
+            preview: Row[5].innerHTML
         };
     }
 }
@@ -1349,11 +1349,11 @@ function LoadCache() {
     try { // На случай, если кеш содержит результаты старой версии
         XMLDoc.load(cache_filepath);
         var root = XMLDoc.documentElement;
-        var ver = root.getAttribute('version');
-        if (ver && cmpVersions(ver, hta_App.version) < 0) {
-            DeleteCache();
-            return;
-        }
+//        var ver = root.getAttribute('version');
+//        if (ver && cmpVersions(ver, hta_App.version) < 0) {
+//            DeleteCache();
+//            return;
+//        }
         for (var i = 0, l = root.childNodes.length; i < l; i++) {
             var file = root.childNodes[i];
             var fname = file.attributes.getNamedItem('name').nodeValue;
@@ -1984,12 +1984,12 @@ function CreatePostsList() {
             var fname = arrDB[i].filename;
             var post_content = Cache[fname]; // вначале пробуем получить из кеша
             if (post_content) { // если данные по запрошенному файлу есть в объекте Cache
-                var Row = PostList.idRow[i];
+                var Row = PostList.idRow[i].cells;
                 if (Row) {
                     var color = post_content.state;
-                    Row.cells[0].style.color = color;
-                    Row.cells[1].style.color = color;
-                    Row.cells[2].innerHTML = post_content.info;
+                    Row[0].style.color = color;
+                    Row[1].style.color = color;
+                    Row[2].innerHTML = post_content.info;
                 }
             }
         }
@@ -2013,13 +2013,13 @@ function CreatePostsList() {
                 if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
                     post_content = GetObjPostContent(GetCurrentFile(i), i); // извлекаем данные самостоятельно
                 }
-                var Row = PostList.idRow[i];
+                var Row = PostList.idRow[i].cells;
                 if (Row) {
                     var color = post_content.state;
-                    Row.cells[0].style.color = color;
-                    Row.cells[1].style.color = color;
-                    Row.cells[2].innerHTML = post_content.info;
-                    Row.cells[5].innerHTML = post_content.preview;
+                    Row[0].style.color = color;
+                    Row[1].style.color = color;
+                    Row[2].innerHTML = post_content.info;
+                    Row[5].innerHTML = post_content.preview;
                     // -----------------------------------------------------------------------------------------
                     percent = Math.round(i / arrDB_length * 100);
                     if (percent > percent_prev) {
@@ -2309,6 +2309,7 @@ function CheckPaths() {
         } else {
             cache_filepath = PathCombine(script_path, cache_filepath);
         }
+        cache_filepath = cache_filepath.replace(/^(.*)\.(.*)$/, '$1-{0}.$2'.format(hta_App.version));
     }
 
     unpacker = PathCombine(script_path, unpacker);
