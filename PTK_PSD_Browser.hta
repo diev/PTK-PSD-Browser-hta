@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="yes"
-    version="6.5.8"
+    version="6.5.9"
     author="mozers™, mozers@mail.ru, icq#256106175 (retired)"
     coauthor="Dmitrii Evdokimov, diev@mail.ru (active)"
 />
@@ -562,12 +562,19 @@ function HidePreview() {
 // Показ содержимого рейса в нижнем фрейме
 function ShowPreview() {
     OpenPreview();
-    Preview.document.body.innerHTML = PostList.idRow[select_row_idx].cells[5].innerHTML;
+    var text = PostList.idRow[select_row_idx].cells[5].innerHTML;
+    var tt = '<tt>$1</tt>';
+    text = text
+        .replace(/([0-3]\d[.-\/][0-1]\d[.-\/]20[1-2]\d)/g, tt) // подсветка дат вида 19.03.2010 и 19-03-2010 (и 19/03/2010 по 550-П)
+        .replace(/([0-3]\d[0-1]\d20[1-2]\d)/g, tt)   // подсветка дат вида 19032010
+        .replace(/(20[1-2]\d[01]\d[0-3]\d)/g, tt)    // подсветка дат вида 20100319
+        .replace(/(20[1-2]\d-[01]\d-[0-3]\d)/g, tt); // подсветка дат вида 2010-03-19 (XML)
+    Preview.document.body.innerHTML = text;
     // добавляем возможность копировать имена файлов по клику на заголовке
-    if (Preview.id) {
-        var i = Preview.id.length;
+    if (Preview.N) { // <P id=N>fname</P>
+        var i = Preview.N.length;
         while (i--) {
-            var frame = Preview.id[i];
+            var frame = Preview.N[i];
             frame.title = 'Щелкните для копирования в буфер обмена';
             frame.onclick = function() {
                 clipboardData.setData('Text', this.innerText.replace(/\.\w+?$/, ''));
@@ -902,18 +909,16 @@ function FindRelatedDocs(filename) {
 
 function ReReadRace() {
     var current_filepath = GetCurrentFile(select_row_idx);
+    var post_content = GetObjPostContent(current_filepath, select_row_idx); // извлекаем данные самостоятельно
     var fname = arrDB[select_row_idx].filename;
     var fcache = Cache[fname];
-    var Row = PostList.idRow[select_row_idx];
-    var post_content = GetObjPostContent(current_filepath, select_row_idx); // извлекаем данные самостоятельно
-    if (Row.cells[2].style.display === '') {
-        fcache.state = post_content.state;
-        fcache.info = post_content.info;
-        Row.cells[2].innerHTML = post_content.info;
-    }
     fcache.state = post_content.state;
     fcache.info = post_content.info;
     fcache.preview = post_content.preview;
+    var Row = PostList.idRow[select_row_idx];
+    if (Row.cells[2].style.display === '') {
+        Row.cells[2].innerHTML = post_content.info;
+    }
     Row.cells[5].innerHTML = post_content.preview;
     ShowPreview();
     ContextMenu.hide();
@@ -1016,15 +1021,14 @@ function load_Preview() {
     css.addRule('q', 'color:blue; font-weight:bold;');
     css.addRule('tt', 'color:blue;');
     css.addRule('i', 'color:red; font-weight:bold; font-style:normal;');
-    css.addRule('u', 'font: normal 8pt MS Sans Serif;');
-    css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse;');
-    css.addRule('div', 'margin:0; padding:0 3px 3px 8px; border: 1px solid buttonshadow; font: normal 10pt Courier New;');
-    css.addRule('p#id', 'margin:0 -3px 0 -8px; padding:0 3px 1em 8px; text-align:center; color:threeddarkshadow;' + gradient);
+    css.addRule('u', 'color:threeddarkshadow; text-decoration:none;');
+    css.addRule('table', 'width:100%; border-collapse:collapse;');
+    css.addRule('div', 'margin:0; padding:0 3px 3px 8px; border: 1px solid buttonshadow; font:normal 10pt Courier New;');
+    css.addRule('p#N', 'margin:0 -3px 0 -8px; padding:0 3px 1em 8px; text-align:center; color:threeddarkshadow;' + gradient);
     css.addRule('input', 'font: bold 8pt MS Sans Serif; display: inline;');
     css.addRule('s', 'text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;');
     css.addRule('span', 'font: normal 8pt MS Sans Serif;');
-    css.addRule('.t', 'color:threeddarkshadow;');
-    css.addRule('#idProgress', 'margin:0; padding:0; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
+    css.addRule('#idProgress', 'margin:0; padding:1px; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
     pv.onmouseup = function() {
         if (Preview.event.button === 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
@@ -1619,12 +1623,7 @@ function GetObjPostContent(filepath, ind) {
             var re = new RegExp('(F' + bank_code + ')(\\w{2,5})(\.zip)', 'gi');
             text = text.replace(re, '$1<q>$2</q>$3');
         }
-        var tt = '<tt>$1</tt>';
-        return text
-            .replace(/([0-3]\d[.-\/][0-1]\d[.-\/]20[1-2]\d)/g, tt) // подсветка дат вида 19.03.2010 и 19-03-2010 (и 19/03/2010 по 550-П)
-            .replace(/([0-3]\d[0-1]\d20[1-2]\d)/g, tt)   // подсветка дат вида 19032010
-            .replace(/(20[1-2]\d[01]\d[0-3]\d)/g, tt)    // подсветка дат вида 20100319
-            .replace(/(20[1-2]\d-[01]\d-[0-3]\d)/g, tt); // подсветка дат вида 2010-03-19 (XML)
+        return text;
     }
 
     // Извлекает содержимое одной посылки в массив arrFilesList и возвращает стринг html_text
@@ -1749,7 +1748,7 @@ function GetObjPostContent(filepath, ind) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList.push(filename);
-                    html_text.push('<div><p id=id>{0}</p>'.format(filename));
+                    html_text.push('<div><p id=N>{0}</p>'.format(filename));
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
                         html_text.push(span.format('содержимое зашифровано'));
                     } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
@@ -1761,7 +1760,7 @@ function GetObjPostContent(filepath, ind) {
                 }
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text.push('<div><p id=id>&nbsp;</p>');
+                html_text.push('<div><p id=N>&nbsp;</p>');
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
                     html_text.push(span.format('содержимое скрыто'));
                 } else {
@@ -1795,7 +1794,7 @@ function GetObjPostContent(filepath, ind) {
                                 //var re = /<([А-я\w]+ *)([^>]*)>([^<\r\n]*)/ig;
                                 var re = /<([А-я\w]+ *)([^>]*)>([^<]*)/ig;
                                 while (re.exec(text)) {
-                                    aText[text_cnt++] = '<font class="t"><b>{0}</b>{1}</font> {2}'
+                                    aText[text_cnt++] = '<u><b>{0}</b>{1}</u> {2}'
                                         .format(RegExp.$1, (RegExp.$2 || '').replace(/\/+$/, ''), (RegExp.$3 || ''));
                                 }
                                 text = aText.join('<br>');
@@ -1951,7 +1950,7 @@ function CreatePostsList() {
 
     function GetHTMLTablePass1() {
         var HTMLtable = [];
-        HTMLtable.push('<table frame="void"><tr id=idRow><td><td><td><td><td><td>');
+        HTMLtable.push('<table frame="void"><tr id=idRow style="display:none"><td><td><td><td><td><td>');
         var form_name_prev = '';
         for (var i = 1; i < arrDB_length; i++) {
             // ------ Построение списка посылок -----------------------------------------------------------
@@ -1986,10 +1985,12 @@ function CreatePostsList() {
             var post_content = Cache[fname]; // вначале пробуем получить из кеша
             if (post_content) { // если данные по запрошенному файлу есть в объекте Cache
                 var Row = PostList.idRow[i];
-                var color = post_content.state;
-                Row.cells[0].style.color = color;
-                Row.cells[1].style.color = color;
-                Row.cells[2].innerHTML = post_content.info;
+                if (Row) {
+                    var color = post_content.state;
+                    Row.cells[0].style.color = color;
+                    Row.cells[1].style.color = color;
+                    Row.cells[2].innerHTML = post_content.info;
+                }
             }
         }
     }
@@ -1998,8 +1999,7 @@ function CreatePostsList() {
         var percent, percent_prev = 0;
         var Progress = Preview.document.body;
         for (var i = 1; i < arrDB_length; i++) {
-            var Row = PostList.idRow[i];
-            if (!Row.cells[5].innerHTML) {
+            if (!PostList.idRow[i].cells[5].innerHTML) {
                 var fname = arrDB[i].filename;
                 var post_content = Cache[fname]; // вначале пробуем получить из кеша
                 if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
@@ -2013,19 +2013,22 @@ function CreatePostsList() {
                 if (!post_content) { // если данных по запрошенному файлу нет в объекте Cache
                     post_content = GetObjPostContent(GetCurrentFile(i), i); // извлекаем данные самостоятельно
                 }
-                var color = post_content.state;
-                Row.cells[0].style.color = color;
-                Row.cells[1].style.color = color;
-                Row.cells[2].innerHTML = post_content.info;
-                Row.cells[5].innerHTML = post_content.preview;
-                // -----------------------------------------------------------------------------------------
-                percent = Math.round(i / arrDB_length * 100);
-                if (percent > percent_prev) {
-                    Progress.innerHTML = '\
+                var Row = PostList.idRow[i];
+                if (Row) {
+                    var color = post_content.state;
+                    Row.cells[0].style.color = color;
+                    Row.cells[1].style.color = color;
+                    Row.cells[2].innerHTML = post_content.info;
+                    Row.cells[5].innerHTML = post_content.preview;
+                    // -----------------------------------------------------------------------------------------
+                    percent = Math.round(i / arrDB_length * 100);
+                    if (percent > percent_prev) {
+                        Progress.innerHTML = '\
 <table><tr><td>Загрузка содержимого файлов...<td width=50%">\
 <div id=idProgress style="width:{0}%;">{0}%</div>\
 </table>'.format(percent);
-                    percent_prev = percent;
+                        percent_prev = percent;
+                    }
                 }
             }
         }
