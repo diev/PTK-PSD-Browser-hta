@@ -10,7 +10,7 @@ init:
     git config --global core.autocrlf input
 install:
 - ps: >-
-    $HTAFile = 'PTK_PSD_Browser.hta'
+    $HTAFile = 'PTK_PSD_Browser\PTK_PSD_Browser.hta'
 
     $RegularExpression = [regex] 'version=\"(\d*\.\d*\.\d*)\"$'
 
@@ -33,13 +33,9 @@ install:
     Write-Host "Building v$env:APPVEYOR_BUILD_VERSION dated $env:BuildDate"
 build_script:
 - cmd: >-
-    echo PTK_PSD_Browser.* >>Package
+    echo PTK_PSD_Browser\*.* >>Package
 
-    echo bin\*.* >>Package
-
-    echo icon.ico >>Package
-
-    echo pb.html >>Package
+    echo PTK_PSD_Browser\bin\*.* >>Package
 
     echo %APPVEYOR_PROJECT_NAME% v%APPVEYOR_BUILD_VERSION% (%BUILDDATE%) >readme.txt
 
