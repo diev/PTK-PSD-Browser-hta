@@ -28,7 +28,7 @@ install:
 
     $CommitDateTime = [datetime]::Parse($env:APPVEYOR_REPO_COMMIT_TIMESTAMP)
 
-    $env:BuildDate = $CommitDateTime.ToString('dd.MM.yyyy')
+    $env:BuildDate = $CommitDateTime.ToString('yyyy-MM-dd')
 
     Write-Host "Building v$env:APPVEYOR_BUILD_VERSION dated $env:BuildDate"
 build_script:
@@ -53,7 +53,7 @@ deploy:
 - provider: GitHub
   tag: v$(version)
   release: PTK PSD Browser v$(version)
-  description: '* $(appveyor_repo_commit_message)\n\nBuild #$(appveyor_build_number) by AppVeyor $(BuildDate)\nSee docs on http://$(appveyor_account_name).github.io/$(appveyor_project_name)'
+  description: '* $(appveyor_repo_commit_message)\n[Full Changelog](http://$(appveyor_account_name).github.io/$(appveyor_project_name)CHANGELOG)\n\nBuild #$(appveyor_build_number) by AppVeyor $(BuildDate)\nSee docs on http://$(appveyor_account_name).github.io/$(appveyor_project_name)'
   auth_token:
     secure: CePfctnBFd3iDwgVWlGOD6mfxQZrNBHK7IpsCK/deo2vHxA3lTr2nRnhbqpKqchQ
   artifact: AppZip
