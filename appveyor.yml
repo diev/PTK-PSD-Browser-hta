@@ -53,7 +53,7 @@ deploy:
 - provider: GitHub
   tag: v$(version)
   release: PTK PSD Browser v$(version)
-  description: '* $(appveyor_repo_commit_message)\n[Full Changelog](http://$(appveyor_account_name).github.io/$(appveyor_project_name)/changelog.md)\n\nBuild #$(appveyor_build_number) by AppVeyor ($(BuildDate))\nSee docs on http://$(appveyor_account_name).github.io/$(appveyor_project_name)'
+  description: 'Build #$(appveyor_build_number): $(appveyor_repo_commit_message) ([Full Changelog](http://$(appveyor_account_name).github.io/$(appveyor_project_name)/changelog.md))\nby AppVeyor ($(BuildDate))\nSee docs on http://$(appveyor_account_name).github.io/$(appveyor_project_name)'
   auth_token:
     secure: CePfctnBFd3iDwgVWlGOD6mfxQZrNBHK7IpsCK/deo2vHxA3lTr2nRnhbqpKqchQ
   artifact: AppZip
