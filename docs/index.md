@@ -119,7 +119,7 @@
 младшая может взять часть ее функций, пока идет устаканивание и отладка 
 нововведений.
 
-Полная история версий в файле [CHANGELOG](changelog.md).
+Полная история версий в файле [CHANGELOG](https://github.com/diev/PTK-PSD-Browser-hta/blob/master/CHANGELOG.md).
 
 ## Лицензионное соглашение
 
