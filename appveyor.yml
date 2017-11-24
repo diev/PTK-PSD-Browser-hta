@@ -37,6 +37,8 @@ build_script:
 - cmd: >-
     echo PTK_PSD_Browser\*.* >>Package
 
+    echo PTK_PSD_Browser\admin\*.* >>Package
+
     echo PTK_PSD_Browser\bin\*.* >>Package
 
     echo %APPVEYOR_PROJECT_NAME% v%APPVEYOR_BUILD_VERSION% (%BUILDDATE%) >readme.txt
