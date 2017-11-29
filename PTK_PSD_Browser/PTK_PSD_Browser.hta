@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.6.1"
+    version="6.6.2"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -1005,32 +1005,32 @@ function load_Toolbar() {
         '<div id=idToolbar disabled>',
         '<div id=link><a href="#" hidefocus ',
         'title="Создать на Рабочем столе\nярлык для запуска программы\n(с Shift - показать сис.инфо)" ',
-        'onClick="parent.CreateShortcut(event.shiftKey); return false;"> &#x4F; </a></div> ',
+        'onClick="parent.CreateShortcut(event.shiftKey);"> &#x4F; </a></div> ',
         '<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" ',
-        'onClick="parent.CreateFormList(); return false;">К</input> ',
+        'onClick="parent.CreateFormList();">К</input> ',
         '<input type="checkbox" id=idByInterval checked title="Фильтр форм\nза период | все" ',
-        'onClick="parent.CreateFormList(); return false;">Ф</input> ',
-        '<select name=idPostType onChange="parent.CreateFormList(); return false;"><option value="*">Все Формы</option></select> ',
+        'onClick="parent.CreateFormList();">Ф</input> ',
+        '<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select> ',
         '<span id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" ',
-        'onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a></span> ',
+        'onClick="parent.StartCreatePostsList(event.shiftKey);">&#x5B;</a></span> ',
         '<input type="button" id=idIntervalButton value="сегодня" title="За ', GetDate(0), '" hidefocus ',
-        'onClick="parent.SetInterval(0); return false;">',
+        'onClick="parent.SetInterval(0);">',
         '<input type="button" id=idIntervalButton value="вчера" title="За ', GetDate(-1), '" hidefocus ',
-        'onClick="parent.SetInterval(1); return false;">',
+        'onClick="parent.SetInterval(1);">',
         '<input type="button" id=idIntervalButton value="за 4 дня" title="С ', GetDate(-3), '" hidefocus ',
-        'onClick="parent.SetInterval(2); return false;">',
+        'onClick="parent.SetInterval(2);">',
         '<input type="button" id=idIntervalButton value="за неделю" title="С понедельника" hidefocus ',
-        'onClick="parent.SetInterval(3); return false;"></span>',
+        'onClick="parent.SetInterval(3);"></span>',
         '<span>',
         '<input type="button" id=idIntervalButton value="за:" title="Диапазон\nза день | за период" hidefocus ',
-        'onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value !== \'за:\'); return false;">',
+        'onClick="parent.IntervalButtonSet(4); parent.FixedOrPeriod(this.value !== \'за:\');">',
         '<input hidefocus id=idDateInput type=text maxlength="10" onkeydown="parent.EnterDate(0);" ',
-        'onfocus="parent.IntervalButtonSet(4); return false;">',
+        'onfocus="parent.IntervalButtonSet(4);">',
         '<a href="#" id=idCalendarButton style="display:none" ',
         'onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(0); return false;" hidefocus>&#xA6;<\/a> ',
         '<span id=idEndDateHide style="display:none"> по:',
-        '<input hidefocus id=idDateInput type=text maxlength="10" onkeydown="parent.EnterDate(1); return false;" ',
-        'onfocus="parent.IntervalButtonSet(4); return false;">',
+        '<input hidefocus id=idDateInput type=text maxlength="10" onkeydown="parent.EnterDate(1);" ',
+        'onfocus="parent.IntervalButtonSet(4);">',
         '<a href="#" id=idCalendarButton style="display:none" ',
         'onClick="parent.IntervalButtonSet(4); parent.ShowCalendarDialog(1); return false;" hidefocus>&#xA6;<\/a>',
         '</span></span>',
@@ -1321,10 +1321,10 @@ function ShowCalendarDialog(inputbox_idx) {
     var html = [
         'javascript:"',
         '<head><title>Выбор даты</title></head>',
-        '<body onload=\'window.dialogArguments.InitCalendar(self, 0)\'>',
+        "<body onload='window.dialogArguments.InitCalendar(self, 0)'>",
         '<object id=idCalendar></object>',
-        '<script for=idCalendar event=\'OnDateChanged()\'>',
-        'window.dialogArguments.ReturnDate(idCalendar.Date, ', inputbox_idx, '});',
+        "<script for=idCalendar event='OnDateChanged()'>",
+        'window.dialogArguments.ReturnDate(idCalendar.Date,', inputbox_idx, ');',
         'self.close();<\/script></body>"'
     ].join('');
 

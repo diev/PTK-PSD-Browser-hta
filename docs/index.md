@@ -144,10 +144,10 @@ hta (и с общим сетевым кешем) работает максима
 Есть некоторые [Идеи](https://github.com/diev/PTK-PSD-Browser-hta/projects/1) 
 развития проекта.
 Свои пожелания и сообщения об ошибках лучше размещать 
-в [Issues](https://github.com/diev/PTK-PSD-Browser-hta/issues)
+в [Issues](https://github.com/diev/PTK-PSD-Browser-hta/issues).
 
 ## Лицензионное соглашение
 
 Licensed under the [Apache License, 
 Version 2.0](http://www.apache.org/licenses/LICENSE-2.0 "LICENSE").  
-(Вы можете использовать его совершенно свободно без всяких ограничений.)
+Вы можете использовать его совершенно свободно без всяких ограничений.
