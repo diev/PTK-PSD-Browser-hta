@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.6.2"
+    version="6.6.3"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -1005,14 +1005,14 @@ function load_Toolbar() {
         '<div id=idToolbar disabled>',
         '<div id=link><a href="#" hidefocus ',
         'title="Создать на Рабочем столе\nярлык для запуска программы\n(с Shift - показать сис.инфо)" ',
-        'onClick="parent.CreateShortcut(event.shiftKey);"> &#x4F; </a></div> ',
+        'onClick="parent.CreateShortcut(event.shiftKey); return false;"> &#x4F; </a></div> ',
         '<input type="checkbox" id=idByPostType title="Сортировать формы\nпо коду | по названию" ',
         'onClick="parent.CreateFormList();">К</input> ',
         '<input type="checkbox" id=idByInterval checked title="Фильтр форм\nза период | все" ',
         'onClick="parent.CreateFormList();">Ф</input> ',
         '<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select> ',
         '<span id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" ',
-        'onClick="parent.StartCreatePostsList(event.shiftKey);">&#x5B;</a></span> ',
+        'onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a></span> ',
         '<input type="button" id=idIntervalButton value="сегодня" title="За ', GetDate(0), '" hidefocus ',
         'onClick="parent.SetInterval(0);">',
         '<input type="button" id=idIntervalButton value="вчера" title="За ', GetDate(-1), '" hidefocus ',
