@@ -8,12 +8,12 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.6.3"
+    version="6.6.4"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
 <!--
-Copyright 2010-2017 Сергей Мозеров, Дмитрий Евдокимов
+Copyright 2010-2018 Сергей Мозеров, Дмитрий Евдокимов
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -275,7 +275,7 @@ function AddTimeForScript() {
 
 // Выполняет SQL запрос к БД ПТК ПСД
 // Входные данные: текст SQL запроса, массив с параметрами
-// Возвращает: возвращает массив из объектов. Имена каждого свойства объекта идентичны именам полей.
+// Возвращает: массив из объектов. Имена каждого свойства объекта идентичны именам полей.
 function QueryDatabase(sql_query, params) {
     if (!db_connect_string) {
         return [];
@@ -520,10 +520,12 @@ function Date2Cal(date) {
     return [dt.day, dt.month, dt.year].join(date_separator);
 }
 
-// Преобразовывает заданную дату в строку для SQL ('yyyymmdd')
+// Преобразовывает заданную дату в строку для SQL ('d-mmm-yyyy')
 function Date2SQL(date) {
-    var dt = Date2Obj(date);
-    return [dt.year, dt.month, dt.day].join('');
+    var yyyy = date.getFullYear();
+    var mmm = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][date.getMonth()];
+    var dd = date.getDate();
+    return [dd, mmm, yyyy].join('-');
 }
 
 // Преобразовывает заданную дату в строку для пути ('yyyy\mm\dd\')
@@ -1200,7 +1202,7 @@ function GetDate(days, startDate) {
     return Date2Cal(datetime);
 }
 
-// Возвращает строку даты 'yyyymmdd', отстоящую от заданной (если не задано, то от текущей) на days дней
+// Возвращает строку даты 'd-mmm-yyyy', отстоящую от заданной (если не задано, то от текущей) на days дней
 function GetDateSQL(days, startDate) {
     var datetime = startDate ?
         new Date(startDate.replace(/(\d+)\.(\d+)\.(\d+)/, '$2-$1-$3')) : new Date();
@@ -1981,17 +1983,10 @@ function CreateDBSelect() {
 
     var period;
     Status('Загрузка посылок...');
-    if (/^DSN=/.test(db_connect_string)) {
-        period = [
-            Toolbar.idDateInput[0].value,
-            GetDate(1, Toolbar.idDateInput[1].value)
-        ];
-    } else {
-        period = [
-            GetDateSQL(0, Toolbar.idDateInput[0].value),
-            GetDateSQL(1, Toolbar.idDateInput[1].value)
-        ];
-    }
+    period = [
+        GetDateSQL(0, Toolbar.idDateInput[0].value),
+        GetDateSQL(1, Toolbar.idDateInput[1].value)
+    ];
     arrDB = QueryDatabase(sql_posts_string, period);
     UpdateFormsList(QueryDatabase(sql_forms_string, period));
 }
