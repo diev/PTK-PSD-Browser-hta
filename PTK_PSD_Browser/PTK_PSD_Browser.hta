@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.6.5"
+    version="6.7.0"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -53,6 +53,7 @@ var unpacker = 'bin\\7z.exe';           // путь к распаковщику 
 var unpacker_ver = '';                  // строка версии распаковщика
 var bank_code = '\d{3}';                // строка с кодом из БИК банка (по умолчанию - любые три цифры)
 var db_connect_string = '';             // строка подключения к БД
+var AccessOrSQL = 0;                    // автоопределение (0 - нет значения, 1 или 2, -1 - иная ошибка)
 var allowed_forms = '';                 // строка со списком кодов всех позволенных пользователю форм
 
 var id_cursor;                          // индекс строки над которой находится курсор мыши
@@ -277,11 +278,54 @@ function AddTimeForScript() {
 // Входные данные: текст SQL запроса, массив с параметрами
 // Возвращает: массив из объектов. Имена каждого свойства объекта идентичны именам полей.
 function QueryDatabase(sql_query, params) {
+    // Преобразовывает даты в строки дат для MS Access ('dd.mm.yyyy')
+    function Period2Access(period) {
+        return [Date2Cal(period[0]), Date2Cal(period[1])];
+    }
+
+    // Преобразовывает даты в строки дат для MS SQL и Oracle ('d-mmm-yyyy')
+    function Period2SQL(period) {
+        var d0 = period[0];
+        var d1 = period[1];
+        var mmm = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+        return [
+            [d0.getDate(), mmm[d0.getMonth()], d0.getFullYear()].join('-'),
+            [d1.getDate(), mmm[d1.getMonth()], d1.getFullYear()].join('-')
+        ];
+    }
+
     if (!db_connect_string) {
         return [];
     }
 
-    var q = TryQueryDatabase(sql_query, params);
+    var q;
+    if (/between/i.test(sql_query)) {
+        if (AccessOrSQL == 1) {
+            params = Period2Access(params);
+        }
+        else if (AccessOrSQL == 2) {
+            params = Period2SQL(params);
+        }
+        else { // init
+            AccessOrSQL = 1;
+            var period = Period2Access(params);
+            q = TryQueryDatabase(sql_query, period);
+            if (!q.Error) {
+                return q.Result;
+            }
+            AccessOrSQL = 2;
+            period = Period2SQL(params);
+            q = TryQueryDatabase(sql_query, period);
+            if (!q.Error) {
+                return q.Result;
+            }
+            AccessOrSQL = -1;
+            ErrBox([q.Description, sql_query, period, 'Не удалось определить формат передачи дат' ||
+                ''].join('\n\n'), 'Ошибка запроса к базе данных');
+            return [];
+        }
+    }
+    q = TryQueryDatabase(sql_query, params);
     if (q.Error) {
         ErrBox([q.Description, sql_query, params || ''].join('\n\n'), 'Ошибка запроса к базе данных');
         return [];
@@ -300,9 +344,6 @@ function TryQueryDatabase(sql_query, params) {
         cmd.ActiveConnection = ADODBConnection;
         cmd.CommandType = 1; // adCmdText
         cmd.CommandText = sql_query;
-        if (/between/i.test(sql_query) && !/Jet/.test(ADODBConnection.Provider)) {
-            params = Period2SQL(params);
-        }
         var objRecordSet = cmd.Execute(null, params ? params : null);
         var count = objRecordSet.Fields.Count;
         if (count > 0) {
@@ -521,19 +562,6 @@ function Date2Log(date) {
 function Date2Cal(date) {
     var dt = Date2Obj(date);
     return [dt.day, dt.month, dt.year].join(date_separator);
-}
-
-// Преобразовывает пару строк из календарей в строки дат для MS SQL и Oracle ('d-mmm-yyyy')
-function Period2SQL(period) {
-    var d0 = new Date(period[0].replace(/(\d+)\D(\d+)\D(\d+)/, '$2-$1-$3'));
-    var d1 = new Date(period[1].replace(/(\d+)\D(\d+)\D(\d+)/, '$2-$1-$3'));
-    d1.setDate(d1.getDate() + 1);
-
-    var mmm = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    return [
-        [d0.getDate(), mmm[d0.getMonth()], d0.getFullYear()].join('-'),
-        [d1.getDate(), mmm[d1.getMonth()], d1.getFullYear()].join('-')
-    ];
 }
 
 // Преобразовывает заданную дату в строку для пути ('yyyy\mm\dd\')
@@ -1203,11 +1231,13 @@ function IntervalButtonSet(btn_selected) {
 //=====================================================
 
 // Возвращает строку даты 'dd.mm.yyyy', отстоящую от заданной (если не задано, то от текущей) на days дней
-function GetDate(days, startDate) {
+function GetDate(days, startDate, noFormat) {
     var datetime = startDate ?
-        new Date(startDate.replace(/(\d+)\.(\d+)\.(\d+)/, '$2-$1-$3')) : new Date();
-    datetime.setDate(datetime.getDate() + days);
-    return Date2Cal(datetime);
+        new Date(startDate.replace(/(\d+)\D(\d+)\D(\d+)/, '$2-$1-$3')) : new Date();
+    if (days !== 0) {
+        datetime.setDate(datetime.getDate() + days);
+    }
+    return noFormat ? datetime : Date2Cal(datetime);
 }
 
 // Задает интервал дат для выборки
@@ -1972,6 +2002,7 @@ function CreateDBSelect() {
         return;
     }
 
+    Status('Загрузка посылок...');
     var tb = Toolbar.idPostType;
     var tb_posttype = tb.options[tb.selectedIndex].value;
     var posttype = (tb_posttype === '*') ?
@@ -1980,12 +2011,9 @@ function CreateDBSelect() {
         'and dt between ? and ? ORDER BY posttype, dt, filetype';
     var sql_forms_string = 'SELECT DISTINCT posttype FROM elo_arh_post WHERE posttype IN ({0}) '.format(allowed_forms) +
         'and dt between ? and ?';
-
-    var period;
-    Status('Загрузка посылок...');
-    period = [
-        Toolbar.idDateInput[0].value,
-        Toolbar.idDateInput[1].value
+    var period = [
+        GetDate(0, Toolbar.idDateInput[0].value, true),
+        GetDate(1, Toolbar.idDateInput[1].value, true)
     ];
     arrDB = QueryDatabase(sql_posts_string, period);
     UpdateFormsList(QueryDatabase(sql_forms_string, period));

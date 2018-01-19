@@ -1,10 +1,11 @@
 ﻿# История версий
 
- - **6.6.5** *(2018-01-18)*: Refactoring date formats for Access and SQL
-    - Добавлено определение Access или SQL по Connection.Provider
- - **6.6.4** *(2018-01-17)*: Add Oracle date format
-    - Добавлена поддержка формата дат Oracle, пригодных и для Microsoft
-    - Поломаны даты Access (исправлено в 6.6.5)
+ - **6.7.0** *(2018-01-19)*: Autoswitch Access/SQL (MS and Oracle)
+    - Сделано автопереключение форматов дат Access и SQL (Microsoft и Oracle) 
+путем перехвата ошибки запроса при первом обращении
+
+### 6.7
+
  - **6.6.3** *(2017-12-05)*: Fix issue
     - Fix #8 (При обновлении по кнопке предлагает скачать файл)
  - **6.6.2** *(2017-11-29)*: Fix issue
