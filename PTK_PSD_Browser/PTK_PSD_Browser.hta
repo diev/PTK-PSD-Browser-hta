@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.0"
+    version="6.7.1"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -307,14 +307,14 @@ function QueryDatabase(sql_query, params) {
             params = Period2SQL(params);
         }
         else { // init
-            AccessOrSQL = 1;
-            var period = Period2Access(params);
+            AccessOrSQL = 2;
+            var period = Period2SQL(params);
             q = TryQueryDatabase(sql_query, period);
             if (!q.Error) {
                 return q.Result;
             }
-            AccessOrSQL = 2;
-            period = Period2SQL(params);
+            AccessOrSQL = 1;
+            period = Period2Access(params);
             q = TryQueryDatabase(sql_query, period);
             if (!q.Error) {
                 return q.Result;
@@ -337,10 +337,11 @@ function TryQueryDatabase(sql_query, params) {
     var arrResult = [], recno = 0;
     var error = false;
     var err_description;
+
+    var ADODBConnection = new ActiveXObject('ADODB.Connection');
+    var cmd = new ActiveXObject('ADODB.Command');
     try {
-        var ADODBConnection = new ActiveXObject('ADODB.Connection');
         ADODBConnection.Open(db_connect_string);
-        var cmd = new ActiveXObject('ADODB.Command');
         cmd.ActiveConnection = ADODBConnection;
         cmd.CommandType = 1; // adCmdText
         cmd.CommandText = sql_query;
@@ -356,10 +357,15 @@ function TryQueryDatabase(sql_query, params) {
                 objRecordSet.MoveNext();
             }
         }
-        ADODBConnection.Close();
     } catch (err) {
         error = true;
         err_description = err.description;
+    }
+    finally {
+        if (ADODBConnection.State == 1) {//adStateOpen
+            ADODBConnection.Close();
+        }
+        ADODBConnection = null;
     }
 
     return {
@@ -399,8 +405,8 @@ function ReadFile(filename, bytes_read, file_charset) {
         var stream = new ActiveXObject('ADODB.Stream');
         stream.Type = 2; // adTypeText
         stream.Charset = file_charset || 'windows-1251';
-        stream.Open();
         try {
+            stream.Open();
             stream.LoadFromFile(filename);
             content = bytes_read ?
                 stream.readText(bytes_read) : stream.readText();
@@ -411,7 +417,9 @@ function ReadFile(filename, bytes_read, file_charset) {
                 err.description].join('\n'),
                 'Чтение файла');
         }
-        stream.Close();
+        finally {
+            stream.Close();
+        }
     }
     return content;
 }

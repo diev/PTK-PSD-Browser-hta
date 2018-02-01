@@ -1,5 +1,7 @@
 ﻿# История версий
 
+ - **6.7.1** *(2018-02-01)*: Fix Autoswitch Access/SQL for dd.mm and mm.dd
+    - Число 01.02 ~ 02.01 вызвало ложное автоопределение Access
  - **6.7.0** *(2018-01-19)*: Autoswitch Access/SQL (MS and Oracle)
     - Сделано автопереключение форматов дат Access и SQL (Microsoft и Oracle) 
 путем перехвата ошибки запроса при первом обращении
