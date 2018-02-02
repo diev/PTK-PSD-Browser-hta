@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.1"
+    version="6.7.2"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -637,7 +637,7 @@ function CreateShortcut(shiftKey) {
 function ReadINIFile(ini_file) {
     if (FSO.FileExists(ini_file) && FSO.GetFile(ini_file).Size > 0) {
         var file = FSO.OpenTextFile(ini_file, 1);
-        var text = file.ReadAll();
+        var text = utf2win(file.ReadAll()); 
         file.Close();
         var arr_lines = text.match(/[^\r\n]+/g); // split
         var section, param, value;
@@ -2262,13 +2262,13 @@ function CheckINIs() {
         ErrBox('Не задан каталог установки ПТК ПСД (Path.PTKPSD или Path.HOME)', caption);
         return false;
     }
-
-    ptk_psd_dir = INI.Path.PTKPSD ?
-        INI.Path.PTKPSD :
-        INI.Path.HOME.replace(/[^\\]*$/, '');
+    ptk_psd_dir = INI.Path.PTKPSD;
     if (!FSO.FolderExists(ptk_psd_dir)) {
-        ErrBox(['Не найден каталог установки ПТК ПСД', ptk_psd_dir].join('\n'), caption);
-        return false;
+        ptk_psd_dir = INI.Path.HOME.replace(/[^\\]*$/, '');
+        if (!FSO.FolderExists(ptk_psd_dir)) {
+            ErrBox(['Не найден каталог установки ПТК ПСД', INI.Path.PTKPSD].join('\n'), caption);
+            return false;
+        }
     }
 
     if (INI.User.CurBik) {
@@ -2454,8 +2454,10 @@ function SystemInfo() {
     var html = [
         '<table style="width:auto;">',
         '<tr><th colspan="2">Системная информация',
-        '<tr><td>Строк в таблице<td align="right">', arrDB.length - 1,
-        '<tr><td>Размер кеша<td align="right">', cache_filepath ? FSO.GetFile(cache_filepath).Size : 'отключен',
+        '<tr><td>Строк в таблице<td align="right">', 
+            arrDB.length > 0 ? arrDB.length - 1 : 'нет',
+        '<tr><td>Размер кеша<td align="right">', 
+            cache_filepath && FSO.FileExists(cache_filepath) ? FSO.GetFile(cache_filepath).Size : 'отключен',
         '</table>'
     ].join('');
     Status(html);
