@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.2"
+    version="6.7.3"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -447,6 +447,9 @@ function utf2win(text) {
 
 // Перекодировщик текста
 function recoder(text_in, encoding_in, encoding_out) {
+    if (encoding_in === encoding_out) {
+        return text_out;
+    }
     var stream = new ActiveXObject('ADODB.Stream');
     stream.Open();
     stream.Type = 2; // adTypeText
@@ -455,8 +458,16 @@ function recoder(text_in, encoding_in, encoding_out) {
     stream.Flush();
     stream.Position = 0;
     stream.Charset = encoding_out;
-    var text_out = stream.ReadText(-1);
-    stream.Close();
+    var text_out;
+    try {
+        text_out = stream.ReadText(-1);
+    }
+    catch (e) {
+        text_out = text_in;
+    }
+    finally {
+        stream.Close();
+    }
     return text_out;
 }
 
@@ -634,11 +645,15 @@ function CreateShortcut(shiftKey) {
 }
 
 // Чтение ini файла в объект INI со свойствами идентичными именам ключей
-function ReadINIFile(ini_file) {
+function ReadINIFile(ini_file, enc) {
     if (FSO.FileExists(ini_file) && FSO.GetFile(ini_file).Size > 0) {
         var file = FSO.OpenTextFile(ini_file, 1);
-        var text = utf2win(file.ReadAll()); 
+        var text = file.ReadAll();
         file.Close();
+        enc = enc | 'windows-1251';
+        if (enc == 'utf-8') {
+            text = utf2win(text);
+        }
         var arr_lines = text.match(/[^\r\n]+/g); // split
         var section, param, value;
         for (var i = 0, line, l = arr_lines.length; i < l; i++) {
@@ -2175,10 +2190,12 @@ function LoadActiveX() {
 function CheckUpdate() {
     var caption = 'Проверка обновлений';
     var distr = FSO.BuildPath(ptk_psd_dir, 'PTK_PSD_Browser\\PTK_PSD_Browser.hta');
-    if (distr === FSO.BuildPath(script_path, 'PTK_PSD_Browser.hta')) {
+    var destn = FSO.BuildPath(script_path, 'PTK_PSD_Browser.hta');
+    if (distr === destn) {
         return; // same file
     }
 
+    var distr_version = PtkBro.version;
     if (FSO.FileExists(distr)) {
         var file = FSO.OpenTextFile(distr, 1);
         var line;
@@ -2188,38 +2205,52 @@ function CheckUpdate() {
             }
             line = file.ReadLine();
             if (/version=\"(\d*\.\d*\.\d*)\"/i.test(line)) {
-                var distr_version = RegExp.$1;
-                if (cmpVersions(PtkBro.version, distr_version) < 0) {
-                    //MsgBox('Ваша версия {0} устарела и сейчас будет обновлена до {1}'
-                    //    .format(PtkBro.version, distr_version), caption);
-                    var this_script = unescape(document.URL).replace(/^file:\/\//, '');
-
-                    // Возвращает ProcessId нашего приложения
-                    var pid = WshShell.Exec('rundll32 kernel32,Sleep').ProcessID;
-                    var oProc = new Enumerator(GetObject('winmgmts:\\\\.\\root\\cimv2')
-                        .ExecQuery('select * from Win32_Process where ProcessId={0}'.format(pid))).item();
-                    var parent_id = oProc.ParentProcessId;
-                    oProc.Terminate();
-
-                    // Перезапуск приложения с загруженной новой версией с сервера
-                    var cmd = FSO.BuildPath(WshShell.ExpandEnvironmentStrings('%temp%'), PtkBro.id + '_restart.cmd');
-                    var rst_text = [
-                        '@echo off',
-                        'chcp 1251 > nul',
-                        'ping -n 3 -w 1000 127.0.0.1 > nul',
-                        'taskkill /f /pid ' + parent_id,
-                        'ping -n 2 -w 1000 127.0.0.1 > nul',
-                        'copy/y "{0}" "{1}" > nul'.format(distr, script_path),
-                        'start "" "{0}"'.format(this_script)
-                    ]; //'PTK_PSD_Browser.hta'
-                    SaveFile(cmd, rst_text.join('\n'));
-                    WshShell.Run(cmd, 0, true);
-                }
+                distr_version = RegExp.$1;
                 break;
             }
         }
         file.Close();
     }
+    if (distr_version === PtkBro.version) {
+        return; // same file
+    }
+    if (cmpVersions(PtkBro.version, distr_version) > 0) {
+        return; // new version under development
+    }
+
+    try {
+        SaveFile(destn + '.tmp', 'test');
+    }
+    catch (e) {
+        MsgBox('Ваша версия {0} устарела и должна быть обновлена до {1},\nно на это нет прав!'
+            .format(PtkBro.version, distr_version), caption);
+        return;
+    }
+    FSO.DeleteFile(destn + '.tmp');
+
+    // Возвращает ProcessId нашего приложения
+    var pid = WshShell.Exec('rundll32 kernel32,Sleep').ProcessID;
+    var oProc = new Enumerator(GetObject('winmgmts:\\\\.\\root\\cimv2')
+        .ExecQuery('select * from Win32_Process where ProcessId={0}'.format(pid))).item();
+    var parent_id = oProc.ParentProcessId;
+
+    // Подготовка скрипта для обновления новой версией с сервера
+    var this_script = unescape(document.URL).replace(/^file:\/\//, '');
+    var cmd = FSO.BuildPath(WshShell.ExpandEnvironmentStrings('%temp%'), PtkBro.id + '_restart.cmd');
+    var rst_text = [
+        '@echo off',
+        'chcp 1251 > nul',
+        'ping -n 3 -w 1000 127.0.0.1 > nul',
+        'taskkill /f /pid ' + parent_id,
+        'ping -n 2 -w 1000 127.0.0.1 > nul',
+        'copy/y "{0}" "{1}" > nul'.format(distr, destn),
+        'start "" "{0}"'.format(this_script)
+    ]; //'PTK_PSD_Browser.hta'
+    SaveFile(cmd, rst_text.join('\n'));
+
+    // Запуск приложения новой версии
+    WshShell.Run(cmd, 0, true);
+    oProc.Terminate();
 }
 
 function CheckINIs() {
@@ -2252,8 +2283,8 @@ function CheckINIs() {
         return false;
     }
 
-    ReadINIFile(ini1);
-    ReadINIFile(ini2);
+    ReadINIFile(ini1, 'windows-1251');
+    ReadINIFile(ini2, 'utf-8');
 
     INI.Path.elo_ini = ini1;
     INI.Path.browser_ini = ini2;
