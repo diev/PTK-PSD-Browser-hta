@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.3"
+    version="6.7.4"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -50,7 +50,8 @@ var store_dir = 'POST\\Store';          // путь к архивному кат
 var tmp_dir = '%temp%';                 // путь к временному каталогу (в нем происходит распаковка архивов)
 var cache_filepath = '';                // путь к кешу данных
 var unpacker = 'bin\\7z.exe';           // путь к распаковщику (используется 7-Zip <www.7-zip.org>)
-var unpacker_ver = '';                  // строка версии распаковщика
+var unpacker_ver = '';                  // строка типа версии распаковщика
+var unpacker_cmd = '';                  // строка запуска распаковщика
 var bank_code = '\d{3}';                // строка с кодом из БИК банка (по умолчанию - любые три цифры)
 var db_connect_string = '';             // строка подключения к БД
 var AccessOrSQL = 0;                    // автоопределение (0 - нет значения, 1 или 2, -1 - иная ошибка)
@@ -501,37 +502,28 @@ function ExecHide(command, work_dir) {
 // Пытается распаковать файл в каталог tmp_dir
 // Возвращает массив со списком имен распакованных файлов
 function UnpackArchiveCmd(filepath) {
-    function ArchiverVer() {
-        var out = ExecHide('"{0}"'.format(unpacker));
-        if (out.ExitCode === 0) {
-            return /^7-Zip (\[64\] )?9\.20  Copyright/m.test(out.Output) ? '9.20' : '16.04';
-        }
-        return '';
+    var out = ExecHide(unpacker_cmd + ' "{1}" -o"{2}"'.format(filepath, tmp_dir));
+    if (out.ExitCode !== 0) {
+        return [];
     }
-
-    if (!unpacker_ver) {
-        unpacker_ver = ArchiverVer();
+    var text = out.Output;
+    var re;
+    switch (unpacker_ver) {
+        case '4':
+            text = dos2win(text);
+            re = /^Extracting  (.+)$/gm;
+            break;
+        case '9':
+            re = /^Extracting  (.+)$/gm;
+            break;
+        default: //15+
+            re = /^- (.+)$/gm;
     }
-    var v920 = unpacker_ver === '9.20';
-    
     var files_list = [], files_cnt = 0;
-    var unpack_cmd = '"{0}" e -y{1} "{2}" -o"{3}"'
-        .format(unpacker, v920 ? '' : ' -bb -sccWIN', filepath, tmp_dir);
-    var out = ExecHide(unpack_cmd);
-    if (out.ExitCode === 0) {
-        var re;
-        if (v920) {
-            out = dos2win(out.Output);
-            re = /^Extracting  (.+)$/gm; // 7z 9.20
-        } else {
-            out = out.Output;
-            re = /^- (.+)$/gm; // 7z 16.04
-        }
-        while (re.exec(out)) {
-            var filename = RegExp.lastParen.replace('\r', '');
-            if (!/\.xml\.ka$/i.test(filename)) {
-                files_list[files_cnt++] = filename;
-            }
+    while (re.exec(out)) {
+        var filename = RegExp.lastParen.replace('\r', '');
+        if (!/\.xml\.ka$/i.test(filename)) {
+            files_list[files_cnt++] = filename;
         }
     }
     return files_list;
@@ -600,33 +592,33 @@ function CreateShortcut(shiftKey) {
     if (FSO.FileExists(lnk)) {
         var args = ReadArgs();
         switch (args.length - 1) {
-        case 2: //hta elo.ini browser.ini
-            if (!YesNoBox(['Вы используете ярлык с настройками на:',
-                args[1],
-                args[2], '',
-                'Вы действительно хотите сбросить их?'].join('\n'))) {
-                return;
-            }
-            break;
-        case 1: //hta elo.ini
-            if (!YesNoBox(['Вы используете ярлык с настройкой на',
-                args[1],
-                'и {0} по умолчанию'.format(FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini')), '',
-                'Вы действительно хотите сбросить ее?'].join('\n'))) {
-                return;
-            }
-            break;
-        case 0: //hta only
-            if (!YesNoBox(['Вы используете ярлык со стандартными настройками',
-                'Вы действительно хотите создать его заново?'].join('\n'))) {
-                return;
-            }
-            break;
-        default:
-            if (!YesNoBox(['Вы используете ярлык с нестандартными настройками',
-                'Вы действительно хотите сбросить их?'].join('\n'))) {
-                return;
-            }
+            case 2: //hta elo.ini browser.ini
+                if (!YesNoBox(['Вы используете ярлык с настройками на:',
+                    args[1],
+                    args[2], '',
+                    'Вы действительно хотите сбросить их?'].join('\n'))) {
+                    return;
+                }
+                break;
+            case 1: //hta elo.ini
+                if (!YesNoBox(['Вы используете ярлык с настройкой на',
+                    args[1],
+                    'и {0} по умолчанию'.format(FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini')), '',
+                    'Вы действительно хотите сбросить ее?'].join('\n'))) {
+                    return;
+                }
+                break;
+            case 0: //hta only
+                if (!YesNoBox(['Вы используете ярлык со стандартными настройками',
+                    'Вы действительно хотите создать его заново?'].join('\n'))) {
+                    return;
+                }
+                break;
+            default:
+                if (!YesNoBox(['Вы используете ярлык с нестандартными настройками',
+                    'Вы действительно хотите сбросить их?'].join('\n'))) {
+                    return;
+                }
         }
         FSO.DeleteFile(lnk, true);
     }
@@ -782,36 +774,36 @@ function OnKeydownFromPostList() {
     var id_max = PostList.idRow.length - 1;
     var key = PostList.event.keyCode;
     switch (key) {
-    case 33: // PgUp
-        if (id > 11) {
-            SelectRow(id - 10);
-        } else {
-            SelectRow(1);
-        }
-        break;
-    case 34: // PdDn
-        if (id < id_max - 10) {
-            SelectRow(id + 10);
-        } else {
+        case 33: // PgUp
+            if (id > 11) {
+                SelectRow(id - 10);
+            } else {
+                SelectRow(1);
+            }
+            break;
+        case 34: // PdDn
+            if (id < id_max - 10) {
+                SelectRow(id + 10);
+            } else {
+                SelectRow(id_max);
+            }
+            break;
+        case 35: // End
             SelectRow(id_max);
-        }
-        break;
-    case 35: // End
-        SelectRow(id_max);
-        break;
-    case 36: // Home
-        SelectRow(1);
-        break;
-    case 38: // вверх
-        if (id > 1) {
-            SelectRow(id - 1);
-        }
-        break;
-    case 40: // вниз
-        if (id < id_max) {
-            SelectRow(id + 1);
-        }
-        break;
+            break;
+        case 36: // Home
+            SelectRow(1);
+            break;
+        case 38: // вверх
+            if (id > 1) {
+                SelectRow(id - 1);
+            }
+            break;
+        case 40: // вниз
+            if (id < id_max) {
+                SelectRow(id + 1);
+            }
+            break;
     }
 }
 
@@ -1559,140 +1551,140 @@ function GetObjPostContent(RowOfDBTable) {
         // Преобразует символ из имени файла в читабельный тип посылки 311-П
         function Get311Type(char) {
             switch (char.toUpperCase()) {
-            case 'A':
-                return 'сообщ. в ФНС <tt>1 типа</tt>';
-            case 'O':
-                return 'квит. из ФНС <tt>1 типа</tt>';
-            case 'B':
-                return 'сообщ. в ФНС <tt>2 типа</tt>';
-            case 'N':
-                return 'квит. из ФНС <tt>2 типа</tt>';
-            case 'C':
-                return 'сообщ. в ПФ';
-            case 'P':
-                return 'квит. из ПФ';
-            case 'D':
-                return 'сообщ. в ФСС';
-            case 'S':
-                return 'квит. из ФСС';
-            case 'Z':
-            case 'Y':
-                return 'ФНС спр.';
+                case 'A':
+                    return 'сообщ. в ФНС <tt>1 типа</tt>';
+                case 'O':
+                    return 'квит. из ФНС <tt>1 типа</tt>';
+                case 'B':
+                    return 'сообщ. в ФНС <tt>2 типа</tt>';
+                case 'N':
+                    return 'квит. из ФНС <tt>2 типа</tt>';
+                case 'C':
+                    return 'сообщ. в ПФ';
+                case 'P':
+                    return 'квит. из ПФ';
+                case 'D':
+                    return 'сообщ. в ФСС';
+                case 'S':
+                    return 'квит. из ФСС';
+                case 'Z':
+                case 'Y':
+                    return 'ФНС спр.';
             }
         }
         // -----------------------------------------------------------
         var info = [], info_cnt = 0;
         var count = 0;
         switch (post_type) {
-        case 'sa':
-            info[info_cnt++] = GetSAForms(files_list);
-            break;
-        case '2z': // 311П
-            if (/^([ABCDOPSZYN])N?\d{13,15}\.ARJ$/im.test(files_list)) {
-                var adr = Get311Type(RegExp.$1);
-                count = files_list.match(/^(S\w\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
-                if (count) {
-                    var total = count.length;
-                    var errors = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
-                    if (errors) {
-                        count_bad += errors;
-                        total += ('/' + errors.length).fontcolor('red');
+            case 'sa':
+                info[info_cnt++] = GetSAForms(files_list);
+                break;
+            case '2z': // 311П
+                if (/^([ABCDOPSZYN])N?\d{13,15}\.ARJ$/im.test(files_list)) {
+                    var adr = Get311Type(RegExp.$1);
+                    count = files_list.match(/^(S\w\w\d{9}_\d{12}_\d{16,18}_\d{3}|ZA\w\d{8}_\d{12}_\d{6})\.(TXT|XML)$/igm);
+                    if (count) {
+                        var total = count.length;
+                        var errors = files_list.match(/^S\w[EK]\d{9}_\d{12}_\d{16,18}_\d{3}\.XML$/igm);
+                        if (errors) {
+                            count_bad += errors;
+                            total += ('/' + errors.length).fontcolor('red');
+                        }
+                        info[info_cnt++] = '{0} <s>({1})</s>'.format(adr, total);
                     }
-                    info[info_cnt++] = '{0} <s>({1})</s>'.format(adr, total);
+                } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
+                    var uvtype = Get311Type(RegExp.$1);
+                    info[info_cnt++] = '<s>уведом. ЦБ на {0}</s>'.format(uvtype);
                 }
-            } else if (/^UV(\w).+\.XML$/im.test(files_list)) {
-                var uvtype = Get311Type(RegExp.$1);
-                info[info_cnt++] = '<s>уведом. ЦБ на {0}</s>'.format(uvtype);
-            }
-            break;
-        case '5z': // 322П
-        case 'mz': // 365П + 440П // ver. 23.05.2017
-            // 2.1.1, 2.5.1 Решение о приостановлении операций/поручений
-            var rpo = files_list.match(/^(RPO|APN)\w+\.(xml|vrb)$/igm);
-            // 2.2.1, 2.6.1 Решение об отмене приостановления операций/поручений
-            var roo = files_list.match(/^(ROO|APO)\w+\.(xml|vrb)$/igm);
-            // 2.3.1, 2.3.4, 2.4.1 Поручение на списание/перечисление/перевод денежных средств
-            var pno = files_list.match(/^P(NO|PD|KO)\w+\.(xml|vrb)$/igm);
-            // 2.7.1 Решение об отзыве не исполненных поручений на списание и перечисление денежных средств со счетов налогоплательщиков
-            var apz = files_list.match(/^APZ\w+\.(xml|vrb)$/igm);
-            // 2.8.1, 2.9.1, 2.10.1 Запрос о предоставлении справки о наличии счетов/остатках/выписок (ZNO..txt - удалить позже)
-            var zno = files_list.match(/^Z(NO|SN|SO|SV)\w+\.(txt|xml|vrb)$/igm);
-            // 2.11.1, 2.12.1 Требование о перечислении налога, сбора, пени, штрафа в бюджетную систему РФ, об уплате денежной суммы по банковской гарантии
-            var trb = files_list.match(/^TR(B|G)\w+\.(xml|vrb)$/igm);
-            // 2.13.1 Справка о наличии счетов, вкладов, депозитов
-            var bns = files_list.match(/^(BNS|ZBN1)\w+\.(xml|vrb)$/igm);
-            // 2.14.1 Справка об остатках денежных средств на счетах
-            var bos = files_list.match(/^(BOS|RBN1|ZBO1)\w+\.(xml|vrb)$/igm);
-            // 2.15.1 Выписка по операциям на счетах (BV\d..txt - удалить позже)
-            var bvs = files_list.match(/^(BV\d|BVS|BVD|ZBV1)\w+\.(txt|xml|vrb)$/igm);
-            // 2.16.1 Сообщение о неисполнении (частичном исполнении).если инк.пор помещено в картотеку 2
-            var bnp = files_list.match(/^BNP\w+\.(xml|vrb)$/igm);
+                break;
+            case '5z': // 322П
+            case 'mz': // 365П + 440П // ver. 23.05.2017
+                // 2.1.1, 2.5.1 Решение о приостановлении операций/поручений
+                var rpo = files_list.match(/^(RPO|APN)\w+\.(xml|vrb)$/igm);
+                // 2.2.1, 2.6.1 Решение об отмене приостановления операций/поручений
+                var roo = files_list.match(/^(ROO|APO)\w+\.(xml|vrb)$/igm);
+                // 2.3.1, 2.3.4, 2.4.1 Поручение на списание/перечисление/перевод денежных средств
+                var pno = files_list.match(/^P(NO|PD|KO)\w+\.(xml|vrb)$/igm);
+                // 2.7.1 Решение об отзыве не исполненных поручений на списание и перечисление денежных средств со счетов налогоплательщиков
+                var apz = files_list.match(/^APZ\w+\.(xml|vrb)$/igm);
+                // 2.8.1, 2.9.1, 2.10.1 Запрос о предоставлении справки о наличии счетов/остатках/выписок (ZNO..txt - удалить позже)
+                var zno = files_list.match(/^Z(NO|SN|SO|SV)\w+\.(txt|xml|vrb)$/igm);
+                // 2.11.1, 2.12.1 Требование о перечислении налога, сбора, пени, штрафа в бюджетную систему РФ, об уплате денежной суммы по банковской гарантии
+                var trb = files_list.match(/^TR(B|G)\w+\.(xml|vrb)$/igm);
+                // 2.13.1 Справка о наличии счетов, вкладов, депозитов
+                var bns = files_list.match(/^(BNS|ZBN1)\w+\.(xml|vrb)$/igm);
+                // 2.14.1 Справка об остатках денежных средств на счетах
+                var bos = files_list.match(/^(BOS|RBN1|ZBO1)\w+\.(xml|vrb)$/igm);
+                // 2.15.1 Выписка по операциям на счетах (BV\d..txt - удалить позже)
+                var bvs = files_list.match(/^(BV\d|BVS|BVD|ZBV1)\w+\.(txt|xml|vrb)$/igm);
+                // 2.16.1 Сообщение о неисполнении (частичном исполнении).если инк.пор помещено в картотеку 2
+                var bnp = files_list.match(/^BNP\w+\.(xml|vrb)$/igm);
 
-            // п.3.1.1 Извещение, формируемое подразделениями Банка России
-            var izv = files_list.match(/^IZV\w+\.(txt|xml|vrb)$/igm);
-            // п.3.2.1 Подтверждение о получении
-            var pb1 = files_list.match(/^PB1\w+\.(txt|xml|vrb)$/igm);
-            // п.3.2.1 Подтверждение о невозможности исполнения
-            var pb2 = files_list.match(/^PB2\w+\.(txt|xml|vrb)$/igm);
-            // п.3.3.1 Извещение, формируемое МИ ФНС России по ЦОД
-            var kwt = files_list.match(/^KWT\w+\.(txt|xml|vrb)$/igm);
-            // п.3.4.1, 3.5.1 Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
-            var dsb = files_list.match(/^(DSB|BUV)\w+\.(txt|xml|vrb)$/igm);
-            // п.3.6.1 Запрос на повторное получение квитанции налогового органа
-            var bz1 = files_list.match(/^BZ1\w+\.(xml|vrb)$/igm);
+                // п.3.1.1 Извещение, формируемое подразделениями Банка России
+                var izv = files_list.match(/^IZV\w+\.(txt|xml|vrb)$/igm);
+                // п.3.2.1 Подтверждение о получении
+                var pb1 = files_list.match(/^PB1\w+\.(txt|xml|vrb)$/igm);
+                // п.3.2.1 Подтверждение о невозможности исполнения
+                var pb2 = files_list.match(/^PB2\w+\.(txt|xml|vrb)$/igm);
+                // п.3.3.1 Извещение, формируемое МИ ФНС России по ЦОД
+                var kwt = files_list.match(/^KWT\w+\.(txt|xml|vrb)$/igm);
+                // п.3.4.1, 3.5.1 Уведомление, формируемое ТУ Банка России при заключении (расторжении, изменении условий) соглашения
+                var dsb = files_list.match(/^(DSB|BUV)\w+\.(txt|xml|vrb)$/igm);
+                // п.3.6.1 Запрос на повторное получение квитанции налогового органа
+                var bz1 = files_list.match(/^BZ1\w+\.(xml|vrb)$/igm);
 
-            var fmt =   '{0} <s>({1})</s> ';
-            var fmtPB = '{0} {1} <s>({2})</s> ';
-            var fclr = '#990000';
-            if (rpo) { //решение о приост.
-                info[info_cnt++] = fmt.format('приост.'.fontcolor(fclr), rpo.length);
-            }
-            if (roo) { //отмена решения
-                info[info_cnt++] = fmt.format('отмена'.fontcolor(fclr), roo.length);
-            }
-            if (pno) { //поручение
-                info[info_cnt++] = fmt.format('поруч.'.fontcolor(fclr), pno.length);
-            }
-            if (apz) { //решение об отзыве
-                info[info_cnt++] = fmt.format('отзыв'.fontcolor(fclr), apz.length);
-            }
-            if (zno) { //запрос
-                info[info_cnt++] = fmt.format('запрос'.fontcolor(fclr), zno.length);
-            }
-            if (trb) { //требование
-                info[info_cnt++] = fmt.format('треб.'.fontcolor(fclr), trb.length);
-            }
-            if (bns) { //нал.счетов
-                info[info_cnt++] = fmt.format('счета', bns.length);
-            }
-            if (bos) { //свед. об остатках
-                info[info_cnt++] = fmt.format('остатки', bos.length);
-            }
-            if (bvs) { //выписка
-                info[info_cnt++] = fmt.format('выписка', bvs.length);
-            }
-            if (bnp) { //сообщ. о неисп.
-                info[info_cnt++] = fmt.format('неисп.', bnp.length);
-            }
-            if (izv) { //извещение
-                info[info_cnt++] = fmt.format('изв.', izv.length);
-            }
-            if (pb1) { //подтв.
-                info[info_cnt++] = fmtPB.format('подтв.', 'PB1'.fontcolor('green'), pb1.length);
-            }
-            if (pb2) { //подтв.
-                info[info_cnt++] = fmtPB.format('подтв.', 'PB2'.fontcolor('red'), pb2.length);
-            }
-            if (kwt) { //квит.
-                info[info_cnt++] = fmt.format('квит.', kwt.length);
-            }
-            if (dsb) { //уведомление
-                info[info_cnt++] = fmt.format('увед.', dsb.length);
-            }
-            if (bz1) { //запрос повт.кв.
-                info[info_cnt++] = fmt.format('повт.кв.', bz1.length);
-            }
-            break;
+                var fmt =   '{0} <s>({1})</s> ';
+                var fmtPB = '{0} {1} <s>({2})</s> ';
+                var fclr = '#990000';
+                if (rpo) { //решение о приост.
+                    info[info_cnt++] = fmt.format('приост.'.fontcolor(fclr), rpo.length);
+                }
+                if (roo) { //отмена решения
+                    info[info_cnt++] = fmt.format('отмена'.fontcolor(fclr), roo.length);
+                }
+                if (pno) { //поручение
+                    info[info_cnt++] = fmt.format('поруч.'.fontcolor(fclr), pno.length);
+                }
+                if (apz) { //решение об отзыве
+                    info[info_cnt++] = fmt.format('отзыв'.fontcolor(fclr), apz.length);
+                }
+                if (zno) { //запрос
+                    info[info_cnt++] = fmt.format('запрос'.fontcolor(fclr), zno.length);
+                }
+                if (trb) { //требование
+                    info[info_cnt++] = fmt.format('треб.'.fontcolor(fclr), trb.length);
+                }
+                if (bns) { //нал.счетов
+                    info[info_cnt++] = fmt.format('счета', bns.length);
+                }
+                if (bos) { //свед. об остатках
+                    info[info_cnt++] = fmt.format('остатки', bos.length);
+                }
+                if (bvs) { //выписка
+                    info[info_cnt++] = fmt.format('выписка', bvs.length);
+                }
+                if (bnp) { //сообщ. о неисп.
+                    info[info_cnt++] = fmt.format('неисп.', bnp.length);
+                }
+                if (izv) { //извещение
+                    info[info_cnt++] = fmt.format('изв.', izv.length);
+                }
+                if (pb1) { //подтв.
+                    info[info_cnt++] = fmtPB.format('подтв.', 'PB1'.fontcolor('green'), pb1.length);
+                }
+                if (pb2) { //подтв.
+                    info[info_cnt++] = fmtPB.format('подтв.', 'PB2'.fontcolor('red'), pb2.length);
+                }
+                if (kwt) { //квит.
+                    info[info_cnt++] = fmt.format('квит.', kwt.length);
+                }
+                if (dsb) { //уведомление
+                    info[info_cnt++] = fmt.format('увед.', dsb.length);
+                }
+                if (bz1) { //запрос повт.кв.
+                    info[info_cnt++] = fmt.format('повт.кв.', bz1.length);
+                }
+                break;
         }
         return info.join('');
     }
@@ -1701,30 +1693,30 @@ function GetObjPostContent(RowOfDBTable) {
     function GetContentInfoFromFileText(text, post_type) {
         if (RowOfDBTable.filetype === 'ИЭС1') { // находим, на какую форму пришел ответ 
             switch (post_type) {
-            case 'sa':
-                var tmp = [], tmp_cnt = 0;
-                var re = new RegExp('F' + bank_code + '(\\w{2,5})\.zip', 'gi');
-                while (re.exec(text)) {
-                    tmp[tmp_cnt++] = 'на ' + RegExp.$1;
-                }
-                if (tmp_cnt) {
-                    return tmp.join(', ');
-                }
-                break;
-            case '2z': // 311П
-                return /nRec="(\d+)"/.test(text) ? '<s> ({0})</s>'.format(RegExp.$1) : '';
+                case 'sa':
+                    var tmp = [], tmp_cnt = 0;
+                    var re = new RegExp('F' + bank_code + '(\\w{2,5})\.zip', 'gi');
+                    while (re.exec(text)) {
+                        tmp[tmp_cnt++] = 'на ' + RegExp.$1;
+                    }
+                    if (tmp_cnt) {
+                        return tmp.join(', ');
+                    }
+                    break;
+                case '2z': // 311П
+                    return /nRec="(\d+)"/.test(text) ? '<s> ({0})</s>'.format(RegExp.$1) : '';
             }
         } else if (RowOfDBTable.filetype === 'ИЭС2') { // находим, на какую форму пришел ответ 
             switch (post_type) {
-            case '0z': // 321П
-                if (/Отвергнутых: 0/.test(text)) {
-                    count_ok++;
-                    return '<s>отвергнутых нет</s>';
-                } else {
-                    count_bad++;
-                    return 'отвергнутые! ';
-                }
-                break;
+                case '0z': // 321П
+                    if (/Отвергнутых: 0/.test(text)) {
+                        count_ok++;
+                        return '<s>отвергнутых нет</s>';
+                    } else {
+                        count_bad++;
+                        return 'отвергнутые! ';
+                    }
+                    break;
             }
         }
 
@@ -2186,6 +2178,57 @@ function LoadActiveX() {
     return true;
 }
 
+function CheckINIs() {
+    var caption = 'Чтение INI-файлов';
+    var args = ReadArgs();
+    var ini1, ini2;
+    switch (args.length - 1) {
+        case 2: //hta elo.ini browser.ini
+            ini1 = WshShell.ExpandEnvironmentStrings(args[1]);
+            ini2 = WshShell.ExpandEnvironmentStrings(args[2]);
+            break;
+        case 1: //hta elo.ini
+            ini1 = WshShell.ExpandEnvironmentStrings(args[1]);
+            ini2 = FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini');
+            break;
+        default: //hta only
+            ini1 = FSO.BuildPath(WshShell.ExpandEnvironmentStrings('%WINDIR%'), 'elo.ini');
+            ini2 = FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini');
+    }
+
+    var ini1ok = FSO.FileExists(ini1);
+    var ini2ok = FSO.FileExists(ini2);
+
+    if (!ini2ok) { // Нет browser.ini
+        ErrBox([
+            'Файл настроек ПТК ПСД', ini1 + (ini1ok ? '' : '\nне найден'), '',
+            'Файл настроек Обозревателя', ini2 + (ini2ok ? '' : '\nне найден'), '',
+            'Если используются другие - укажите их в ярлыке'].join('\n'),
+            caption);
+        return false;
+    }
+
+    ReadINIFile(ini1, 'windows-1251');
+    ReadINIFile(ini2, 'utf-8');
+
+    INI.Path.elo_ini = ini1;
+    INI.Path.browser_ini = ini2;
+
+    if (!INI.Path.PTKPSD) {
+        ErrBox('Не задан каталог установки ПТК ПСД (Path.PTKPSD)', caption);
+        return false;
+    }
+    ptk_psd_dir = INI.Path.PTKPSD;
+    if (!FSO.FolderExists(ptk_psd_dir) && INI.Path.HOME) {
+        ptk_psd_dir = INI.Path.HOME.replace(/[^\\]*$/, '');
+    }
+    if (!FSO.FolderExists(ptk_psd_dir)) {
+        ErrBox(['Не найден каталог установки ПТК ПСД (Path.PTKPSD)', INI.Path.PTKPSD].join('\n'), caption);
+        return false;
+    }
+    return true;
+}
+
 // Централизованное обновление версий с эталона на сервере
 function CheckUpdate() {
     var caption = 'Проверка обновлений';
@@ -2253,53 +2296,59 @@ function CheckUpdate() {
     oProc.Terminate();
 }
 
-function CheckINIs() {
-    var caption = 'Чтение INI-файлов';
-    var args = ReadArgs();
-    var ini1, ini2;
-    switch (args.length - 1) {
-    case 2: //hta elo.ini browser.ini
-        ini1 = WshShell.ExpandEnvironmentStrings(args[1]);
-        ini2 = WshShell.ExpandEnvironmentStrings(args[2]);
-        break;
-    case 1: //hta elo.ini
-        ini1 = WshShell.ExpandEnvironmentStrings(args[1]);
-        ini2 = FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini');
-        break;
-    default: //hta only
-        ini1 = FSO.BuildPath(WshShell.ExpandEnvironmentStrings('%WINDIR%'), 'elo.ini');
-        ini2 = FSO.BuildPath(script_path, 'PTK_PSD_Browser.ini');
+function CheckPaths() {
+    var caption = 'Проверка путей и файлов';
+
+    // Задание временного каталога
+    tmp_dir = FSO.BuildPath(WshShell.ExpandEnvironmentStrings(tmp_dir), '${0}$'.format(PtkBro.id));
+    if (!FSO.FolderExists(tmp_dir)) {
+        FSO.CreateFolder(tmp_dir);
     }
 
-    var ini1ok = FSO.FileExists(ini1);
-    var ini2ok = FSO.FileExists(ini2);
-
-    if (!ini2ok) { // Нет browser.ini
-        ErrBox([
-            'Файл настроек ПТК ПСД', ini1 + (ini1ok ? '' : '\nне найден'), '',
-            'Файл настроек Обозревателя', ini2 + (ini2ok ? '' : '\nне найден'), '',
-            'Если используются другие - укажите их в ярлыке'].join('\n'),
-            caption);
+    // Проверка 7z
+    unpacker = INI.BrowserSettings.unpacker || unpacker;
+    if (/^(%|[A-Z]:\\|\\\\)/i.test(unpacker)) {
+        unpacker = WshShell.ExpandEnvironmentStrings(unpacker);
+    } else {
+        unpacker = FSO.BuildPath(script_path, unpacker);
+    }
+    if (!FSO.FileExists(unpacker)) {
+        ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
         return false;
     }
-
-    ReadINIFile(ini1, 'windows-1251');
-    ReadINIFile(ini2, 'utf-8');
-
-    INI.Path.elo_ini = ini1;
-    INI.Path.browser_ini = ini2;
-
-    if (!INI.Path.PTKPSD) {
-        ErrBox('Не задан каталог установки ПТК ПСД (Path.PTKPSD или Path.HOME)', caption);
+    var out = ExecHide('"{0}"'.format(unpacker)); //в tmp_dir!
+    if (out.ExitCode === 0) {
+        unpacker_ver = /^7-Zip (\[64\] |\[32\] |)(\d{1,2})\.\d\d /m.exec(out.Output)[2];
+    }
+    if (!unpacker_ver) {
+        ErrBox('Ошибка запуска архиватора\n{0}'.format(unpacker), caption);
         return false;
     }
-    ptk_psd_dir = INI.Path.PTKPSD;
-    if (!FSO.FolderExists(ptk_psd_dir)) {
-        ptk_psd_dir = INI.Path.HOME.replace(/[^\\]*$/, '');
-        if (!FSO.FolderExists(ptk_psd_dir)) {
-            ErrBox(['Не найден каталог установки ПТК ПСД', INI.Path.PTKPSD].join('\n'), caption);
-            return false;
+    unpacker_cmd = '"{0}" e -y '.format(unpacker);
+    switch (unpacker_ver) {
+        case '4':
+            break;
+        case '9':
+            unpacker_cmd += ' -sccWIN';
+            break;
+        default: //15+
+            unpacker_cmd += ' -sccWIN -bb';
+    }
+
+    // Далее
+    store_dir = FSO.BuildPath(ptk_psd_dir, store_dir);
+
+    cache_filepath = INI.BrowserSettings.cache;
+    if (cache_filepath) {
+        if (/^(%|[A-Z]:\\|\\\\)/i.test(cache_filepath)) {
+            cache_filepath = WshShell.ExpandEnvironmentStrings(cache_filepath);
+        } else {
+            cache_filepath = FSO.BuildPath(script_path, cache_filepath);
         }
+        if (!/\{0\}/.test(cache_filepath)) {
+            cache_filepath = cache_filepath.replace(/^(.*)\.(.*)$/, '$1-{0}.$2');
+        }
+        cache_filepath = cache_filepath.format(PtkBro.version);
     }
 
     if (INI.User.CurBik) {
@@ -2395,42 +2444,6 @@ function CheckDB() {
     return false;
 }
 
-function CheckPaths() {
-    var caption = 'Проверка путей и файлов';
-    store_dir = FSO.BuildPath(ptk_psd_dir, store_dir);
-
-    cache_filepath = INI.BrowserSettings.cache;
-    if (cache_filepath) {
-        if (/^(%|[A-Z]:\\|\\\\)/i.test(cache_filepath)) {
-            cache_filepath = WshShell.ExpandEnvironmentStrings(cache_filepath);
-        } else {
-            cache_filepath = FSO.BuildPath(script_path, cache_filepath);
-        }
-        if (!/\{0\}/.test(cache_filepath)) {
-            cache_filepath = cache_filepath.replace(/^(.*)\.(.*)$/, '$1-{0}.$2');
-        }
-        cache_filepath = cache_filepath.format(PtkBro.version);
-    }
-
-    unpacker = INI.BrowserSettings.unpacker || unpacker;
-    if (/^(%|[A-Z]:\\|\\\\)/i.test(unpacker)) {
-        unpacker = WshShell.ExpandEnvironmentStrings(unpacker);
-    } else {
-        unpacker = FSO.BuildPath(script_path, unpacker);
-    }
-    if (!FSO.FileExists(unpacker)) {
-        ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
-        return false;
-    }
-
-    // Задание временного каталога
-    tmp_dir = FSO.BuildPath(WshShell.ExpandEnvironmentStrings(tmp_dir), '${0}$'.format(PtkBro.id));
-    if (!FSO.FolderExists(tmp_dir)) {
-        FSO.CreateFolder(tmp_dir);
-    }
-    return true;
-}
-
 // Действия при старте приложения
 function Start() {
     document.title = '{0} - {1}'.format(PtkBro.applicationName, PtkBro.version);
@@ -2449,9 +2462,9 @@ function Start() {
     date_separator = WshShell.RegRead('HKCU\\Control Panel\\International\\sDate');
 
     // Присвоение значений глобальным переменным и подключение к БД
-    CheckINIs();
-    CheckUpdate();
-    CheckPaths();
+    CheckINIs() &&
+    CheckUpdate() &&
+    CheckPaths() &&
     CheckDB();
 
     LoadCache();            // Загружаем кеш с сохраненными ранее данными
