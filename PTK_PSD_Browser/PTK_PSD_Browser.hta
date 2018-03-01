@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.7"
+    version="6.7.8"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -2338,7 +2338,8 @@ function CheckUpdate() {
         'copy/y "{0}" "{1}" > nul'.format(distr, destn),
         'start "" "{0}"'.format(this_script)
     ]; //'PTK_PSD_Browser.hta'
-    SaveFile(FSO.BuildPath(INI.temp, '_restart.cmd'), rst_text.join('\n'));
+    var cmd = FSO.BuildPath(INI.temp, '_restart.cmd');
+    SaveFile(cmd, rst_text.join('\n'));
 
     // Запуск приложения новой версии
     WshShell.Run(cmd, 0, true);
