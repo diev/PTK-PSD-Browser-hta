@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.6"
+    version="6.7.7"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -555,7 +555,7 @@ function Unpack(filepath) {
 // Определяет является ли файл архивом
 function IsArchive(filepath) {
     var filename = FSO.GetFileName(filepath);
-    if (/\.(txt|xml|vrb|inf|doc|docx|xlsx|T\d\d)$/i.test(filename)) {
+    if (/\.(txt|xml|vrb|inf|pdf|doc|docx|xls|xlsx|T\d\d)(\.\d{6})?$/i.test(filename)) {
         return false;
     }
     if (/\.(zip|arj|cab)$/i.test(filename)) {
@@ -565,7 +565,7 @@ function IsArchive(filepath) {
         return false;
     }
     // Возможно что архивом будет признан не-архив. Это - не страшно
-    // т.к. ф-ция UnpackArchiveCmd все равно вернет нулевой files_list
+    // т.к. ф-ция UnpackArchive() все равно вернет нулевой files_list
     // будет лишь потрачено лишнее время на попытку распаковки
     return true;
 }
@@ -1895,14 +1895,14 @@ function GetObjPostContent(RowOfDBTable) {
                 var temp = INI.temp;
                 for (var i = 0; i < files_count; i++) {
                     filename = files_list[i];
-                    if (/(card\.inf$)|(metaimp\.dat$)|(\.elo$)|(\.xsd$)|(menu$)/i.test(filename)) {
+                    if (/(card\.inf|metaimp\.dat|\.elo|\.xsd|menu)$/i.test(filename)) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList.push(filename);
                     html_text.push('<div><p id=N>{0}</p>'.format(filename));
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
                         html_text.push(span.format('содержимое зашифровано'));
-                    } else if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.dbf$)|(\.pdf$)/i.test(filename)) {
+                    } else if (/\.(xls|xlsx|doc|docx|tif|dbf|pdf)$/i.test(filename)) {
                         html_text.push(span.format('содержимое скрыто'));
                     } else {
                         UnpackArchive(FSO.BuildPath(temp, filename), level + 1);
@@ -1912,7 +1912,7 @@ function GetObjPostContent(RowOfDBTable) {
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
                 html_text.push('<div><p id=N>{0}</p>'.format(filename));
-                if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
+                if (/\.(xls|xlsx|doc|docx|tif|pdf)$/i.test(filename)) {
                     html_text.push(span.format('содержимое скрыто'));
                 } else {
                     UnpackArchive(filepath, level + 1);
@@ -1961,7 +1961,7 @@ function GetObjPostContent(RowOfDBTable) {
                         }
                     } else {
                         // только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-                        if ((/(\\BV\d{3}_.+?\.txt$|\\BOS\d_.+?\.txt$|\\KWTFCB_.+?\.txt$|\\TL.+?\.txt$|\\IA.+?\.log$|\\PB\d_.+?\.txt$|\\UVKESDT.+?\.txt$|\\ZAS1.+?\.txt$|\.0[1-9][0-9]$)/i)
+                        if ((/(\\BV\d{3}_.+?\.txt|\\BOS\d_.+?\.txt|\\KWTFCB_.+?\.txt|\\TL.+?\.txt|\\IA.+?\.log|\\PB\d_.+?\.txt|\\UVKESDT.+?\.txt|\\ZAS1.+?\.txt|\.0[1-9][0-9])$/i)
                             .test(filepath)) {
                             text = dos2win(text);
                         }
