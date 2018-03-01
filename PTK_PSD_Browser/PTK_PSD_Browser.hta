@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.5"
+    version="6.7.6"
     author="mozers™, mozers*mail.ru (retired)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
 />
@@ -1807,6 +1807,10 @@ function GetObjPostContent(RowOfDBTable) {
                                 .replace(/Пояснение="([^"]+)"/m, 'Пояснение="<i>$1</i>"');
                         }
                     }
+                } else if (/\.xml$/i.test(filename)) {
+                    text = text
+                        //.replace(/ИмяФайлаЭС="([^"]+)"/m, 'ИмяФайлаЭС="<q>$1</q>"');
+                        .replace(/="([^"]+)"/m, '="<q>$1</q>"');
                 }
 
                 if (RowOfDBTable.state_ == '7') { // подсветка только для полученных
@@ -1907,7 +1911,7 @@ function GetObjPostContent(RowOfDBTable) {
                 }
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text.push('<div><p id=N>&nbsp;</p>');
+                html_text.push('<div><p id=N>{0}</p>'.format(filename));
                 if (/(\.xls$)|(\.xlsx$)|(\.doc$)|(\.docx$)|(\.tif$)|(\.pdf$)/i.test(filename)) {
                     html_text.push(span.format('содержимое скрыто'));
                 } else {
@@ -2344,7 +2348,7 @@ function CheckUpdate() {
 
 function Check7Zip() {
     var caption = 'Проверка 7-Zip';
-    var unpacker = INI.BrowserSettings.unpacker || 'bin\\7z.exe';
+    var unpacker = INI.BrowserSettings.unpacker || '%ProgramFiles%\\7-Zip\\7z.exe';
     if (/^(%|[A-Z]:\\|\\\\)/i.test(unpacker)) {
         unpacker = WshShell.ExpandEnvironmentStrings(unpacker);
     } else {
@@ -2570,6 +2574,8 @@ function SystemInfo() {
     var db = INI.DataBase.db_connect_string;
     var store = FSO.BuildPath(INI.store, Date2Path(new Date()));
     var Store = FSO.GetFolder(store);
+    var fCount = Store ? Store.Files.Count : 0;
+    var fSize = Store ? Store.Size : 0;
     var cache = INI.cache;
     var html = [
         '<table width=100% border=1>',
@@ -2579,16 +2585,16 @@ function SystemInfo() {
         '<tr><td>browser.ini<td>', INI.argc > 1 ? 'param 2' : '[default]', '<td>', INI.ini,
         '<tr><td>Банк<td>', /\d{3}/.test(INI.bank_code) ? INI.bank_code : '', '<td>', INI.User.CurBik,
         '<tr><td>Пользователь<td>', INI.User.CurUser,
-            '<td>', WshShell.ExpandEnvironmentStrings("%USERNAME%"), ' (Windows)',
+            '<td>Windows: ', WshShell.ExpandEnvironmentStrings("%USERNAME%"),
         '<tr><td>Тип базы<td>', AoS, '<td>', db ? db.replace(/PWD=([^;]+)?;/, 'PWD=****;') : 'нет подключения',
         '<tr><td>Строк в таблице<td>', 
             arrDB.length > 0 ? arrDB.length - 1 : 'нет',
-                '<td>', store, '*.* (файлов: ', Store.Files.Count, ', размер: ', Store.Size, ')',
+                '<td>', store, '*.* (файлов: ', fCount, ', размер: ', fSize, ')',
         '<tr><td>Размер кеша<td>', 
             cache && FSO.FileExists(cache) ? FSO.GetFile(cache).Size : '0',
             '<td>', INI.cache,
         '<tr><td>Распаковка<td>%temp%<td>', INI.temp,
-        '<tr><td>Распаковщик<td>', INI.unpacker_ver, '<td>', Archiver(),
+        '<tr><td>Распаковщик<td>', INI.unpacker_ver, '<td>', INI.BrowserSettings.unpacker, '<br>', Archiver(),
         Support(),
         '</table>'
     ].join('');
