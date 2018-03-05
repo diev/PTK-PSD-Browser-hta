@@ -8,9 +8,9 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.7.8"
-    author="mozers™, mozers*mail.ru (retired)"
-    coauthor="Dmitrii Evdokimov, diev*mail.ru (active)"
+    version="6.8.0"
+    author="mozers™, mozers*mail.ru (first version)"
+    coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
 />
 <!--
 Copyright 2010-2018 Сергей Мозеров, Дмитрий Евдокимов
@@ -28,7 +28,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <script type="text/javascript" language="JavaScript">
-'use strict'
+'use strict()';
 // первоначальные размеры окна приложения
 window.moveTo(screen.width / 2 - 300, screen.height / 2 - 200);
 window.resizeTo(600, 400);
@@ -432,29 +432,19 @@ function SaveFile(filename, text, file_charset) {
     stream.Close();
 }
 
-// Перекодировщик текста dos866 -> win1251
-function dos2win(text) {
-    return recoder(text, 'windows-1251', 'cp866');
-}
-
-// Перекодировщик текста utf8 -> win1251
-function utf2win(text) {
-    return recoder(text, 'windows-1251', 'utf-8');
-}
-
-// Перекодировщик текста
-function recoder(text_in, encoding_in, encoding_out) {
-    if (encoding_in === encoding_out) {
-        return text_out;
+// Перекодировщик текста из кодировки cp_in в кодировку cp_out (перечень доступных - HKEY_CLASSES_ROOT\MIME\Database\Charset)
+function Recode(text_in, cp_in, cp_out) {
+    if (cp_in === cp_out) {
+        return text_in;
     }
     var stream = new ActiveXObject('ADODB.Stream');
-    stream.Open();
     stream.Type = 2; // adTypeText
-    stream.Charset = encoding_in;
+    stream.Charset = cp_out;
+    stream.Open();
     stream.WriteText(text_in);
     stream.Flush();
     stream.Position = 0;
-    stream.Charset = encoding_out;
+    stream.Charset = cp_in;
     var text_out;
     try {
         text_out = stream.ReadText(-1);
@@ -535,7 +525,7 @@ function Unpack(filepath) {
     var re = /^Extracting  (.+)$/gm;
     switch (INI.unpacker_ver) {
         case '4':
-            text = dos2win(text);
+            text = Recode(text, 'cp866', 'windows-1251');
             break;
         case '9':
             break;
@@ -658,29 +648,30 @@ function CreateShortcut(shiftKey) {
 }
 
 // Чтение ini файла в объект INI со свойствами идентичными именам ключей
-function ReadINIFile(ini, enc) {
+function ReadINIFile(ini) {
     if (FSO.FileExists(ini) && FSO.GetFile(ini).Size > 0) {
         var file = FSO.OpenTextFile(ini, 1);
         var text = file.ReadAll();
         file.Close();
-        enc = enc | 'windows-1251';
-        if (enc == 'utf-8') {
-            text = utf2win(text);
+        if (/Р[^Р]Р[^Р]Р[^Р]/.test(text)) { // autodetect encoding
+            text = Recode(text, 'utf-8', 'windows-1251');
         }
         var arr_lines = text.match(/[^\r\n]+/g); // split
-        var section, param, value;
-        for (var i = 0, line, l = arr_lines.length; i < l; i++) {
-            line = arr_lines[i].replace(/^\s*/, '').replace(/\s*$/, ''); // trim
-            if (!/^[;#]/.test(line)) { // comment
-                if (/^\[(.+)\]/.test(line)) { // section
-                    section = RegExp.$1;
-                    if (section && !INI[section]) {
-                        INI[section] = {};
+        if (arr_lines) { // not empty
+            var section, param, value;
+            for (var i = 0, line, l = arr_lines.length; i < l; i++) {
+                line = arr_lines[i].replace(/^\s*/, '').replace(/\s*$/, ''); // trim
+                if (!/^[;#]/.test(line)) { // comment
+                    if (/^\[(.+)\]/.test(line)) { // section
+                        section = RegExp.$1;
+                        if (section && !INI[section]) {
+                            INI[section] = {};
+                        }
+                    } else if (/^(.+?)\s*=\s*(.+)/.test(line)) { // param=value
+                        param = RegExp.$1;
+                        value = RegExp.$2;
+                        INI[section][param] = value;
                     }
-                } else if (/^(.+?)\s*=\s*(.+)/.test(line)) { // param=value
-                    param = RegExp.$1;
-                    value = RegExp.$2;
-                    INI[section][param] = value;
                 }
             }
         }
@@ -691,7 +682,7 @@ function ReadINIFile(ini, enc) {
 function GetFilePathById(id) {
     var RowOfDBTable = arrDB[id];
     var path = Date2Path(new Date(RowOfDBTable.dt));
-    return FSO.BuildPath(INI.store, path + RowOfDBTable.filename);
+    return FSO.BuildPath(INI.Path.ARCHIVESTORE, path + RowOfDBTable.filename);
 }
 
 // Шифрование пароля
@@ -1203,6 +1194,7 @@ function CreateFormList() {
     var old_value = pt.value;
     var tb = Toolbar.document;
     pt.innerHTML = '';
+    var post_type;
     var post_name = 'Все формы';
     var post_title = '*: ' + post_name;
     var option = tb.createElement('option');
@@ -1340,15 +1332,16 @@ function EnterDate(inputbox_idx) {
     var key = Toolbar.event.keyCode;
     if (key === 9 || key === 13) {
         if (CorrectDate(Toolbar.idDateInput[inputbox_idx])) {
+            var next_idx = inputbox_idx === 0? 1 : 0;
             if (key === 13) { // Enter
                 if (Toolbar.idEndDateHide.style.display === 'none') {
                     Toolbar.idDateInput[1].value = Toolbar.idDateInput[0].value;
                 }
-                if (CorrectDate(Toolbar.idDateInput[1 ^ inputbox_idx])) {
+                if (CorrectDate(Toolbar.idDateInput[next_idx])) {
                     StartCreatePostsList();
                 }
             } else { // Tab
-                Toolbar.idDateInput[1 ^ inputbox_idx].focus();
+                Toolbar.idDateInput[next_idx].focus();
             }
         }
     }
@@ -1531,7 +1524,8 @@ function DeleteCache() {
 // obj.info содержит пояснение
 // obj.preview содержит нижний фрейм со всем содержимым
 function GetObjPostContent(RowOfDBTable) {
-    var filepath = FSO.BuildPath(INI.store, Date2Path(new Date(RowOfDBTable.dt)) + RowOfDBTable.filename);
+    var filepath = FSO.BuildPath(INI.Path.ARCHIVESTORE, 
+        Date2Path(new Date(RowOfDBTable.dt)) + RowOfDBTable.filename);
     var count_ok = 0;
     var count_bad = 0;
 
@@ -1928,14 +1922,14 @@ function GetObjPostContent(RowOfDBTable) {
                         text = span.format('содержимое должно быть зашифровано');
                     } else if (/[\x00-\x08\x10-\x1B]/.test(text)) {
                         text = span.format('нечитабельное содержимое (возможно зашифровано)');
-                    } else if (/(\.xml$|\.xml\.\d{6}$)/i.test(filepath)) {
+                    } else if (/\.xml($|\.\d{6}$)/i.test(filepath)) {
                         if (/^<\?xml/i.test(text)) {
                             if (/\\VBK.+?\.xml$/i.test(filepath)) {
                                 // для файлов VBK*.xml () используем упрощенную обработку (удаляем все теги)
                                 text = text.replace(/<.+?>/g, '');
                             } else { // обработка XML
                                 if (/^<\?xml.* encoding=["']utf-8["']*/i.test(text)) {
-                                    text = utf2win(text);
+                                    text = Recode(text, 'utf-8', 'windows-1251');
                                 }
                                 //Base64
                                 text = text
@@ -1963,7 +1957,7 @@ function GetObjPostContent(RowOfDBTable) {
                         // только такие вложенные в архивы файлы все еще приходят в кодировке 866:
                         if ((/(\\BV\d{3}_.+?\.txt|\\BOS\d_.+?\.txt|\\KWTFCB_.+?\.txt|\\TL.+?\.txt|\\IA.+?\.log|\\PB\d_.+?\.txt|\\UVKESDT.+?\.txt|\\ZAS1.+?\.txt|\.0[1-9][0-9])$/i)
                             .test(filepath)) {
-                            text = dos2win(text);
+                            text = Recode(text, 'cp866', 'windows-1251');
                         }
                         text = text.replace(/[\r\n]+/g, function() {
                             return '<br>';
@@ -2160,7 +2154,6 @@ function CreatePostsList() {
         }
     }
 
-    var status = Preview.document.body;
     if (!INI.DataBase.db_connect_string) {
         PostList.document.body.innerHTML = 'Нет связи с базой данных ПТК ПСД'.fontcolor('red');
         Toolbar.idToolbar.disabled = false;
@@ -2233,23 +2226,19 @@ function CheckINIs() {
             break;
         default: //hta only
             ini1 = FSO.BuildPath(WshShell.ExpandEnvironmentStrings('%WINDIR%'), 'elo.ini');
-            ini2 = FSO.BuildPath(INI.path, 'PTK_PSD_Browser.ini'); //////////////////////////
+            ini2 = FSO.BuildPath(INI.path, 'PTK_PSD_Browser.ini');
     }
 
-    var ini1ok = FSO.FileExists(ini1);
-    var ini2ok = FSO.FileExists(ini2);
-
-    if (!ini2ok) { // Нет browser.ini
+    if (!FSO.FileExists(ini1)) { // Нет elo.ini
         ErrBox([
-            'Файл настроек ПТК ПСД', ini1 + (ini1ok ? '' : '\nне найден'), '',
-            'Файл настроек Обозревателя', ini2 + (ini2ok ? '' : '\nне найден'), '',
-            'Если используются другие - укажите их в ярлыке'].join('\n'),
+            'Файл настроек ПТК ПСД', ini1, 'не найден', '',
+            'Если используются другой - укажите в ярлыке'].join('\n'),
             caption);
         return false;
     }
 
-    ReadINIFile(ini1, 'windows-1251');
-    ReadINIFile(ini2, 'utf-8');
+    ReadINIFile(ini1);
+    ReadINIFile(ini2);
 
     INI.hta = args[0];
     INI.elo = ini1;
@@ -2262,50 +2251,53 @@ function CheckINIs() {
         FSO.CreateFolder(temp);
     }
     INI.temp = temp;
-
-    temp = INI.Path.PTKPSD;
-    if (!temp) {
-        ErrBox('Не задан каталог установки ПТК ПСД (Path.PTKPSD)', caption);
-        return false;
-    }
-    if (!FSO.FolderExists(temp) && INI.Path.HOME) {
-        temp = INI.Path.HOME.replace(/[^\\]*$/, '');
-    }
-    if (!FSO.FolderExists(temp)) {
-        ErrBox(['Не найден каталог установки ПТК ПСД (Path.PTKPSD)', INI.Path.PTKPSD].join('\n'), caption);
-        return false;
-    }
-    INI.base = temp;
     return true;
+}
+
+// Папка, где проверять автообновления
+function AutoUpdateHTA() {
+    var path = INI.Path.FORM;
+    return path ? FSO.BuildPath(path, 'PTK_PSD_Browser\\PTK_PSD_Browser.hta') : INI.hta;
+}
+
+// Получение номера версии указанного файла HTA
+function HTAFileVer(hta) {
+    var version = 'нет';
+    var file = FSO.OpenTextFile(hta, 1);
+    var line;
+    while (!file.AtEndOfStream) {
+        if (file.Line > 50) {
+            break;
+        }
+        line = file.ReadLine();
+        if (/version=\"(\d*\.\d*\.\d*)\"/i.test(line)) {
+            version = RegExp.$1;
+            break;
+        }
+    }
+    file.Close();
+    return version;
 }
 
 // Централизованное обновление версий с эталона на сервере
 function CheckUpdate() {
     var caption = 'Проверка обновлений';
-    var distr = FSO.BuildPath(INI.base, 'PTK_PSD_Browser\\PTK_PSD_Browser.hta');
+    var distr = AutoUpdateHTA();
     var destn = INI.hta;
     if (distr === destn) {
         return true; // same file
     }
-
     var distr_version = PtkBro.version;
     if (FSO.FileExists(distr)) {
-        var file = FSO.OpenTextFile(distr, 1);
-        var line;
-        while (!file.AtEndOfStream) {
-            if (file.Line > 50) {
-                break;
-            }
-            line = file.ReadLine();
-            if (/version=\"(\d*\.\d*\.\d*)\"/i.test(line)) {
-                distr_version = RegExp.$1;
-                break;
-            }
-        }
-        file.Close();
+        distr_version = HTAFileVer(distr);
+    } else {
+        return true; // no distr
+    }
+    if (distr_version === 'нет') {
+        return true; // no valid version
     }
     if (distr_version === PtkBro.version) {
-        return true; // same file
+        return true; // same version
     }
     if (cmpVersions(PtkBro.version, distr_version) > 0) {
         return true; // new version under development
@@ -2349,11 +2341,9 @@ function CheckUpdate() {
 
 function Check7Zip() {
     var caption = 'Проверка 7-Zip';
-    var unpacker = INI.BrowserSettings.unpacker || '%ProgramFiles%\\7-Zip\\7z.exe';
-    if (/^(%|[A-Z]:\\|\\\\)/i.test(unpacker)) {
-        unpacker = WshShell.ExpandEnvironmentStrings(unpacker);
-    } else {
-        unpacker = FSO.BuildPath(INI.path, unpacker);
+    var unpacker = INI.BrowserSettings.unpacker || 'bin\\7z.exe';
+    if (!FSO.FileExists(unpacker)) {
+        unpacker = 'C:\\Program Files\\7-Zip\\7z.exe';
     }
     if (!FSO.FileExists(unpacker)) {
         ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
@@ -2385,8 +2375,12 @@ function Check7Zip() {
 
 function CheckPaths() {
     var caption = 'Проверка путей и файлов';
-    INI.store = FSO.BuildPath(INI.base, 'Post\\Store');
-
+    var store = INI.Path.ARCHIVESTORE;
+    if (!FSO.FolderExists(store)) {
+        ErrBox(['Не найден каталог архива посылок ПТК ПСД (Path.ARCHIVESTORE)', 
+            INI.Path.ARCHIVESTORE].join('\n'), caption);
+        return false;
+    }
     var cache = INI.BrowserSettings.cache;
     if (cache) {
         if (/^(%|[A-Z]:\\|\\\\)/i.test(cache)) {
@@ -2413,19 +2407,22 @@ function CheckDB() {
     var ODBC = INI.DataBase.ODBC;
     var FDSN = INI.DataBase.FILEDSN;
     var db_connect_string = INI.DataBase.db_connect_string;
+    var user = INI.DataBase.user;
+    var password = INI.DataBase.password;
 
-    if (ODBC || FDSN || db_connect_string) {
-        if (ODBC) {
-            db_connect_string = 'DSN={0};'.format(ODBC);
-        } else if (FDSN) {
-            if (!FSO.FileExists(FDSN)) {
-                ErrBox(['Не найден файловый DSN', FDSN].join('\n'), caption);
-                return false;
-            }
-            db_connect_string = 'FILEDSN={0};'.format(FDSN);
+    if (ODBC) {
+        db_connect_string = 'DSN={0};'.format(ODBC);
+    }
+
+    if (FDSN) {
+        if (!FSO.FileExists(FDSN)) {
+            ErrBox(['Не найден файловый DSN', FDSN].join('\n'), caption);
+            return false;
         }
+        db_connect_string = 'FILEDSN={0};'.format(FDSN);
+    }
 
-        var user = INI.DataBase.user;
+    if (db_connect_string) {
         if (user) {
             if (ODBC || FDSN) {
                 db_connect_string += 'UID={0};'.format(user);
@@ -2434,7 +2431,14 @@ function CheckDB() {
             }
         }
 
-        var password = INI.DataBase.password;
+        if (password !== undefined) {
+            var m = password.match(/(\d{4})/g);
+            if (m && m.join('') === password) {
+                password = PassDecrypt(password);
+            } else {
+                passport = undefined;
+            }
+        }
         if (password === undefined) {
             password = prompt('Введите пароль доступа к базе данных:', '');
             if (!password) {
@@ -2443,13 +2447,8 @@ function CheckDB() {
             }
             var ini = INI.ini;
             var text = ReadFile(ini);
-            text = text.replace(/^([ \t]*password[ \t]*=).*$/im,
-                '$1' + PassEncrypt(password));
+            text = text.replace(/^(password=).*$/im, '$1' + PassEncrypt(password));
             SaveFile(ini, text);
-        }
-        var m = password.match(/(\d{4})/g);
-        if (m && m.join('') === password) {
-            password = PassDecrypt(password);
         }
         if (password) {
             if (ODBC || FDSN) {
@@ -2459,9 +2458,11 @@ function CheckDB() {
             }
         }
     } else {
-        var database = FSO.BuildPath(INI.base, 'Database\\etalon97.mdb');
+        AccessOrSQL = 1;
+        var database = FSO.BuildPath(INI.Path.FORM, 'Database\\etalon97.mdb');
         if (!FSO.FileExists(database)) {
-            ErrBox(['Не найден файл базы данных по умолчанию', database].join('\n'), caption);
+            ErrBox(['Не найден файл базы данных по умолчанию', database,
+                'Не задан каталог установки ПТК ПСД (Path.PTKPSD)?'].join('\n'), caption);
             return false;
         }
         db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
@@ -2513,29 +2514,27 @@ function Start() {
     date_separator = WshShell.RegRead('HKCU\\Control Panel\\International\\sDate');
 
     // Присвоение значений глобальным переменным и подключение к БД
-    var ok =
-        CheckINIs() &&
-        CheckUpdate() &&
-        Check7Zip() &&
-        CheckPaths() &&
-        CheckDB();
+    if (CheckINIs())
+    if (CheckUpdate())
+    if (Check7Zip())
+    if (CheckPaths())
+    if (CheckDB())
+    {
+        LoadCache();            // Загружаем кеш с сохраненными ранее данными
+        load_RCMenu();          // Подготавливем контестное меню
+        CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
+        CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
+        SetInterval(0);         // Задаем интервал для выборки - текущий день
 
-    LoadCache();            // Загружаем кеш с сохраненными ранее данными
-    load_RCMenu();          // Подготавливем контестное меню
-    CreateFormList();       // Загружаем в раскрывающийся список <SELECT> имена обрабатываемых форм
-    CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
-    SetInterval(0);         // Задаем интервал для выборки - текущий день
-
-    if (INI.DataBase.db_connect_string) {
-        // Рабочие размеры окна приложения
-        window.moveTo(50, 20);
-        window.resizeTo(screen.width - 100, screen.height - 70);
-    }
-
-    if (!ok) {
+        if (INI.DataBase.db_connect_string) {
+            // Рабочие размеры окна приложения
+            window.moveTo(50, 20);
+            window.resizeTo(screen.width - 100, screen.height - 70);
+        }
+        Toolbar.idToolbar.disabled = false;
+    } else {
         SystemInfo();
     }
-    Toolbar.idToolbar.disabled = false;
 }
 
 // Действия при завершении приложения
@@ -2552,7 +2551,8 @@ function BeforeUnload() {
 
 function SystemInfo() {
     function Archiver() {
-        var out = ExecHide('"{0}"'.format(INI.BrowserSettings.unpacker));
+        var unpacker = INI.BrowserSettings.unpacker;
+        var out = ExecHide('"{0}"'.format(unpacker));
         if (out.ExitCode === 0) {
             var ver = out.Output.match(/^7-Zip (.+)$/m);
             if (ver) {
@@ -2571,10 +2571,15 @@ function SystemInfo() {
     }
 
     OpenPreview();
+    var distr = AutoUpdateHTA();
+    var distr_version = 'нет';
+    if (FSO.FileExists(distr)) {
+        distr_version = HTAFileVer(distr);
+    }
     var AoS = AccessOrSQL == 1 ? 'Access' : AccessOrSQL == 2 ? 'SQL' : '?';
     var db = INI.DataBase.db_connect_string;
-    var store = FSO.BuildPath(INI.store, Date2Path(new Date()));
-    var Store = FSO.GetFolder(store);
+    var store = FSO.BuildPath(INI.Path.ARCHIVESTORE, Date2Path(new Date()));
+    var Store = FSO.FolderExists(store) ? FSO.GetFolder(store) : null;
     var fCount = Store ? Store.Files.Count : 0;
     var fSize = Store ? Store.Size : 0;
     var cache = INI.cache;
@@ -2584,6 +2589,7 @@ function SystemInfo() {
         '<tr><td>Программа<td>', PtkBro.version, '<td>', PtkBro.commandLine /*INI.hta*/,
         '<tr><td>elo.ini<td>',     INI.argc > 0 ? 'param 1' : '[default]', '<td>', INI.elo,
         '<tr><td>browser.ini<td>', INI.argc > 1 ? 'param 2' : '[default]', '<td>', INI.ini,
+        '<tr><td>Автообновление<td>', distr_version, '<td>', distr,
         '<tr><td>Банк<td>', /\d{3}/.test(INI.bank_code) ? INI.bank_code : '', '<td>', INI.User.CurBik,
         '<tr><td>Пользователь<td>', INI.User.CurUser,
             '<td>Windows: ', WshShell.ExpandEnvironmentStrings("%USERNAME%"),
