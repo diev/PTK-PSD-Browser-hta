@@ -8,9 +8,10 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.1"
-    author="mozers™, mozers*mail.ru (first version)"
+    version="6.8.2"
+    author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
+    update="http://diev.github.io/PTK-PSD-Browser-hta"
 />
 <!--
 Copyright 2010-2018 Сергей Мозеров, Дмитрий Евдокимов
@@ -2561,6 +2562,14 @@ function Start() {
     } else {
         SystemInfo();
     }
+    Resize();
+}
+
+// Действия при изменении размера окна
+function Resize() {
+    if (/(\d+)px,\s*\*\s*,(\d+)px/.test(top.document.getElementById('frameset').rows)) {
+        top.document.getElementById('frameset').rows = '{0}px,*,{1}px'.format(Toolbar.idToolbar.scrollHeight, RegExp.$2);
+    }
 }
 
 // Действия при завершении приложения
@@ -2644,6 +2653,7 @@ function SystemInfo() {
 </script>
 </head>
 <frameset id=frameset rows="52px,*,265px" onLoad="setTimeout(Start, 0);"
+    onresize="Resize();"
     onbeforeunload="BeforeUnload();">
     <frame name="Toolbar"  src="about:blank" onLoad="load_Toolbar();"
         application="yes" marginwidth="0" marginheight="0" scrolling="no" frameborder="0" noresize />
