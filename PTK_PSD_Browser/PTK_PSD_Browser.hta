@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.0"
+    version="6.8.1"
     author="mozers™, mozers*mail.ru (first version)"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
 />
@@ -29,9 +29,25 @@ limitations under the License.
 -->
 <script type="text/javascript" language="JavaScript">
 'use strict()';
-// первоначальные размеры окна приложения
-window.moveTo(screen.width / 2 - 300, screen.height / 2 - 200);
-window.resizeTo(600, 400);
+// Рабочие размеры окна приложения
+var padX, padY;
+var cookie = Cookie('window');
+if (cookie) {
+    var w = cookie.split(',');
+    window.moveTo(w[0], w[1]);
+    window.resizeTo(w[2], w[3]);
+    padX = w[2] - document.documentElement.clientWidth;
+    padY = w[3] - document.documentElement.clientHeight;
+} else {
+    padX = screen.width / 6;
+    padY = screen.height / 6;
+    window.moveTo(padX, padY);
+    padX *= 4;
+    padY *= 4;
+    window.resizeTo(padX, padY);
+    padX -= document.documentElement.clientWidth;
+    padY -= document.documentElement.clientHeight;
+}
 //=====================================================
 //  ОБЪЯВЛЕНИЯ ГЛОБАЛЬНЫХ ПЕРЕМЕННЫХ
 //=====================================================
@@ -701,6 +717,29 @@ function PassDecrypt(str) {
         s[n++] = String.fromCharCode(6 ^ Number(str.slice(i, i + 4)));
     }
     return s.join('');
+}
+
+// Сохранение, восстановление, удаление настроек из cookie
+function Cookie(name, value) {
+    function SetExpires(t) {
+        var cookie_date = new Date();
+        cookie_date.setTime(cookie_date.getTime() + t);
+        return cookie_date.toGMTString();
+    }
+
+    if (value === undefined) {
+        // Get Cookie
+        if ((new RegExp('(?:^|; )' + name + '=([^;]*)')).test(document.cookie)) {
+            return unescape(RegExp.$1);
+        }
+    } else if (value === null) {
+        // Delete Cookie
+        document.cookie = name += '=; expires=' + SetExpires(-1);
+    } else {
+        // Set Cookie
+        document.cookie = name + '=' + escape(value) + '; expires=' + 
+            SetExpires(1000 * 60 * 60 * 24 * 365);
+    }
 }
 
 //=====================================================
@@ -2229,14 +2268,6 @@ function CheckINIs() {
             ini2 = FSO.BuildPath(INI.path, 'PTK_PSD_Browser.ini');
     }
 
-    if (!FSO.FileExists(ini1)) { // Нет elo.ini
-        ErrBox([
-            'Файл настроек ПТК ПСД', ini1, 'не найден', '',
-            'Если используются другой - укажите в ярлыке'].join('\n'),
-            caption);
-        return false;
-    }
-
     ReadINIFile(ini1);
     ReadINIFile(ini2);
 
@@ -2526,11 +2557,6 @@ function Start() {
         CheckCalendarActiveX(); // Инициализация (и установка при необходимости) AxCalendar
         SetInterval(0);         // Задаем интервал для выборки - текущий день
 
-        if (INI.DataBase.db_connect_string) {
-            // Рабочие размеры окна приложения
-            window.moveTo(50, 20);
-            window.resizeTo(screen.width - 100, screen.height - 70);
-        }
         Toolbar.idToolbar.disabled = false;
     } else {
         SystemInfo();
@@ -2541,6 +2567,14 @@ function Start() {
 function BeforeUnload() {
     var temp = INI.temp;
     try { // Игнорируем все ошибки - срочный выход!
+        var saveLeft = window.screenLeft;
+        var saveTop = window.screenTop;
+        window.moveTo(saveLeft, saveTop);
+        Cookie('window', [
+            saveLeft + (saveLeft - window.screenLeft),
+            saveTop + (saveTop - window.screenTop),
+            document.documentElement.clientWidth + padX, 
+            document.documentElement.clientHeight + padY].join(','));
         if (FSO.FolderExists(temp)) {
             FSO.DeleteFolder(temp, true);
         }
