@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.2"
+    version="6.8.3"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -89,10 +89,12 @@ function Debug(text) {
 
 // Получение параметров командной строки в виде массива строк без кавычек, если они были
 function ReadArgs() {
+    var args = [];
     var matches = PtkBro.commandLine.match(/((?!"([^"]+)")\b(\S+)\b|"([^"]+)")/g);
-    var args = []; 
-    for (var i = 0, l = matches.length; i < l; i++) {
-        args[i] = matches[i].replace(/^"(.*)"$/, '$1');
+    if (matches) {
+        for (var i = 0, l = matches.length; i < l; i++) {
+            args[i] = matches[i].replace(/^"(.*)"$/, '$1');
+        }
     }
     return args;
 }
