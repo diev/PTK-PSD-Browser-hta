@@ -8,7 +8,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.3"
+    version="6.8.4"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -1106,7 +1106,7 @@ function load_Toolbar() {
     css.addRule('select','width:auto;');
     css.addRule('#refresh','font:14pt Wingdings;');
     css.addRule('#link','float:right; font:14pt Wingdings; padding-right:10px;');
-    css.addRule('#idDateInput','width:70px; text-align:center;');
+    css.addRule('#idDateInput','width:6em; text-align:center;');
     css.addRule('#idCalendarButton','vertical-align:top; font:12pt Webdings;');
     
     tb.body.innerHTML = [
@@ -1514,8 +1514,12 @@ function SaveCache() {
                 .appendChild(XMLDoc.createCDATASection(post_content.preview));
         }
     }
-    XMLDoc.save(cache);
-    cache_contains_unique_data = false;
+    try {
+        XMLDoc.save(cache);
+        cache_contains_unique_data = false;
+    } catch (err) {
+        //TODO Повторить? Перезагрузить?
+    }
 }
 
 // Загрузка кеша с диска в массив Cache
@@ -2579,13 +2583,15 @@ function BeforeUnload() {
     var temp = INI.temp;
     try { // Игнорируем все ошибки - срочный выход!
         var saveLeft = window.screenLeft;
-        var saveTop = window.screenTop;
-        window.moveTo(saveLeft, saveTop);
-        Cookie('window', [
-            saveLeft + (saveLeft - window.screenLeft),
-            saveTop + (saveTop - window.screenTop),
-            document.documentElement.clientWidth + padX, 
-            document.documentElement.clientHeight + padY].join(','));
+        var saveTop  = window.screenTop;
+        if (saveLeft !== 0 && saveTop !== 0) { // Если окно не распахнуто
+            window.moveTo(saveLeft, saveTop);
+            Cookie('window', [
+                saveLeft + (saveLeft - window.screenLeft),
+                saveTop  + (saveTop  - window.screenTop),
+                document.documentElement.clientWidth  + padX,
+                document.documentElement.clientHeight + padY].join(','));
+        }
         if (FSO.FolderExists(temp)) {
             FSO.DeleteFolder(temp, true);
         }
