@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta http-equiv="MSThemeCompatible" content="yes">
+<meta http-equiv="X-UA-Compatible" content="IE=8" />
 <hta:application
     id="PtkBro"
     applicationName="ПТК ПСД - Обозреватель отчетности"
@@ -8,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.4"
+    version="6.8.5"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -2442,42 +2444,12 @@ function CheckPaths() {
 
 function CheckDB() {
     var caption = 'Подключение к базе';
-    var ODBC = INI.DataBase.ODBC;
-    var FDSN = INI.DataBase.FILEDSN;
-    var db_connect_string = INI.DataBase.db_connect_string;
-    var user = INI.DataBase.user;
     var password = INI.DataBase.password;
-
-    if (ODBC) {
-        db_connect_string = 'DSN={0};'.format(ODBC);
-    }
-
-    if (FDSN) {
-        if (!FSO.FileExists(FDSN)) {
-            ErrBox(['Не найден файловый DSN', FDSN].join('\n'), caption);
-            return false;
-        }
-        db_connect_string = 'FILEDSN={0};'.format(FDSN);
-    }
-
-    if (db_connect_string) {
-        if (user) {
-            if (ODBC || FDSN) {
-                db_connect_string += 'UID={0};'.format(user);
-            } else {
-                db_connect_string = db_connect_string.replace(/%user%/, user);
-            }
-        }
-
-        if (password !== undefined) {
-            var m = password.match(/(\d{4})/g);
-            if (m && m.join('') === password) {
-                password = PassDecrypt(password);
-            } else {
-                passport = undefined;
-            }
-        }
-        if (password === undefined) {
+    if (password !== undefined) {
+        var m = password.match(/(\d{4})/g);
+        if (m && m.join('') === password) {
+            password = PassDecrypt(password);
+        } else {
             password = prompt('Введите пароль доступа к базе данных:', '');
             if (!password) {
                 ErrBox('Не задан пароль доступа', caption);
@@ -2488,27 +2460,67 @@ function CheckDB() {
             text = text.replace(/^(password=).*$/im, '$1' + PassEncrypt(password));
             SaveFile(ini, text);
         }
-        if (password) {
-            if (ODBC || FDSN) {
-                db_connect_string += 'PWD={0};'.format(password);
-            } else {
-                db_connect_string = db_connect_string.replace(/%password%/, password);
-            }
+    }
+
+    var user = INI.DataBase.user;
+    var db_connect_string = INI.DataBase.db_connect_string;
+    if (db_connect_string) {
+        if (user) {
+            db_connect_string = db_connect_string.replace(/%user%/, user);
         }
-    } else {
-        AccessOrSQL = 1;
-        var database = FSO.BuildPath(INI.Path.FORM, 'Database\\etalon97.mdb');
-        if (!FSO.FileExists(database)) {
-            ErrBox(['Не найден файл базы данных по умолчанию', database,
-                'Не задан каталог установки ПТК ПСД (Path.PTKPSD)?'].join('\n'), caption);
+        if (password) {
+            db_connect_string = db_connect_string.replace(/%password%/, password);
+        }
+        INI.DataBase.db_connect_string = db_connect_string;
+        return true;
+    }
+
+    var ODBC = INI.DataBase.ODBC;
+    if (ODBC) {
+        db_connect_string = 'DSN={0};'.format(ODBC);
+        if (user) {
+            db_connect_string += 'UID={0};'.format(user);
+        }
+        if (password) {
+            db_connect_string += 'PWD={0};'.format(password);
+        }
+        INI.DataBase.db_connect_string = db_connect_string;
+        return true;
+    }
+
+    var FDSN = INI.DataBase.FILEDSN;
+    if (FDSN) {
+        if (!FSO.FileExists(FDSN)) {
+            ErrBox(['Не найден файловый DSN', FDSN].join('\n'), caption);
             return false;
         }
-        db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
-            .format(database);
+        db_connect_string = 'FILEDSN={0};'.format(FDSN);
+        if (user) {
+            db_connect_string += 'UID={0};'.format(user);
+        }
+        if (password) {
+            db_connect_string += 'PWD={0};'.format(password);
+        }
+        INI.DataBase.db_connect_string = db_connect_string;
+        return true;
     }
-    INI.DataBase.db_connect_string = db_connect_string;
 
-    // Проверка зарегистрирован ли пользователь?
+    AccessOrSQL = 1;
+    var database = FSO.BuildPath(INI.Path.FORM, 'Database\\etalon97.mdb');
+    if (!FSO.FileExists(database)) {
+        ErrBox(['Не найден файл базы данных по умолчанию', database,
+            'Не задан каталог установки ПТК ПСД (Path.PTKPSD)?'].join('\n'), caption);
+        return false;
+    }
+    db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
+        .format(database);
+    INI.DataBase.db_connect_string = db_connect_string;
+    return true;
+}
+
+// Проверка зарегистрирован ли пользователь?
+function CheckUser() {
+    var caption = 'Подключение пользователя';
     var usrname = INI.User.CurUser;
     if (!usrname) {
         usrname = WshShell.ExpandEnvironmentStrings('%username%');
@@ -2557,6 +2569,7 @@ function Start() {
     if (Check7Zip())
     if (CheckPaths())
     if (CheckDB())
+    if (CheckUser())
     {
         LoadCache();            // Загружаем кеш с сохраненными ранее данными
         load_RCMenu();          // Подготавливем контестное меню
@@ -2601,6 +2614,46 @@ function BeforeUnload() {
 }
 
 function SystemInfo() {
+    function detectIE() {
+        var ua = window.navigator.userAgent;
+
+        // Test values; Uncomment to check result …
+
+        // IE 10
+        // ua = 'Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Trident/6.0)';
+        
+        // IE 11
+        // ua = 'Mozilla/5.0 (Windows NT 6.3; Trident/7.0; rv:11.0) like Gecko';
+        
+        // Edge 12 (Spartan)
+        // ua = 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.71 Safari/537.36 Edge/12.0';
+        
+        // Edge 13
+        // ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/46.0.2486.0 Safari/537.36 Edge/13.10586';
+
+        var msie = ua.indexOf('MSIE ');
+        if (msie > 0) {
+            // IE 10 or older => return version number
+            return parseInt(ua.substring(msie + 5, ua.indexOf('.', msie)), 10);
+        }
+
+        var trident = ua.indexOf('Trident/');
+        if (trident > 0) {
+            // IE 11 => return version number
+            var rv = ua.indexOf('rv:');
+            return parseInt(ua.substring(rv + 3, ua.indexOf('.', rv)), 10);
+        }
+
+        var edge = ua.indexOf('Edge/');
+        if (edge > 0) {
+            // Edge (IE 12+) => return version number
+            return parseInt(ua.substring(edge + 5, ua.indexOf('.', edge)), 10);
+        }
+
+        // other browser
+        return false;
+    }
+
     function Archiver() {
         var unpacker = INI.BrowserSettings.unpacker;
         var out = ExecHide('"{0}"'.format(unpacker));
@@ -2653,6 +2706,7 @@ function SystemInfo() {
             '<td>', INI.cache,
         '<tr><td>Распаковка<td>%temp%<td>', INI.temp,
         '<tr><td>Распаковщик<td>', INI.unpacker_ver, '<td>', INI.BrowserSettings.unpacker, '<br>', Archiver(),
+        '<tr><td>MSIE mode<td>', detectIE(), '<td>', window.navigator.userAgent,
         Support(),
         '</table>'
     ].join('');

@@ -1,4 +1,4 @@
-# ![ptkpsd.png](images/ptkpsd.png) ПТК ПСД - Обозреватель отчетности
+# ![ptkpsd.png](assets/images/ptkpsd.png) ПТК ПСД - Обозреватель отчетности
 
 [![Build status](https://ci.appveyor.com/api/projects/status/j011cbjlv4k6wirk?svg=true)](https://ci.appveyor.com/project/diev/ptk-psd-browser-hta)
 [![GitHub Release](https://img.shields.io/github/release/diev/PTK-PSD-Browser-hta.svg)](https://github.com/diev/PTK-PSD-Browser-hta/releases/latest)
@@ -6,7 +6,7 @@
 Наглядный просмотр и работа с архивом посылок [ПТК ПСД](http://ptkpsd.ru/) 
 Банка России.
 
-![Рабочее окно приложения](images/screen659.png)
+![Рабочее окно приложения](assets/images/screen659.png)
 
 * [Основные возможности программы](#основные-возможности-программы)
 * [Замечания к использованию](#замечания-к-использованию)
@@ -47,7 +47,8 @@
 папку `PTK_PSD_Browser\` в домашнюю директорию официального клиента ПТК ПСД 
 (обычно это `X:\PTK PSD\` где-нибудь на сети).
 * Если у Вас БД *Microsoft Access* по умолчанию, то ничего больше, 
-собственно, и не понадобится.
+собственно, и не понадобится. Для тестирования можно [скачать](assets/etalon.7z) 
+пустую эталонную базу *etalon97.mdb* из первоначальной поставки ПТК ПСД.
 * Если у Вас настроен *ODBC*, *FILEDSN* или *SQL* сервер, то в 
 `PTK_PSD_Browser.ini` понадобится прописать Ваши настройки подключения 
 в секции *DataBase*.
