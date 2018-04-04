@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta http-equiv="MSThemeCompatible" content="yes">
+<meta http-equiv="MSThemeCompatible" content="yes" />
 <meta http-equiv="X-UA-Compatible" content="IE=8" />
 <hta:application
     id="PtkBro"
@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.6"
+    version="6.8.7"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -263,34 +263,6 @@ function ErrBox(pText, pCaption) {
 
 function YesNoBox(pText, pCaption) {
     return WshShell.Popup(pText, 0, pCaption || ('Вопрос ' + PtkBro.applicationName), 36) === 6; //Yes
-}
-
-// Если скрипт расположен на сетевом диске, то добавляет хост в список доверенных сайтов
-function AddTrustedSites() {
-    // Находит имя хоста если путь указывает на сетевой каталог
-    function GetHostName(path) {
-        var drive = FSO.GetDrive(FSO.GetDriveName(path));
-        if (drive.DriveType === 3) {
-            var uncPath = drive.ShareName;
-            if (uncPath) {
-                return uncPath.replace(/^\\\\(\w*).*/, '$1');
-            }
-        }
-    }
-    var host = GetHostName(INI.path);
-    if (host) { // добавляем хост в список доверенных сайтов
-        var iSettigs = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\';
-        WshShell.RegWrite(iSettigs + 'ZoneMap\\Domains\\' + host + '\\file', 2, 'REG_DWORD');
-        // разрешаем опцию 1406 (Доступ к источникам данных за пределами домена) для зоны 2 (Доверенные сайты)
-        WshShell.RegWrite(iSettigs + 'Zones\\2\\1406', 0, 'REG_DWORD');
-    }
-}
-
-// Задает число выполненных строк до запроса на прерывание скрипта пользователем в IE8+
-function AddTimeForScript() {
-    var iSettigs = 'HKCU\\Software\\Microsoft\\Internet Explorer\\Styles';
-    WshShell.RegWrite(iSettigs + 'MaxScriptStatements', 0x1CFFFFF, 'REG_DWORD');
-    // 0xFFFFFFFF - отключить совсем
 }
 
 // Выполняет SQL запрос к БД ПТК ПСД
@@ -1052,7 +1024,7 @@ function FindRelatedDocs(filename) {
             .format(arrFind.join("','"));
         arrDB = [];
         arrDB = QueryDatabase(sql_string);
-        CreatePostsList();
+        CreatePostList();
         ContextMenu.hide();
         find_text = filename;
     } else {
@@ -1082,34 +1054,61 @@ function ReReadRace() {
 //=====================================================
 
 // Извлечение значений системных цветов в строку для задания градиента (строка готового стиля)
-function GetGradientColors() {
-    var tb = Toolbar.document;
+function GetGradientColors(tb) {
     tb.body.style.color = 'threedface';
     INI.gradient = 'zoom:1; filter:progid:DXImageTransform.Microsoft.Gradient(' +
         'StartColorStr={0}, EndColorStr={1});'.format(tb.fgColor, tb.bgColor);
     tb.body.style.color = '';
 }
 
-// Подготовка фрейма Toolbar (панель инструментов)
-function load_Toolbar() {
-    GetGradientColors();
-    var tb = Toolbar.document;
-    var meta = tb.createElement('META');
+// Создание стандартных для этого приложения заголовков окон
+function AddHeaders(document, css) {
+    var head = document.documentElement.firstChild;
+    var meta = document.createElement('META');
+    meta.httpEquiv = 'Content-Type';
+    meta.content = 'text/html; charset=utf-8';
+    head.appendChild(meta);
+
+    meta = document.createElement('META');
+    meta.httpEquiv = 'X-UA-Compatible';
+    meta.content = 'IE=edge';
+    head.appendChild(meta);
+
+    meta = document.createElement('META');
     meta.httpEquiv = 'MSThemeCompatible';
     meta.content = 'yes';
-    tb.getElementsByTagName('HEAD')[0].appendChild(meta);
-    var css = tb.createStyleSheet();
-    css.addRule('body','margin:0; background-color:threedface; font:normal 10pt Verdana;');
-    css.addRule('div','padding:2px 5px;');
-    css.addRule('span','white-space: nowrap; color:activecaption;');
-    css.addRule('a','text-decoration:none;');
-    css.addRule('a:visited','color:activecaption;');
-    css.addRule('a:hover','color:red;');
-    css.addRule('select','width:auto;');
-    css.addRule('#refresh','font:14pt Wingdings;');
-    css.addRule('#link','float:right; font:14pt Wingdings; padding-right:10px;');
-    css.addRule('#idDateInput','width:6em; text-align:center;');
-    css.addRule('#idCalendarButton','vertical-align:top; font:12pt Webdings;');
+    head.appendChild(meta);
+
+    // Добавление стилей CSS одним разом, чтобы не дергать браузер на перерисовку
+    var style;
+    if (document.createStyleSheet) {
+        try {
+            (style = document.createStyleSheet()).cssText += css;
+            return;
+        } catch(s) {};
+    }
+    (style = document.createElement('STYLE')).type = 'text/css';
+    style.appendChild(document.createTextNode(css));
+    head.appendChild(style);
+}
+
+// Подготовка фрейма Toolbar (панель инструментов)
+function load_Toolbar() {
+    var tb = Toolbar.document;
+    GetGradientColors(tb);
+    AddHeaders(tb, [
+        'body {margin:0; background-color:threedface; font:normal 10pt Verdana;}',
+        'div {padding:2px 5px;}',
+        'span {white-space: nowrap; color:activecaption;}',
+        'a {text-decoration:none;}',
+        'a:visited {color:activecaption;}',
+        'a:hover {color:red;}',
+        'select {width:auto;}',
+        '#refresh {font:14pt Wingdings;}',
+        '#link {float:right; font:14pt Wingdings; padding-right:10px;}',
+        '#idDateInput {width:6em; text-align:center;}',
+        '#idCalendarButton {vertical-align:top; font:12pt Webdings;}'
+    ].join(''));
     
     tb.body.innerHTML = [
         '<div id=idToolbar disabled>',
@@ -1122,7 +1121,7 @@ function load_Toolbar() {
         'onClick="parent.CreateFormList();">Ф</input> ',
         '<select name=idPostType onChange="parent.CreateFormList();"><option value="*">Все Формы</option></select> ',
         '<span id=refresh><a href="#" hidefocus title="Обновить список\n(с Shift - перезагрузить)" ',
-        'onClick="parent.StartCreatePostsList(event.shiftKey); return false;">&#x5B;</a></span> ',
+        'onClick="parent.StartCreatePostList(event.shiftKey); return false;">&#x5B;</a></span> ',
         '<input type="button" id=idIntervalButton value="сегодня" title="За ', GetDate(0), '" hidefocus ',
         'onClick="parent.SetInterval(0);">',
         '<input type="button" id=idIntervalButton value="вчера" title="За ', GetDate(-1), '" hidefocus ',
@@ -1153,26 +1152,28 @@ function load_Toolbar() {
 function load_RCMenu() {
     ContextMenu = window.createPopup();
     var menu = ContextMenu.document;
+    AddHeaders(menu, [
+        'body {background-color:buttonface; cursor:default;}',
+        'table {background-color:buttonface; font:menu; margin:0px; width:100%;}',
+        'td {white-space:nowrap; width:100%;}'
+    ].join(''));
+    menu.body.style.border = '2px outset';
     menu.oncontextmenu = function() {
         return false;
     };
-    menu.body.style.border = '2px outset';
-    var css = menu.createStyleSheet();
-    css.addRule('body', 'background-color:buttonface; cursor:default;');
-    css.addRule('table', 'background-color:buttonface; font:menu; margin:0px; width:100%;');
-    css.addRule('td', 'white-space:nowrap; width:100%;');
 }
 
 // Подготовка фрейма PostList (список сообщений)
 function load_PostList() {
     var postlist = PostList.document;
-    var css = postlist.createStyleSheet();
-    css.addRule('table', 'font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;');
-    css.addRule('th', 'color:threeddarkshadow; cursor:default;' + INI.gradient);
-    css.addRule('td', 'border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;');
-    css.addRule('s', 'text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;');
-    css.addRule('tt', 'font: normal 8pt MS Sans Serif; color:#990000;');
-    css.addRule('td.icon', 'width:14pt; font-family:Wingdings; font-size:12pt;');
+    AddHeaders(postlist, [
+        'table {font: normal 10pt Verdana; width:100%; border-collapse:collapse; cursor:hand;}',
+        'th {color:threeddarkshadow; cursor:default;', INI.gradient, '}',
+        'td {border-bottom:1px solid threedface; padding:0 2px 0 2px; white-space:nowrap;}',
+        's {text-decoration:none; font: normal 8pt MS Sans Serif; color:threeddarkshadow;}',
+        'tt {font: normal 8pt MS Sans Serif; color:#990000;}',
+        'td.icon {width:14pt; font-family:Wingdings; font-size:12pt;}'
+    ].join(''));
     postlist.onkeydown = function() {
         parent.OnKeydownFromPostList();
     };
@@ -1182,21 +1183,19 @@ function load_PostList() {
 function load_Preview() {
     HidePreview();
     var preview = Preview.document;
-//    preview.title = parent.document.title;
-//    preview.body.innerHTML = 'Загрузка программы...';
-
-    var css = preview.createStyleSheet();
-    css.addRule('q', 'color:blue; font-weight:bold;');
-    css.addRule('tt', 'color:blue;');
-    css.addRule('i', 'color:red; font-weight:bold; font-style:normal;');
-    css.addRule('u', 'color:threeddarkshadow; text-decoration:none;');
-    css.addRule('table', 'width:100%; border-collapse:collapse;');
-    css.addRule('div', 'margin:0; padding:0 3px 3px 8px; border: 1px solid buttonshadow; font:normal 10pt Courier New;');
-    css.addRule('p#N', 'margin:0 -3px 0 -8px; padding:0 3px 1em 8px; text-align:center; color:threeddarkshadow;' + INI.gradient);
-    css.addRule('input', 'font: bold 8pt MS Sans Serif; display: inline;');
-    css.addRule('s', 'text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;');
-    css.addRule('span', 'font: normal 8pt MS Sans Serif;');
-    css.addRule('#idProgress', 'margin:0; padding:1px; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;');
+    AddHeaders(preview, [
+        'q {color:blue; font-weight:bold;}',
+        'tt {color:blue;}',
+        'i {color:red; font-weight:bold; font-style:normal;}',
+        'u {color:threeddarkshadow; text-decoration:none;}',
+        'table {width:100%; border-collapse:collapse;}',
+        'div {margin:0; padding:0 3px 3px 8px; border: 1px solid buttonshadow; font:normal 10pt Courier New;}',
+        'p#N {margin:0 -3px 0 -8px; padding:0 3px 1em 8px; text-align:center; color:threeddarkshadow;', INI.gradient, '}',
+        'input {font: bold 8pt MS Sans Serif; display: inline;}',
+        's {text-align:right; text-decoration:none; font: normal 8pt MS Sans Serif; color:green; /*background-color:infobackground;*/ display:block;}',
+        'span {font: normal 8pt MS Sans Serif;}',
+        '#idProgress {margin:0; padding:1px; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;}'
+    ].join(''));
     preview.onmouseup = function() {
         if (Preview.event.button === 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
@@ -1258,7 +1257,7 @@ function CreateFormList() {
         option.title = post_title;
         pt.add(option);
     }
-    StartCreatePostsList(); // Принудительно перерисовать фрейм с новыми параметрами
+    StartCreatePostList(); // Принудительно перерисовать фрейм с новыми параметрами
 }
 
 function UpdateFormsList(available_forms) {
@@ -1341,7 +1340,7 @@ function SetInterval(i) {
             Toolbar.idDateInput[1].value = GetDate(0);
             break;
     }
-    StartCreatePostsList();
+    StartCreatePostList();
 }
 
 // Проверка правильности задания даты в InputBox (и, если возможно, корректировка)
@@ -1382,7 +1381,7 @@ function EnterDate(inputbox_idx) {
                     Toolbar.idDateInput[1].value = Toolbar.idDateInput[0].value;
                 }
                 if (CorrectDate(Toolbar.idDateInput[next_idx])) {
-                    StartCreatePostsList();
+                    StartCreatePostList();
                 }
             } else { // Tab
                 Toolbar.idDateInput[next_idx].focus();
@@ -1413,14 +1412,16 @@ function InitCalendar(DialogWin, inputbox_idx) {
     }
     // Установка параметров объекта календарь
     var cal = DialogWin.idCalendar;
+    var dw = DialogWin.dialogWidth;
+    var dh = DialogWin.dialogHeight;
     cal.classid = Toolbar.idAxCalendar.classid;
-    cal.width   = DialogWin.dialogWidth;
-    cal.height  = DialogWin.dialogHeight;
     cal.Date    = Toolbar.idDateInput[inputbox_idx].value;
+    cal.width   = dw;
+    cal.height  = dh;
     // Корректировка размера диалогового окна (т.к. в старых версиях IE эти параметры задают размер диалогового окна целиком, а не размер клиентской области)
     var body = DialogWin.document.body;
-    DialogWin.dialogWidth  = px2number(DialogWin.dialogWidth)  + body.scrollWidth  - body.offsetWidth  + 'px';
-    DialogWin.dialogHeight = px2number(DialogWin.dialogHeight) + body.scrollHeight - body.offsetHeight + 'px';
+    DialogWin.dialogWidth  = px2number(dw) + body.scrollWidth  - body.offsetWidth  + 'px';
+    DialogWin.dialogHeight = px2number(dh) + body.scrollHeight - body.offsetHeight + 'px';
 }
 
 // Показывает диалоговое окно с календарем
@@ -2125,7 +2126,7 @@ function onMouseup() {
 }
 
 // Составление списка рейсов
-function CreatePostsList() {
+function CreatePostList() {
     // Возвращает имя формы по типу поста
     function GetFormName(post_type) {
         var tb = Toolbar.idPostType;
@@ -2228,8 +2229,8 @@ function CreatePostsList() {
     id_selected = undefined;
 }
 
-// Запуск ф-ции CreatePostsList отдельным процессом
-function StartCreatePostsList(shiftKey) {
+// Запуск функции CreatePostList отдельным процессом
+function StartCreatePostList(shiftKey) {
     HidePreview();
     if (shiftKey) {
         DeleteCache();
@@ -2239,7 +2240,7 @@ function StartCreatePostsList(shiftKey) {
     Toolbar.idToolbar.disabled = true;
     setTimeout(function() {
         CreateDBSelect();
-        CreatePostsList();
+        CreatePostList();
     }, 0);
 }
 
