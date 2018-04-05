@@ -56,7 +56,6 @@ Internet Explorer на панели задач Windows 10.
 #### 6.8.0 (2018-03-05): Mozers, welcome back
 - Сверена функция перекодировок с новым кодом *mozers* в его 
 [версии](https://bitbucket.org/html-applications/ptkpsd-browser) 6.0.5.
-https://bitbucket.org/html-applications/ptkpsd-browser
 - Код заново протестирован на валидность с помощью *JSHint* 2.9.4.
 - Исправлены некоторые обнаруженные опечатки.
 - Из программы удалена зависимость от указания `Path.PTKPSD` и `Path.HOME`.
