@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.7"
+    version="6.8.8"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -967,7 +967,6 @@ function SaveRace(save_filename) {
             if (INI.BrowserSettings.sign_delete_onsave === '1') {
                 DeleteSignature(FSO.BuildPath(dest_path, arc_filename));
             }
-            return;
         } else {
             var arc_files_list = [];
             if (IsArchive(arc_filepath)) {
@@ -2419,10 +2418,15 @@ function Start() {
     function CheckPaths() {
         var caption = 'Проверка путей и файлов';
         var store = INI.Path.ARCHIVESTORE;
-        if (!FSO.FolderExists(store)) {
-            ErrBox(['Не найден каталог архива посылок ПТК ПСД (Path.ARCHIVESTORE)', 
-                INI.Path.ARCHIVESTORE].join('\n'), caption);
-            return false;
+        if (!store || !FSO.FolderExists(store)) {
+            store = '..\\Post\\Store';
+            if (FSO.FolderExists(store)) {
+                INI.Path.ARCHIVESTORE = store;
+            } else {
+                ErrBox(['Не найден каталог архива посылок ПТК ПСД (Path.ARCHIVESTORE)', 
+                    INI.Path.ARCHIVESTORE].join('\n'), caption);
+                return false;
+            }
         }
         var cache = INI.BrowserSettings.cache;
         if (cache) {
@@ -2509,11 +2513,22 @@ function Start() {
         }
 
         AccessOrSQL = 1;
-        var database = FSO.BuildPath(INI.Path.FORM, 'Database\\etalon97.mdb');
+        var database = '..\\Database\\etalon97.mdb';
         if (!FSO.FileExists(database)) {
-            ErrBox(['Не найден файл базы данных по умолчанию', database,
-                'Не задан каталог установки ПТК ПСД (Path.PTKPSD)?'].join('\n'), caption);
-            return false;
+            var etalon = database + '.7z';
+            if (FSO.FileExists(etalon)) {
+                var files = Unpack(etalon);
+                FSO.MoveFile(FSO.BuildPath(INI.temp, files[0]), '..\\Database\\');
+                if (!FSO.FileExists(database)) {
+                    ErrBox(['Не удалось распаковать файл базы данных', database, '',
+                        'Используйте 7-Zip, чтобы распаковать', etalon].join('\n'), caption);
+                    return false;
+                }
+            } else {
+                ErrBox(['Не найден файл базы данных по умолчанию', database,
+                    'Не задан каталог установки ПТК ПСД (Path.FORM)?'].join('\n'), caption);
+                return false;
+            }
         }
         db_connect_string = 'Driver={Microsoft Access Driver (*.mdb)};DBQ={0}'
             .format(database);
@@ -2527,6 +2542,8 @@ function Start() {
         var usrname = INI.User.CurUser;
         if (!usrname) {
             usrname = WshShell.ExpandEnvironmentStrings('%username%');
+        } else if (/%.+?%/i.test(usrname)) {
+            usrname = WshShell.ExpandEnvironmentStrings(usrname);
         }
         document.title += ' [{0}]'.format(usrname);
 
