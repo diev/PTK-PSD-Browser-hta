@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.8"
+    version="6.8.9"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -2388,7 +2388,10 @@ function Start() {
             unpacker = 'C:\\Program Files\\7-Zip\\7z.exe';
         }
         if (!FSO.FileExists(unpacker)) {
-            ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
+            unpacker = 'C:\\Program Files (x86)\\7-Zip\\7z.exe';
+        }
+        if (!FSO.FileExists(unpacker)) {
+            ErrBox('Не найден архиватор\n7z.exe', caption);
             return false;
         }
         var ver = UnpackerVer(unpacker);
