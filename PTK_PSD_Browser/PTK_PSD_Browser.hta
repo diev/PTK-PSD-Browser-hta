@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.8.9"
+    version="6.8.10"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -920,8 +920,8 @@ function PreviewMouseRightClick(event_srcElement) {
     function GetFileOnClicked(obj) {
         if (!obj) { // white space
             return '';
-        } else if (obj.tagName === 'div') {
-            var th = obj.getElementsByTagName('p')[0];
+        } else if (obj.tagName === 'DIV') {
+            var th = obj.getElementsByTagName('P')[0];
             return th ? th.innerText : '';
         } else {
             return GetFileOnClicked(obj.parentNode);
@@ -1006,7 +1006,7 @@ function SaveRace(save_filename) {
 
 // Поиск в кеше документов, в которых встречается упоминание о текущем файле
 function FindRelatedDocs(filename) {
-    filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB|PB\d|BOS\d|BV\d{3})_/i, '')
+    filename = filename.replace(/^KWTFCB_/i, '').replace(/^(IZVTUB|BNP\d|BOS\d|BV\d{3}|BVD\d|BVS\d|PB\d|)_/i, '')
         .replace(/^S[FB][CPFREKT]?/i, '').replace(/\.\w{3}$/, '');
     var arrFind = [], arrFind_cnt = 0;
     var preview_text;
@@ -1941,7 +1941,7 @@ function GetObjPostContent(RowOfDBTable) {
                         continue; // игнорировать эти нечитаемые и служебные файлы
                     }
                     arrFilesList.push(filename);
-                    html_text.push('<div><p id=N>{0}</p>'.format(filename));
+                    html_text.push('<DIV><P id=N>{0}</P>'.format(filename));
                     if (/CB_ES550P_20\d{6}_\d{3}\.xml$/i.test(filename)) { // списки по 550П
                         html_text.push(span.format('содержимое зашифровано'));
                     } else if (/\.(xls|xlsx|doc|docx|tif|dbf|pdf)$/i.test(filename)) {
@@ -1949,17 +1949,17 @@ function GetObjPostContent(RowOfDBTable) {
                     } else {
                         UnpackArchive(FSO.BuildPath(temp, filename), level + 1);
                     }
-                    html_text.push('</div>');
+                    html_text.push('</DIV>');
                 }
             } else if (level === 0) {
                 filename = filepath.match(/[\/|\\]([^\\\/]+)\.\d{6}$/)[1];
-                html_text.push('<div><p id=N>{0}</p>'.format(filename));
+                html_text.push('<DIV><P id=N>{0}</P>'.format(filename));
                 if (/\.(xls|xlsx|doc|docx|tif|pdf)$/i.test(filename)) {
                     html_text.push(span.format('содержимое скрыто'));
                 } else {
                     UnpackArchive(filepath, level + 1);
                 }
-                html_text.push('</div>');
+                html_text.push('</DIV>');
             } else {
                 // ------- содержимое файла ------------------
                 var text = ReadFile(filepath);
@@ -2388,10 +2388,7 @@ function Start() {
             unpacker = 'C:\\Program Files\\7-Zip\\7z.exe';
         }
         if (!FSO.FileExists(unpacker)) {
-            unpacker = 'C:\\Program Files (x86)\\7-Zip\\7z.exe';
-        }
-        if (!FSO.FileExists(unpacker)) {
-            ErrBox('Не найден архиватор\n7z.exe', caption);
+            ErrBox('Не найден архиватор\n{0}'.format(unpacker), caption);
             return false;
         }
         var ver = UnpackerVer(unpacker);
