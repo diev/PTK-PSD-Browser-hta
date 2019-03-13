@@ -54,10 +54,11 @@ Licensed under the [Apache License, Version 2.0].
 [3rd party software]: #3rd-party-software
 [Лицензионное соглашение]: #лицензионное-соглашение
 
-[Wiki]: wiki
-[Идеи]: projects/1
-[Issues]: issues
-[releases]: releases/latest
+[Wiki]: https://github.com/diev/PTK-PSD-Browser-hta/wiki
+[Идеи]: https://github.com/diev/PTK-PSD-Browser-hta/projects/1
+[Issues]: https://github.com/diev/PTK-PSD-Browser-hta/issues
+[releases]: https://github.com/diev/PTK-PSD-Browser-hta/releases/latest
+
 [CHANGELOG]: CHANGELOG.md
 [Apache License, Version 2.0]: LICENSE
 
