@@ -5,16 +5,12 @@ var request=pegasus('https://api.github.com/repos/{{ site.github.repository_nwo 
 </script>
 
 <h2 id="download">{{ site.locales[lang].download }}</h2>
-<div><span id="spinning"></span></div>
 <table id="table-downloads">
-<thead>
 <tr>
 <th>{{ site.locales[lang].relnotes }}</th>
 <th>{{ site.locales[lang].download }}</th>
 <th>{{ site.locales[lang].date }}</th>
 </tr>
-</thead>
-<tbody></tbody>
 </table>
 <div class="loading"><center><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></center></div>
 
@@ -27,11 +23,9 @@ for(var j=0;j<m;j++){var a=r.assets[j];t.tbody.append('<tr><td><a href="'+r.html
 a.name+' <a href="'+a.browser_download_url+'">'+Math.round(a.size/1024).toLocaleString()+'KB</a></td><td>'+
 a.updated_at.substring(0,10)+'</td></tr>');
 }}
-t.tbody.append('<tr><td><a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/">PTK PSD Browser v6.6.0</a></td><td>'+
+t.append('<tr><td><a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/">PTK PSD Browser v6.6.0</a></td><td>'+
 'bin.zip <a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/bin.zip">'+Math.round(507778/1024).toLocaleString()+
 'KB</a></td><td>2017-11-21</td></tr>');
-t.fadeIn();
-document.getElementById('spinning').hide();
 });
 </script>
 </output>{% endif %}
