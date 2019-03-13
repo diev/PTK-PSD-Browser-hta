@@ -18,17 +18,16 @@ var request=pegasus('https://api.github.com/repos/{{ site.github.repository_nwo 
 <div class="loading"><center><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></center></div>
 
 <script>
-request.then(function(data) {
-var t=document.getElementById('table-downloads');
-var n=Math.min(data.length,3);
+request.then(function(data){var s=[];var n=Math.min(data.length,3);
 for(var i=0;i<n;i++){var r=data[i];var b=r.prerelease?' beta':'';var m=r.assets.length;
-for(var j=0;j<m;j++){var a=r.assets[j];t.tbody.append('<tr><td><a href="'+r.html_url+'">'+r.name+'</a>'+b+'</td><td>'+
-a.name+' <a href="'+a.browser_download_url+'">'+Math.round(a.size/1024).toLocaleString()+'KB</a></td><td>'+
-a.updated_at.substring(0,10)+'</td></tr>');
+for(var j=0;j<m;j++){var a=r.assets[j];s.push('<tr><td><a href="',r.html_url,'">',r.name,'</a>',b,'</td><td>',
+a.name,' <a href="',a.browser_download_url,'">',Math.round(a.size/1024).toLocaleString(),'KB</a></td><td>',
+a.updated_at.substring(0,10),'</td></tr>');
 }}
-t.append('<tr><td><a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/">PTK PSD Browser v6.6.0</a></td><td>'+
-'bin.zip <a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/bin.zip">'+Math.round(507778/1024).toLocaleString()+
+s.push('<tr><td><a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/">PTK PSD Browser v6.6.0</a></td><td>',
+'bin.zip <a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/bin.zip">',Math.round(507778/1024).toLocaleString(),
 'KB</a></td><td>2017-11-21</td></tr>');
+document.getElementById('table-downloads').innerHTML=s.join('');
 });
 </script>
 </output>{% endif %}
