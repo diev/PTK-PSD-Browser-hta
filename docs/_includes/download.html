@@ -5,13 +5,16 @@ var request=pegasus('https://api.github.com/repos/{{ site.github.repository_nwo 
 </script>
 
 <h2 id="download">{{ site.locales[lang].download }}</h2>
-<table id="table-downloads">
+<table>
+<thead>
 <tr>
 <th>{{ site.locales[lang].relnotes }}</th>
 <th>{{ site.locales[lang].download }}</th>
 <th>{{ site.locales[lang].date }}</th>
 </tr>
+</thead>
 </table>
+<tbody id="table-downloads"><tbody>
 <div class="loading"><center><a href="{{ site.github.releases_url }}" title="Releases">Releases on GitHub</a></center></div>
 
 <script>
