@@ -19,9 +19,9 @@ s.push('</td>');
 s.push('<td>',a.name,' <a href="',a.browser_download_url,'">',Math.round(a.size/1024).toLocaleString(),'KB</a></td>');
 s.push('<td>',a.updated_at.substring(0,10),'</td></tr>');
 }}
-s.push('<tr><td><a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/tag/v6.6.0/">');
+s.push('<tr><td><a href="https://github.com/{{ site.github.repository_nwo }}/releases/tag/v6.6.0/">');
 s.push('PTK PSD Browser v6.6.0</a></td>');
-s.push('<td>bin.zip <a href="{{ site.github.api_url }}/repos/{{ site.github.repository_nwo }}/releases/download/v6.6.0/bin.zip">');
+s.push('<td>bin.zip <a href="https://github.com/{{ site.github.repository_nwo }}/releases/download/v6.6.0/bin.zip">');
 s.push('496KB</a></td>');
 s.push('<td>2017-11-21</td></tr>');
 
