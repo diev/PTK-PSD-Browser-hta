@@ -2,7 +2,6 @@
 {% assign languages = "ru en" | split: ' ' %}{% assign lang = languages | first %}
 {% capture pagelang %}{{ page.url | remove_first: '/' | split: '/' | first | default: lang }}{% endcapture %}
 {% if languages contains pagelang %}{% assign lang = pagelang %}{% endif %}
-{% page.url == "/" %}{% assign download = true %}{% endif %}
 <html lang="{{ lang }}">
 <head>
 <meta charset="utf-8">
@@ -14,10 +13,4 @@
 <script src="{{ '/assets/js/respond.js' | relative_url }}"></script>
 <!--[if lt IE 9]><script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script><![endif]-->
 <!--[if lt IE 8]><link rel="stylesheet" href="{{ '/assets/css/ie.css' | relative_url }}"><![endif]-->
-{% if download %}
-<script>{% comment %} based on https://github.com/typicode/pegasus {% endcomment %}
-function pegasus(a,b,c){return c=new XMLHttpRequest,c.open("GET",a),a=[],pegasus.timeout&&(c.timeout=pegasus.timeout),c.ontimeout=function(a){b=a},c.onreadystatechange=c.then=function(d,e,f,g){if(d&&d.call&&(a=[,d,e]),b&&a[2]&&a[2](b,c),4==c.readyState&&(f=a[0|c.status/200])){try{g=JSON.parse(c.responseText)}catch(a){g=null}f(g,c)}},c.send(),c}
-var releases=pegasus('https://api.github.com/repos/{{ site.github.repository_nwo }}/releases');
-</script>
-{% endif %}
 {% include favicon.html %}
