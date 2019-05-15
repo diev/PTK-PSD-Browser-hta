@@ -10,11 +10,11 @@ init:
     git config --global core.autocrlf input
 install:
 - ps: >-
-    $HTAFile = 'PTK_PSD_Browser\PTK_PSD_Browser.hta'
+    $AppFile = 'PTK_PSD_Browser\PTK_PSD_Browser.hta'
 
     $RegularExpression = [regex] 'version=\"(\d*\.\d*\.\d*)\"$'
 
-    $FileContent = Get-Content $HTAFile
+    $FileContent = Get-Content $AppFile
 
     foreach($content in $FileContent) {
       $match = [System.Text.RegularExpressions.Regex]::Match($content, $RegularExpression)
