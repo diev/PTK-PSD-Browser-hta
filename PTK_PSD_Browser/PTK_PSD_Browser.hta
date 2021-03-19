@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.9.1"
+    version="6.10.0"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -912,6 +912,16 @@ function ShowContextMenu(pane) {
         '<style>td.icon {font:12pt Wingdings;}</style>'
     );
     switch (pane.name) {
+        case 'Toolbar':
+            var i = 0;
+            for (var param in INI.Tools) {
+                html.push(
+                    '<tr id="menuitem" onClick="parent.Tools(', i++, ');">',
+                    '<td>', param
+                );
+            }
+            break;
+
         case 'PostList':
             html.push(
                 '<tr id="menuitem" onClick="parent.PrintForm();">',
@@ -978,6 +988,11 @@ function ShowContextMenu(pane) {
     ContextMenu.show(e.clientX, e.clientY, width, height, pane.window.document.body);
 }
 
+// Клик ПКМ в панели тулбара
+function ToolbarMouseRightClick(event_srcElement) {
+    ShowContextMenu(Toolbar);
+}
+
 // Клик ПКМ в панели предпросмотра
 function PreviewMouseRightClick(event_srcElement) {
     // Находим имя файла, отображаемого в панели предпросмотра, на котором кликнули ПКМ
@@ -999,6 +1014,30 @@ function PreviewMouseRightClick(event_srcElement) {
     } else { // запуск контекстного меню
         file_clicked_in_preview = GetFileOnClicked(event_srcElement);
         ShowContextMenu(Preview);
+    }
+}
+
+// Выполнение выбранного средства
+function Tools(n) {
+    var i = 0;
+    for (var param in INI.Tools) {
+        if (i++ === n) {
+            var value = INI.Tools[param];
+            var v = value.split(',');
+            switch (v[0]) {
+                case 'explore':
+                    filePathNameTime_selected = v[1];
+                    OpenExplorer();
+                    return;
+                case 'flag':
+                    SaveFile(v[1], 'go!');
+                    MsgBox(['[Tools]', param, '', v[1], 'Флаг записан.'].join('\n'));
+                    return;
+                default:
+                    ErrBox(['[Tools]', param, '', 'Непонятная команда:', value].join('\n'));
+                    return;
+            }
+        }
     }
 }
 
@@ -1174,7 +1213,7 @@ function load_Toolbar() {
     ].join(''));
     
     tb.body.innerHTML = [
-        '<div id=idToolbar disabled>',
+        '<div id=idToolbar>',
         '<div id=link><a href="#" hidefocus ',
         'title="Создать на Рабочем столе\nярлык для запуска программы\n(с Shift - показать сис.инфо)" ',
         'onClick="parent.CreateShortcut(event.shiftKey); return false;"> &#x4F; </a></div> ',
@@ -1209,6 +1248,12 @@ function load_Toolbar() {
         '<object id=idAxCalendar classid="clsid:18cc8d5c-214f-11d6-9dad-897f1e7b434a" style="display:none;"></object>',
         '</div>'
     ].join('');
+
+    tb.onmouseup = function() {
+        if (Toolbar.event.button === 2) {
+            ToolbarMouseRightClick(Toolbar.event.srcElement);
+        }
+    };
 }
 
 // Подготовка контекстного меню
@@ -1237,6 +1282,7 @@ function load_PostList() {
         'tt {font: normal 8pt MS Sans Serif; color:#990000;}',
         'td.icon {width:14pt; font-family:Wingdings; font-size:12pt;}'
     ].join(''));
+
     postlist.onkeydown = function() {
         parent.OnKeydownFromPostList();
     };
@@ -1259,6 +1305,7 @@ function load_Preview() {
         'span {font: normal 8pt MS Sans Serif;}',
         '#idProgress {margin:0; padding:1px; border:0; height:100%; background-color:green; text-align:center; line-height:100%; color:white;}'
     ].join(''));
+
     preview.onmouseup = function() {
         if (Preview.event.button === 2) {
             PreviewMouseRightClick(Preview.event.srcElement);
