@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.10.0"
+    version="6.10.1"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -1026,20 +1026,28 @@ function Tools(n) {
     for (var param in INI.Tools) {
         if (i++ === n) {
             var value = INI.Tools[param];
-            var v = value.split(',');
-            switch (v[0]) {
-                case 'explore':
-                    filePathNameTime_selected = v[1];
-                    OpenExplorer();
-                    return;
-                case 'flag':
-                    SaveFile(v[1], 'go!');
-                    MsgBox(['[Tools]', param, '', v[1], 'Флаг записан.'].join('\n'));
-                    return;
-                default:
-                    ErrBox(['[Tools]', param, '', 'Непонятная команда:', value].join('\n'));
-                    return;
+            var p = value.indexOf(',');
+            var cmd, arg;
+            if (p > -1) {
+                cmd = value.substring(0, p);
+                arg = value.substring(p + 1);
+
+                switch (cmd) {
+                    case 'run':
+                        WshShell.Run(arg);
+                        return;
+                    case 'explore':
+                        filePathNameTime_selected = arg;
+                        OpenExplorer();
+                        return;
+                    case 'flag':
+                        SaveFile(arg, 'go!');
+                        MsgBox(['[Tools]', param, '', arg, 'Флаг записан.'].join('\n'));
+                        return;
+                }
             }
+            ErrBox(['[Tools]', param, '', 'Непонятная команда:', value].join('\n'));
+            return;
         }
     }
 }
