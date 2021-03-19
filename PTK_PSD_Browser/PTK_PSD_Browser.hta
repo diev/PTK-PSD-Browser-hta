@@ -966,6 +966,9 @@ function ShowContextMenu(pane) {
 
     // добавляем эвенты для подсветки текущего пункта меню
     var all = ContextMenu.document.all;
+    if (!all.menuitem) { // no items
+        return;
+    }
     for (var i = 0, l = all.menuitem.length; i < l; i++) {
         all.menuitem[i].onmouseover = function () {
             this.style.background = 'activecaption';
