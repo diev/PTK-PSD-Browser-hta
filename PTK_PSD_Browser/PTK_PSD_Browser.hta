@@ -10,7 +10,7 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.10.2"
+    version="6.10.3"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
@@ -558,9 +558,8 @@ function DecryptSignatura(filepath) {
     var text = ReadFile(filepath);
     if (/^0/.test(text)) {
         text = GetTextFromPKCS7(text);
-        if (text) {
-            return text;
-        }
+    }
+    return text;
 
         /*
         if (FSO.FileExists("C:\\Program Files\\MDPREI\\spki\\spki1utl.exe")) {
@@ -593,13 +592,7 @@ function DecryptSignatura(filepath) {
                     return text;
                 }
             }
-        } else {
-        */
-
-            return 'содержимое зашифровано';
-        //}
-    }
-    return text;
+        }*/
 }
 
 // Определяет является ли файл архивом
@@ -2030,7 +2023,7 @@ function GetObjPostContent(RowOfDBTable) {
                                 return '<i>{0}</i>'.format(s);
                             });
                     }
-                    if (/^NS1\w+\.xml$/i.test(filename)) {
+                    if (/^N(C|S)(1|2)\w+\.xml$/i.test(filename)) {
                         text = text.replace(/получено/,
                             function(s) {
                                 count_ok++;
@@ -2095,12 +2088,14 @@ function GetObjPostContent(RowOfDBTable) {
                     UnpackArchive(filepath, level + 1);
                 }
                 html_text.push('</DIV>');
+            } else if (level > 10) {
+                html_text.push(span.format('содержимое излишней вложенности'));
             } else {
                 // ------- содержимое файла ------------------
                 var text = DecryptSignatura(filepath);
                 if (text) {
                     if (/\.vrb$/i.test(filepath)) {
-                        text = span.format('содержимое должно быть зашифровано');
+                        text = span.format('содержимое зашифровано');
                     } else if (/\.arj$/i.test(filepath)) {
                         UnpackArchive(filepath, level + 1);
                     } else if (/[\x00-\x08\x10-\x1B]/.test(text)) {
@@ -2150,6 +2145,8 @@ function GetObjPostContent(RowOfDBTable) {
                     filename = FSO.GetFileName(filepath);
                     text = HighlightText(text, filename);
                     html_text.push(text);
+                } else {
+                    html_text.push(span.format('содержимое зашифровано'));
                 }
             }
         }
