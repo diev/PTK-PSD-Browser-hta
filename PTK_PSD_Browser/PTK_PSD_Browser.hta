@@ -10,13 +10,13 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.10.3"
+    version="6.10.4"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
 />
 <!--
-Copyright 2010-2021 Сергей Мозеров, Дмитрий Евдокимов
+Copyright 2010-2023 Сергей Мозеров, Дмитрий Евдокимов
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -213,8 +213,13 @@ function GetTextFromPKCS7(s) {
         return;
     } // если найдено, то
     // смещаемся на конец oid.length за байт A0 и читаем байт длины (или 81, или 82, или 83 и далее могут быть)
+    // если байт длины 80, то это кодирование с неопределенной длиной (indefinite form) до завершающих 00 00
+    var indefinite = false;
     var b = s.charCodeAt(pos += 12);
-    if (b === 1027) {        // если 0x81 (129..255) - пропускаем еще 1 байт
+    if (b === 1026) {        // если 0x80 - это кодирование с неопределенной длиной - пропускаем два байта 24 80
+        indefinite = true;
+        pos += 2;
+    } else if (b === 1027) { // если 0x81 (129..255) - пропускаем еще 1 байт
         pos++;
     } else if (b === 8218) { // если 0x82 (256..64К) - пропускаем еще 2 байта
         pos += 2;
@@ -222,7 +227,7 @@ function GetTextFromPKCS7(s) {
         pos += 3;
     } else if (b === 8222) { // если 0x84 (16М..4Г) - пропускаем еще 4 байта
         pos += 4;
-    } else { // (или 1..128, или же невероятные 4Г+ при 0x85 и т.д.)
+    } else { // (или 1..127, или же невероятные 4Г+ при 0x85 и т.д.)
         // return;
     }
 
@@ -245,7 +250,39 @@ function GetTextFromPKCS7(s) {
     } else {                 // читаем байт длины (если менее 0x81, а вот с 4Г+ будет баг)
         len = s.charCode1251(pos - 1);
     }                        // от этой позиции читаем искомый текст вычисленной длины
-    return s.substr(pos, len);
+
+    if (!indefinite) {
+        return s.substr(pos, len);
+    }
+
+    var ss = s.substr(pos, len);
+    pos += len;
+
+    while (indefinite) {
+        b = s.charCodeAt(pos++);
+        if (b === 0) {
+            return ss; // если 00 00 - конец данных //TODO надо проверять два байта подряд!
+        }
+        if (b !== 4) {
+            return; // проверка наличия байта 0x04 нового блока
+        }
+
+        b = s.charCodeAt(pos++);
+        if (b === 1027) { // если 0x81 - читаем другой 1 байт
+            len = s.charCode1251(pos++);
+        } else if (b === 8218) { // если 0x82 - читаем в 2 байтах
+            len = s.charCode1251(pos++) * 256 + s.charCode1251(pos++);
+        } else if (b === 1107) { // если 0x83 - читаем в 3 байтах
+            len = s.charCode1251(pos++) * 65536 + s.charCode1251(pos++) * 256 + s.charCode1251(pos++);
+        } else if (b === 8222) { // если 0x84 - читаем в 4 байтах
+            len = s.charCode1251(pos++) * 16777216 + s.charCode1251(pos++) * 65536 + s.charCode1251(pos++) * 256 + s.charCode1251(pos++);
+        } else {                 // читаем байт длины (если менее 0x81, а вот с 4Г+ будет баг) //TODO с indefinite может быть косяк!
+            len = s.charCode1251(pos - 1);
+        }                        // от этой позиции читаем искомый текст вычисленной длины
+
+        ss += s.substr(pos, len);
+        pos += len;
+    }
 }
 
 // Возвращает данные в файле, удаляя PKCS #7 подпись
@@ -254,6 +291,15 @@ function GetFileFromPKCS7(filename) {
     var data = GetTextFromPKCS7(s);
     if (data) {
         SaveFile(filename, data);
+    }
+}
+
+// Возвращает данные в другом файле, удаляя PKCS #7 подпись
+function ExpFileFromPKCS7(filename, expname) {
+    var s = ReadFile(filename);
+    var data = GetTextFromPKCS7(s);
+    if (data) {
+        SaveFile(expname, data);
     }
 }
 
@@ -517,12 +563,25 @@ function UnpackerVer(unpacker) {
 // Возвращает массив со списком имен распакованных файлов
 function Unpack(filepath) {
     var log = FSO.BuildPath(INI.temp, FSO.GetTempName());
-    if (!/\.\d{6}$/i.test(filepath)) {
-        GetFileFromPKCS7(filepath);
+    var temp = FSO.BuildPath(INI.temp, FSO.GetTempName());
+    //if (!/\.\d{6}$/i.test(filepath)) {
+    //    GetFileFromPKCS7(filepath, temp);
+    //}
+    var text = ReadFile(filepath);
+    if (/^0/.test(text)) {
+        ExpFileFromPKCS7(filepath, temp);
+    } else {
+        FSO.CopyFile(filepath, temp, true);
     }
-    var cmd = INI.unpacker_cmd + ' "{0}") > "{1}" 2<&1'.format(filepath, log);
+    var cmd = INI.unpacker_cmd + ' "{0}") > "{1}" 2<&1'.format(temp, log);
     var err = WshShell.Run(cmd, 0, true);
     if (err !== 0) {
+        if (FSO.FileExists(log)) {
+            FSO.DeleteFile(log, true);
+        }
+        if (FSO.FileExists(temp)) {
+            FSO.DeleteFile(temp, true);
+        }
         return [];
     }
     var text = '';
@@ -548,6 +607,12 @@ function Unpack(filepath) {
         if (!/\.xml\.(ka|sig|sign)$/i.test(filename)) {
             files_list[files_cnt++] = filename;
         }
+    }
+    if (FSO.FileExists(log)) {
+        FSO.DeleteFile(log, true);
+    }
+    if (FSO.FileExists(temp)) {
+        FSO.DeleteFile(temp, true);
     }
     return files_list;
 }
