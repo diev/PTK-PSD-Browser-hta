@@ -59,7 +59,7 @@ deploy:
   release: PTK PSD Browser v$(version)
   description: 'Build #$(appveyor_build_number) by AppVeyor $(BuildDate): $(appveyor_repo_commit_message) ([Changelog](https://github.com/$(appveyor_repo_name)/blob/master/CHANGELOG.md))\nSee docs on $(Site)\n\n[bin.zip](https://github.com/$(appveyor_repo_name)/releases/download/v6.6.0/bin.zip) if required.'
   auth_token:
-    secure: kJZoK4vBdY0/mcPzg6YP99JKpkrRCbm4RNnxJ0JHMH8QFc+wRA5aDZgsFuHR50ay
+    secure: Oyf/ccEamPwfWLPEZQlf9hPfhGGXu3Kqnmt9saeaTMH2OE6OR0tAt2JkDl/FRR9o
   artifact: AppZip
   force_update: true
 

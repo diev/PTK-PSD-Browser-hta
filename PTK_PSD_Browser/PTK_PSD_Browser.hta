@@ -10,13 +10,13 @@
     scroll="no"
     contextMenu="no"
     singleinstance="no"
-    version="6.10.4"
+    version="6.10.5"
     author="mozers™, mozers*mail.ru"
     coauthor="Dmitrii Evdokimov, diev*mail.ru (this version)"
     update="http://diev.github.io/PTK-PSD-Browser-hta"
 />
 <!--
-Copyright 2010-2023 Сергей Мозеров, Дмитрий Евдокимов
+Copyright 2010-2024 Сергей Мозеров, Дмитрий Евдокимов
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -2198,8 +2198,8 @@ function GetObjPostContent(RowOfDBTable) {
                         }
                     } else {
                         // только такие вложенные в архивы файлы все еще приходят в кодировке 866:
-                        //if ((/(\\BV\d{3}_.+?\.txt|\\BOS\d_.+?\.txt|\\KWTFCB_.+?\.txt|\\TL.+?\.txt|\\IA.+?\.log|\\PB\d_.+?\.txt|\\UVKESDT.+?\.txt|\\ZAS1.+?\.txt|\.0[1-9][0-9])$/i)
-                        if ((/\\UVKESDT.+?\.txt$/i)
+                        //if ((/(\\BV\d{3}_.+?\.txt|\\BOS\d_.+?\.txt|\\KWTFCB_.+?\.txt|\\TL.+?\.txt|\\IA.+?\.log|\\PB\d_.+?\.txt|\\UVKES.+?\.txt|\\ZAS1.+?\.txt|\.0[1-9][0-9])$/i)
+                        if ((/\\UVKES.+?\.txt$/i)
                             .test(filepath)) {
                             text = Recode(text, 'cp866', 'windows-1251');
                         }
